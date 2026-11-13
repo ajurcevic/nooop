@@ -193,10 +193,10 @@ class NoopApplication : Application() {
     }
 
     /** The WHOOP family last seen advertising, persisted by [WhoopBleClient.persistSelectedModel] under
-     *  "noop.selectedWhoopModel" in the shared noop_prefs store. Defaults to [WhoopModel.WHOOP4] when
+     *  "noop.selectedWhoopModel" in the shared noop_prefs store. Defaults to [WhoopModel.WHOOP5_MG] when
      *  unset or unparseable (the historical connect() default), so a fresh install is unchanged. Used to
      *  reconnect on the right service after a WHOOP->WHOOP switch (#74). */
-    private fun persistedWhoopModel(): WhoopModel = persistedWhoopModelOrNull() ?: WhoopModel.WHOOP4
+    private fun persistedWhoopModel(): WhoopModel = persistedWhoopModelOrNull() ?: WhoopModel.WHOOP5_MG
 
     /**
      * The persisted family, or null when nothing has been recorded yet.

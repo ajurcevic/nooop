@@ -66,31 +66,15 @@ class HrEmptyMessageTest {
     }
 
     /**
-     * Source tripwires. The Apple twin's selection sits in a SwiftUI computed property with no JVM
-     * reach, and the superseded copy lives in resource files no Kotlin test touches, so both are
+     * Source tripwires. The superseded copy lives in resource files no Kotlin test touches, so it is
      * asserted from here, the suite that runs on every push.
      */
     @Test fun neitherPlatformStillNamesAnUncheckedCause() {
         val userDir = File(System.getProperty("user.dir") ?: ".")
         val root = listOf(userDir, File(userDir, ".."), File(userDir, "../.."))
-            .firstOrNull { File(it, "Strand/Screens/TodayView.swift").isFile }
+            .firstOrNull { File(it, "android/app/src/main/java").isDirectory }
             ?: error("could not locate the repo root from ${userDir.absolutePath}")
         fun source(path: String) = File(root, path).readText()
-
-        val apple = source("Strand/Screens/TodayView.swift")
-        assertTrue(
-            "the Apple card must choose its empty-state heading through hrEmptyTitle",
-            apple.contains("subtitle: hrEmptyTitle,"),
-        )
-        assertTrue(
-            "the Apple heading must split the one-block case out of the empty case",
-            apple.contains("if hrPoints.count == 1 { return String(localized: " +
-                "\"One five-minute block of heart rate today\") }"),
-        )
-        assertFalse(
-            "the Apple card must not claim the strap is calibrating",
-            apple.contains("Calibrating, no heart rate banked yet today"),
-        )
 
         // The call site is what makes the day-count rule real: the function cannot see which list it
         // was handed, so a switch to the windowed subset would pass every case above while putting the

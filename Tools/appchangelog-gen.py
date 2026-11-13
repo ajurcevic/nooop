@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Generate the in-app "What's New" entry (AppChangelog) for BOTH platforms from a release file's
-front-matter, so the Kotlin and Swift entries stay byte-identical and the version bump is automatic.
+"""Generate the in-app "What's New" entry (AppChangelog.kt) from a release file's front-matter, so
+the version bump is automatic.
 
 A per-version notes file docs/releases/v<VER>.md may carry a YAML front-matter block:
 
@@ -22,14 +22,12 @@ A per-version notes file docs/releases/v<VER>.md may carry a YAML front-matter b
     <the full release notes — the GitHub release body; the front-matter is stripped there>
 
 Running `Tools/appchangelog-gen.py docs/releases/v8.2.2.md` prepends the generated Release entry to
-`releases` in AppChangelog.kt AND AppChangelog.swift and bumps CURRENT_VERSION/currentVersion to that
-version. Idempotent: if the version is already the newest entry it only re-checks the constant. The
+`releases` in AppChangelog.kt and bumps CURRENT_VERSION to that version. Idempotent: if the version is already the newest entry it only re-checks the constant. The
 version comes from the filename (v8.2.2.md -> 8.2.2).
 
 ANDROID TITLE LOCALIZATION (#878). Compose has no auto-extraction, so a raw Kotlin `title = "..."`
 is a hardcoded literal: the i18n gate fails on it, and because that gate audits the WHOLE tree the
-failure red-checks every open PR on a line none of them touched. Apple is unaffected (SwiftUI
-auto-extracts into the catalog), so the Swift entry keeps its literal title.
+failure red-checks every open PR on a line none of them touched.
 
 This script therefore emits `title = uiString(R.string.<key>)` for Kotlin and writes the string
 itself, using the repo's key scheme: `l10n_app_changelog_<first 6 alnum words, lowercased>_<sha1 of
@@ -48,7 +46,6 @@ import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 KT = ROOT / "android/app/src/main/java/com/noop/ui/AppChangelog.kt"
-SW = ROOT / "Strand/System/AppChangelog.swift"
 RES = ROOT / "android/app/src/main/res"
 
 #: The locale resource dirs the i18n gate treats as the focus set. `values` is the English source.
@@ -125,10 +122,6 @@ def esc_kt(s: str) -> str:
     return s.replace("\\", "\\\\").replace('"', '\\"').replace("$", "\\$")
 
 
-def esc_sw(s: str) -> str:
-    return s.replace("\\", "\\\\").replace('"', '\\"')
-
-
 def kt_block(ver, wn):
     items = "\n".join(f'                "{esc_kt(i)}",' for i in wn["items"])
     # #878: a resource reference, never a literal — see the module docstring.
@@ -144,25 +137,10 @@ def kt_block(ver, wn):
     )
 
 
-def sw_block(ver, wn):
-    items = "\n".join(f'                "{esc_sw(i)}",' for i in wn["items"])
-    return (
-        "        Release(\n"
-        f'            version: "{ver}",\n'
-        f'            title: "{esc_sw(wn["title"])}",\n'
-        f'            date: "{esc_sw(wn["date"])}",\n'
-        "            items: [\n"
-        f"{items}\n"
-        "            ]\n"
-        "        ),\n"
-    )
-
-
 def apply(path, anchor, block, ver, const_re, const_new, title_line=None):
     """Insert `block` at `anchor`, or refresh an existing entry for `ver`, then bump the constant.
 
-    `title_line` is the platform's rendered title assignment (Kotlin's `title = uiString(...)`, Swift's
-    `title: "..."`). It is re-applied to an entry that already exists, because re-running after editing
+    `title_line` is the rendered title assignment (`title = uiString(...)`). It is re-applied to an entry that already exists, because re-running after editing
     the headline is a normal thing to do during a release — and without this the two halves disagree:
     `write_title_strings` would mint and write the NEW key while the entry kept referencing the old one,
     so the card showed the previous headline and the new key sat orphaned in six locale files. Found by
@@ -206,9 +184,6 @@ def main():
     apply(KT, "val releases: List<Release> = listOf(\n", kt_block(ver, wn), ver,
           r'(const val CURRENT_VERSION = ")[^"]*(")', rf'\g<1>{ver}\g<2>',
           title_line=f'title = uiString(R.string.{title_key(wn["title"])}),')
-    apply(SW, "static let releases: [Release] = [\n", sw_block(ver, wn), ver,
-          r'(static let currentVersion = ")[^"]*(")', rf'\g<1>{ver}\g<2>',
-          title_line=f'title: "{esc_sw(wn["title"])}",')
     print("appchangelog-gen: done. Review the diff, then compile.")
 
 

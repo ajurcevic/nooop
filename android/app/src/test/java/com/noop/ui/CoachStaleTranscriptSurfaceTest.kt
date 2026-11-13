@@ -18,7 +18,7 @@ class CoachStaleTranscriptSurfaceTest {
     private fun repoRoot(): File {
         val userDir = File(System.getProperty("user.dir") ?: ".")
         val candidates = listOf(userDir, File(userDir, ".."), File(userDir, "../.."))
-        return candidates.firstOrNull { File(it, "Strand/AI/AICoach.swift").isFile }
+        return candidates.firstOrNull { File(it, "android/app/src/main/java").isDirectory }
             ?: error("could not locate the repo root from ${userDir.absolutePath}")
     }
 
@@ -46,19 +46,6 @@ class CoachStaleTranscriptSurfaceTest {
         assertTrue("retiring must precede the brief, or the brief is refused", retire < brief)
     }
 
-    @Test
-    fun `ios retires the stale transcript between the restore and the brief`() {
-        val view = source("Strand/Screens/CoachView.swift")
-        val load = view.indexOf("await coach.loadPersistedMessagesIfNeeded()")
-        val retire = view.indexOf("coach.retireStaleConversationIfNeeded()")
-        val brief = view.indexOf("coach.surfaceScheduledBrief(")
-        assertTrue("CoachView must restore the persisted transcript", load >= 0)
-        assertTrue("CoachView must retire a transcript from an earlier day", retire >= 0)
-        assertTrue("CoachView must offer the scheduled brief", brief >= 0)
-        assertTrue("retiring must follow the restore, or it retires nothing", load < retire)
-        assertTrue("retiring must precede the brief, or the brief is refused", retire < brief)
-    }
-
     /**
      * A day whose only message is its brief must still date the transcript. Left null, the day rule
      * reads "nothing sent yet, never stale", so the brief-only transcript is never retired and the
@@ -73,14 +60,6 @@ class CoachStaleTranscriptSurfaceTest {
         assertTrue(
             "consumeScheduledBriefIfAny must set conversationDay",
             vm.contains("conversationDay = LocalDate.now().toEpochDay()"),
-        )
-        val engine = body(
-            source("Strand/AI/AICoach.swift"),
-            "func surfaceScheduledBrief(",
-        )
-        assertTrue(
-            "surfaceScheduledBrief must set conversationDay",
-            engine.contains("conversationDay = Self.localEpochDay()"),
         )
     }
 }

@@ -199,23 +199,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _activeIsWhoop = MutableStateFlow(true)
     val activeIsWhoop: StateFlow<Boolean> = _activeIsWhoop.asStateFlow()
 
-    /** Whether the ACTIVE registry device is an Oura ring (#2305) — the Live console's ring-only row.
-     *  Same registry read as [activeIsWhoop], so the two verdicts can never disagree; the opposite default
-     *  (false), because a ring affordance for an unresolvable device would reconnect nothing. */
-    private val _activeIsOura = MutableStateFlow(false)
-    val activeIsOura: StateFlow<Boolean> = _activeIsOura.asStateFlow()
-
-    /** The active Oura ring's own charge, for the Live Console (#2075). Mirrors [ouraWearState]. */
-    val ouraBatteryPct: StateFlow<Int?> get() = noopApp.sourceCoordinator.ouraBatteryPct
-
-    /** The active ring's link phase, for the Live Console's ring status line + reconnect (#2305). */
-    val ouraLinkPhase: StateFlow<com.noop.ble.OuraLiveSource.LinkPhase>
-        get() = noopApp.sourceCoordinator.ouraLinkPhase
-
-    /** Reconnect the active ring on the user's request from the Live console (#2305). Routed through the
-     *  coordinator so it can only ever reach the ring that is the live source. */
-    fun reconnectOuraRing() = noopApp.sourceCoordinator.reconnectActiveRing()
-
     /** WHOOP-style day streak (#569): consecutive local days that carry a Charge score, computed on
      *  device from the merged daily metrics. A day "qualifies" when its [com.noop.data.DailyMetric] has a
      *  non-null `recovery`. Pure math lives in [com.noop.analytics.StreakCalculator] (Swift/Kotlin twin). */
@@ -271,7 +254,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             _activeDeviceName.value = active?.let { displayName(it) }
             // Same read, same row: the name and the "is it a WHOOP" verdict cannot disagree (#2075).
             _activeIsWhoop.value = LiveConsoleReadout.activeIsWhoop(all, active?.id)
-            _activeIsOura.value = LiveConsoleReadout.activeIsOura(all, active?.id)   // #2305
         }
     }
 
@@ -305,105 +287,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             noopApp.deviceRegistry.forget(id)
     }
 
-    /**
-     * A DISCOVERY-ONLY [StandardHrSource] for the Add-a-strap wizard. It runs its OWN scan and never
-     * connects or persists here — the [SourceCoordinator] owns connection once a strap becomes active.
-     * Both closures are no-ops; the wizard only reads its `discovered` / `scanning` StateFlows. Mirrors
-     * the macOS AddDeviceSheet's throwaway StandardHRSource(persist: { _ in }).
-     */
-    fun makeStrapScanner(): com.noop.ble.StandardHrSource =
-        com.noop.ble.StandardHrSource(
-            context = appContext,
-            deviceId = "scan-preview",
-            liveSink = { _, _ -> },
-            // Discovery-only scanner: nothing is persisted, so the outcome callback never fires.
-            persist = { _, _, _ -> },
-            // Route the throwaway scanner's diagnostics into the SAME exported strap log the active path
-            // uses (issue #421 parity), so a tester's wizard scan is captured. The source self-prefixes
-            // "HR-strap: "; [externalLog] redacts addresses. Privacy-safe: statuses / counts only.
-            log = { ble.externalLog(it) },
-        )
-
-    /**
-     * A DISCOVERY-ONLY [com.noop.ble.FtmsSource] for the Add-gym-equipment wizard. Runs its OWN scan and
-     * never connects here — the [SourceCoordinator] owns connection once an FTMS machine becomes active.
-     * The sinks are no-ops; the wizard only reads its `discovered` / `scanning` StateFlows. Mirrors the
-     * macOS AddDeviceWizard's throwaway FTMSSource(feedsLive: false).
-     */
-    fun makeFtmsScanner(): com.noop.ble.FtmsSource =
-        com.noop.ble.FtmsSource(
-            context = appContext,
-            liveSink = { },
-            // Wizard scan diagnostics → the SAME exported strap log the active path uses (issue #421).
-            // The source self-prefixes "FTMS: "; [externalLog] redacts addresses. Statuses / counts only.
-            log = { ble.externalLog(it) },
-        )
-
-    /**
-     * A DISCOVERY-ONLY EXPERIMENTAL [com.noop.ble.HuamiHrSource] for the Add-Amazfit/Mi-Band wizard. Runs
-     * its OWN scan and never connects/persists here — the [SourceCoordinator] owns connection once a Huami
-     * device becomes active. The sinks are no-ops; the wizard only reads its `discovered` / `scanning`
-     * StateFlows. Mirrors the macOS AddDeviceWizard's throwaway HuamiHRSource(feedsLive: false).
-     */
-    fun makeHuamiScanner(): com.noop.ble.HuamiHrSource =
-        com.noop.ble.HuamiHrSource(
-            context = appContext,
-            deviceId = "scan-preview",
-            liveSink = { },
-            // Wizard scan diagnostics → the SAME exported strap log the active path uses (issue #421).
-            // The source self-prefixes "Huami: "; [externalLog] redacts addresses. Statuses / counts only.
-            log = { ble.externalLog(it) },
-        )
-
-    /**
-     * A DISCOVERY-ONLY EXPERIMENTAL [com.noop.ble.OuraLiveSource] for the Add-Oura wizard. Runs its OWN
-     * scan (it owns its OWN scanner + GATT, never the WHOOP client) and never persists or feeds live state
-     * here - the [SourceCoordinator] owns connection once the ring becomes active. The live sink / persist
-     * are no-ops and the auth key is null (discovery has no need to authenticate), so the scanner only ever
-     * surfaces nearby rings via its `discovered` / `scanning` StateFlows. Mirrors the macOS
-     * AddDeviceWizard's discovery-only OuraLiveSource (deviceId "scan-preview", no-op persist).
-     *
-     * A concrete [com.noop.oura.OuraRingGen] is required by the constructor; gen3 (the verified-corpus
-     * default) is fine for discovery since the wizard's pick step confirms the real generation from the
-     * model the user selects. The MTU clamp / command set never run during a scan-only session.
-     */
-    fun makeOuraScanner(): com.noop.ble.OuraLiveSource =
-        com.noop.ble.OuraLiveSource(
-            context = appContext,
-            deviceId = "scan-preview",
-            ringGen = com.noop.oura.OuraRingGen.GEN3,
-            liveSink = { _, _ -> },
-            authKey = { null },
-            persist = { _, _ -> },
-            // Route the scanner's diagnostics into the SAME exported strap log the active path uses
-            // (issue #421 parity), so a tester's Oura wizard scan is captured. The source self-prefixes
-            // "Oura: "; [externalLog] redacts addresses. Statuses / service UUIDs / counts only, never a
-            // device address.
-            log = { ble.externalLog(it) },
-        )
-
     // MARK: - Add-a-device wizard (multi-WHOOP, MW-4) — thin pass-throughs to the BLE client.
 
     /** WHOOP straps surfaced by the wizard's present-scan ([presentWhoopScan]), WITHOUT auto-connecting.
      *  The wizard observes this directly so its pick list updates as straps appear. */
     val discoveredWhoops: StateFlow<List<com.noop.ble.WhoopBleClient.DiscoveredWhoop>> = ble.discoveredWhoops
-
-    /** The active Oura ring's live adopt outcome, mirrored from the [com.noop.ble.SourceCoordinator]. The
-     *  Add-Oura wizard observes this to leave its Adopting step: streaming -> success/close, failed -> the
-     *  honest Failed step. Idle whenever no Oura source is live. Mirrors Swift `AppModel.ouraAdoptPhase`. */
-    val ouraAdoptPhase: StateFlow<com.noop.ble.OuraLiveSource.AdoptPhase> =
-        noopApp.sourceCoordinator.ouraAdoptPhase
-
-    /** The active Oura ring's honest needs-pairing message (null when none), mirrored from the
-     *  [com.noop.ble.SourceCoordinator]. The wizard treats a non-null value during Adopting as an honest
-     *  failure too. Mirrors Swift `AppModel.ouraNeedsPairing`. */
-    val ouraNeedsPairing: StateFlow<String?> = noopApp.sourceCoordinator.ouraNeedsPairing
-
-    /** The active Oura ring's live wear/charge state (worn / charging / off), or null when no Oura source
-     *  is live. The Live screen prefers this for its On-wrist / Off-wrist read (#628). Mirrors iOS
-     *  `LiveState.ouraWearState`. */
-    val ouraWearState: StateFlow<com.noop.oura.OuraWearState?> =
-        noopApp.sourceCoordinator.ouraWearState
 
     /** #656: a journal day-offset (daysBack; -1 = Tomorrow) the Today journal widget asks the journal
      *  (Insights) to open at, so tapping a SPECIFIC day's bar lands on THAT day instead of always today.
@@ -443,28 +331,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         addPairedDevice(device)
         if (makeActive) setActiveDevice(device.id)
     }
-
-    /**
-     * Store the 16-byte Oura application install key for a ring (keyed by its registry device id) in the
-     * encrypted, Keystore-backed [com.noop.ble.OuraInstallKeyStore]. The Add-Oura wizard's Advanced path
-     * calls this with the user-supplied key so the live [com.noop.ble.OuraLiveSource]'s authKey closure can
-     * read it on the next connect. The key is unsigned bytes 0..255; a wrong-length key is rejected by the
-     * store. Mirrors the macOS OuraKeyStore.save. The key is never logged.
-     */
-    fun saveOuraInstallKey(deviceId: String, key: IntArray): Boolean =
-        com.noop.ble.OuraInstallKeyStore.save(appContext, deviceId, key)
-
-    /**
-     * Arm (or clear) the one-shot adopt-intent for an Oura ring (keyed by its registry device id). The
-     * Add-Oura wizard's DESTRUCTIVE factory-reset-and-adopt path calls this with true AFTER its
-     * irreversible-consent gate and second destructive confirm, BEFORE registering the ring active, so the
-     * [com.noop.ble.SourceCoordinator] consumes it when it builds the live source and permits the dangerous
-     * post-factory-reset key install for that one session (OURA_PROTOCOL.md s3.2). The Advanced-key path
-     * NEVER calls this (it authenticates with the user's own key and must not reset the ring). One-shot:
-     * the source consumes it on the next connect.
-     */
-    fun armOuraAdopt(deviceId: String) =
-        com.noop.ble.OuraInstallKeyStore.setPendingAdopt(appContext, deviceId, true)
 
     // Body profile (age/sex/weight/height + HR-max override) — the same SharedPreferences
     // store the Settings screen edits. Feeds the on-device scorer's HRmax/zones/calories.
@@ -1146,7 +1012,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                             batteryPct = LiveConsoleReadout.batteryPercent(
                                 activeIsWhoop = ble.activeDeviceIsWhoop,
                                 whoopPct = live.batteryPct,
-                                ringPct = noopApp.sourceCoordinator.ouraBatteryPct.value,
+                                ringPct = null,
                             ),
                             connected = live.connected,
                             stressSeries = stressCurve?.points ?: emptyList(),
@@ -2501,24 +2367,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         ble.debugLogcat = enabled
     }
 
-    /** #polar-debug: toggle the Polar strap-identity diagnostic. Read live at connect by the strap source
-     *  (via [SourceCoordinator]); no restart needed. Diagnostic-only — nothing gates behaviour on it. */
-    fun setPolarDebugLogging(enabled: Boolean) {
-        NoopPrefs.setPolarDebugLogging(appContext, enabled)
-    }
-
-    /** #1284 residual 3: toggle EXPERIMENTAL Oura 0x49-onset keying. Read live at persist by the Oura source
-     *  (via [SourceCoordinator]); no restart needed. Off = the shipped end-anchored persist. */
-    fun setOuraOnsetKeying(enabled: Boolean) {
-        NoopPrefs.setOuraOnsetKeying(appContext, enabled)
-    }
-
-    /** Packed-notification A/B: toggle the EXPERIMENTAL `ff` SetNotification mask. Read by the Oura source
-     *  once per connect (via [SourceCoordinator]), so it takes effect at the next connect, not the current one. */
-    fun setOuraNotifyMaskFull(enabled: Boolean) {
-        NoopPrefs.setOuraNotifyMaskFull(appContext, enabled)
-    }
-
     /** #1121: toggle the opt-in rolling "detailed capture" strap-log file. Persisted so it survives a
      *  process kill (re-armed in [init] below). */
     fun setDetailedCapture(enabled: Boolean) {
@@ -3399,15 +3247,16 @@ internal fun elapsedClock(elapsedS: Long): String {
  *
  * The same precedence, for the same reason, is already reasoned out in `AndroidDiagnostics.reportedModel`,
  * which picks `detected ?: remembered` so a report cannot invent a model. Note that `NoopPrefs.lastDevice`
- * widens a MISSING family to WHOOP4 before it ever reaches [remembered], so a null here means "no strap
+ * widens a MISSING family to WHOOP5_MG before it ever reaches [remembered], so a null here means "no strap
  * remembered at all", never "remembered without a family" — this function cannot recover the difference
- * and does not try, because both land on WHOOP4 anyway.
+ * and does not try, because both land on WHOOP5_MG anyway.
  *
- * WHOOP4 remains the last resort so a fresh install behaves as it always has.
+ * WHOOP5_MG is the last resort: this fork targets the WHOOP 5.0 / MG strap, so a fresh install scans
+ * for it first. A WHOOP 4.0 still works; the scan's fallback rotation finds the other family.
  *
  * Pure on purpose: both inputs are read from SharedPreferences at the call sites, and there is no
  * Robolectric in this module, so the decision itself is only testable once it is separated from the
  * `Context` that supplies it.
  */
 internal fun resolveSelectedModel(recorded: WhoopModel?, remembered: WhoopModel?): WhoopModel =
-    recorded ?: remembered ?: WhoopModel.WHOOP4
+    recorded ?: remembered ?: WhoopModel.WHOOP5_MG

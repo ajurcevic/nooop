@@ -84,24 +84,6 @@ class StepsTranslationsTests(unittest.TestCase):
                         self.assertTrue(translated.text)
                         self.assertEqual(signature(original.text), signature(translated.text), name)
 
-    def test_ios_all_shipped_locales(self):
-        catalog = json.loads(
-            (ROOT / "Strand/Resources/Localizable.xcstrings").read_text(),
-            object_pairs_hook=unique_object,
-        )
-        locales = set().union(*(set(entry.get("localizations", {}))
-                                for entry in catalog["strings"].values()))
-        locales.discard(catalog["sourceLanguage"])
-        for key in IOS_KEYS:
-            entry = catalog["strings"][key]
-            self.assertTrue(locales <= set(entry["localizations"]), key)
-            for locale in locales:
-                with self.subTest(key=key, locale=locale):
-                    unit = entry["localizations"][locale]["stringUnit"]
-                    self.assertEqual(unit["state"], "translated")
-                    self.assertTrue(unit["value"])
-                    self.assertEqual(signature(key), signature(unit["value"]))
-
 if __name__ == "__main__":
     unittest.main()
 

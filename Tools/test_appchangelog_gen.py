@@ -81,17 +81,11 @@ class EmittedBlockTests(unittest.TestCase):
         block = acg.kt_block("9.2.1", self.WN)
         self.assertNotRegex(block, r'title\s*=\s*"')
 
-    def test_swift_title_stays_a_literal(self):
-        """SwiftUI auto-extracts into the catalog, so Apple needs no reference — and changing it
-        would break the baseline that tracks these titles."""
-        block = acg.sw_block("9.2.1", self.WN)
-        self.assertIn(f'title: "{SHIPPED_TITLE}"', block)
-
-    def test_items_stay_literals_on_both_platforms(self):
+    def test_items_stay_literals(self):
         """Only the title moved. Items are long-form prose the gate does not require extracting, and
         turning them into 60 resources per release was never the ask."""
-        for block in (acg.kt_block("9.2.1", self.WN), acg.sw_block("9.2.1", self.WN)):
-            self.assertIn('"**One.** A thing."', block)
+        block = acg.kt_block("9.2.1", self.WN)
+        self.assertIn('"**One.** A thing."', block)
 
 
 class TitleRefreshTests(unittest.TestCase):

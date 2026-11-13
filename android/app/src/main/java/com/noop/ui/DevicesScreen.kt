@@ -121,8 +121,6 @@ fun DevicesScreen(
 ) {
     val scope = rememberCoroutineScope()
     val live by viewModel.live.collectAsStateWithLifecycle()
-    // #2075: a ring reports its OWN charge and does not funnel into live.batteryPct.
-    val ouraBatteryPct by viewModel.ouraBatteryPct.collectAsStateWithLifecycle()
     // #592 extended-battery probe result — non-null (incl. the " waiting" sentinel) shows the result dialog.
     val batteryProbeResult by viewModel.extendedBatteryProbe.collectAsStateWithLifecycle()
     // #690 body-location probe result — same non-null-shows-the-dialog contract.
@@ -260,7 +258,7 @@ fun DevicesScreen(
                     LiveConsoleReadout.batteryPercent(
                         activeIsWhoop = SourceCoordinator.isWhoop(device),
                         whoopPct = live.batteryPct,
-                        ringPct = ouraBatteryPct,
+                        ringPct = null,
                     ) else null,
                 liveBatteryMv = if (device.status == DeviceStatus.active.name && live.connected)
                     live.batteryMv else null,
@@ -1776,33 +1774,6 @@ private fun deviceProfile(device: PairedDeviceRow): DeviceCapabilityProfile {
             footnote = "Experimental: live heart rate where the band exposes it. Some bands need a pairing " +
                 "we can't do yet. NOOP will say so honestly and never show a made-up number. No sleep, " +
                 "recovery, skin temp, SpO₂ or steps.",
-        )
-    }
-    // EXPERIMENTAL locally-adopted Oura ring (gen 3/4/5). The gen is carried on `model` ("Oura Ring
-    // 3/4/5") and recovered with OuraRingGen.from(model). NOOP reads the ring's OWN raw signals + open
-    // HRV/sleep-phase tags and computes its own Charge/Effort/Rest; it NEVER reads Oura's encrypted
-    // Readiness/Sleep scores, and claims NO absolute SpO₂ %. Estimates carry "*"; a signal it can't read
-    // stays "-". Per-gen copy + the canonical Beta caveat (spec
-    // docs/superpowers/specs/2026-06-29-oura-onboarding-ux.md s3/s4). Mirrors the macOS Oura branch.
-    if (device.sourceKind == SourceKind.oura.name) {
-        val gen = com.noop.oura.OuraRingGen.from(device.model)
-        // gen3/4 are verified-shape; gen5 ("newer") carries the least-proven caveat.
-        val newer = gen == com.noop.oura.OuraRingGen.GEN5
-        val captures = if (newer)
-            "Heart rate* · HRV* · Sleep* · Resting HR* · Skin temp* · Battery*"
-        else
-            "Heart rate · HRV* · Sleep · Resting HR · Skin temp* · Battery"
-        val powers = if (newer)
-            "Powers Effort now; Charge and Rest once enough nights and decode are confirmed"
-        else
-            "Powers Charge, Effort, Rest and Sleep"
-        return DeviceCapabilityProfile(
-            displayModel = "${gen.displayName} (Beta)",
-            captures = captures,
-            powers = powers,
-            footnote = "Beta. * is an on-device estimate. Skin temp is a trend versus your own baseline, " +
-                "and HRV needs you to be still. No Oura Readiness or SpO₂ " +
-                "percentage comes off the ring (import an Oura file for those).",
         )
     }
     // Generic heart-rate strap: live HR + R-R only; drives the live console + Effort, nothing nightly.

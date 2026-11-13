@@ -44,11 +44,6 @@ class RawDataCollectorParityTest {
         }
     }
 
-    @Test fun androidAndAppleOracleCopiesAreByteIdentical() {
-        val apple = File(repoRoot(), "StrandTests/Resources/raw_data_collector_parity.json")
-        assertEquals(oracleBytes.toList(), apple.readBytes().toList())
-    }
-
     /**
      * The raw-IMU fail-safe must not act on a live MG ECG record (#2846). Type 43 is `REALTIME_RAW_DATA`,
      * which an ECG capture also arrives under, so without the exemption a capture draws a

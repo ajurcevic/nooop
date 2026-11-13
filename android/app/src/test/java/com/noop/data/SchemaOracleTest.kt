@@ -257,31 +257,6 @@ class SchemaOracleTest {
         loadRoomSchema(oracle.getInt("roomVersion"))
     }
 
-    /**
-     * The Android and Swift copies of the oracle MUST be byte-identical, so neither platform can edit its
-     * fixture without the other. Skips gracefully if the Swift tree isn't present.
-     */
-    @Test
-    fun oracleCopiesAreIdentical() {
-        val androidBytes = javaClass.classLoader!!
-            .getResourceAsStream("schema_oracle.json")!!
-            .use { it.readBytes() }
-
-        // Gradle runs unit tests with the module dir (android/app) or repo root as user.dir; try both.
-        val userDir = File(System.getProperty("user.dir") ?: ".")
-        val swiftFile = listOf(
-            File(userDir, "Packages/WhoopStore/Tests/WhoopStoreTests/Resources/schema_oracle.json"),
-            File(userDir, "../../Packages/WhoopStore/Tests/WhoopStoreTests/Resources/schema_oracle.json"),
-        ).firstOrNull { it.exists() }
-        org.junit.Assume.assumeTrue(
-            "swift oracle copy not found from user.dir=$userDir — skipping cross-copy identity check",
-            swiftFile != null,
-        )
-        assertTrue(
-            "schema_oracle.json copies differ — keep the Android and Swift copies in lockstep",
-            androidBytes.contentEquals(swiftFile!!.readBytes()),
-        )
-    }
 }
 
 private fun JSONArray?.orEmptyArray(): JSONArray = this ?: JSONArray()

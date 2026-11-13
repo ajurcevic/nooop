@@ -343,9 +343,6 @@ fun TodayScreen(
     // source streams, and the strap's percentage is never cleared, so under an active ring both halves of
     // the old gate passed and Today drew the strap's charge. Same seam the Devices list already uses.
     val activeIsWhoop by viewModel.activeIsWhoop.collectAsStateWithLifecycle()
-    // The ring's OWN charge while a ring source is live (null otherwise, #2075), so the header can draw the
-    // active ring's battery instead of nothing. Changes a few times a session, no per-tick churn.
-    val ouraBatteryPct by viewModel.ouraBatteryPct.collectAsStateWithLifecycle()
     val v5Signals by viewModel.v5Signals.collectAsStateWithLifecycle()
     val cycleEnabled by viewModel.cycleTrackingEnabled.collectAsStateWithLifecycle()
     val cycleHidden by viewModel.cycleAwarenessHidden.collectAsStateWithLifecycle()
@@ -1419,7 +1416,7 @@ fun TodayScreen(
                 selectedDay = selectedDay,
                 battery = HeaderBatteryDisplay.resolve(
                     activeIsWhoop = activeIsWhoop, connected = liveSnap.connected,
-                    strapPct = liveSnap.batteryPct, ringPct = ouraBatteryPct,
+                    strapPct = liveSnap.batteryPct, ringPct = null,
                 ),
                 backfilling = liveSnap.backfilling,
                 syncChunksThisSession = liveSnap.syncChunksThisSession,

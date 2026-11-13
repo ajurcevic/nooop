@@ -26,14 +26,10 @@ class DeviceRawSourceParityTest {
     }.readText()
 
     private fun fixture(): JSONObject {
-        val cwd = File(System.getProperty("user.dir") ?: ".")
-        val file = listOf(
-            File(cwd, "../Tools/parity_cases/device_raw_sources.json"),
-            File(cwd, "Tools/parity_cases/device_raw_sources.json"),
-            File(cwd, "../../Tools/parity_cases/device_raw_sources.json"),
-        ).firstOrNull(File::isFile)
-        assertNotNull("device_raw_sources.json not found from $cwd; parity must fail closed", file)
-        return JSONObject(file!!.readText())
+        val text = requireNotNull(javaClass.classLoader!!.getResourceAsStream("device_raw_sources.json")) {
+            "device_raw_sources.json missing from the test resources; parity must fail closed"
+        }.use { it.readBytes().toString(Charsets.UTF_8) }
+        return JSONObject(text)
     }
 
     @Test

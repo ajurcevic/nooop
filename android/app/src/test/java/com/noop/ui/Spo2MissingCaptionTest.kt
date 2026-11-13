@@ -50,44 +50,13 @@ class Spo2MissingCaptionTest {
     private fun repoRoot(): File {
         val userDir = File(System.getProperty("user.dir") ?: ".")
         val candidates = listOf(userDir, File(userDir, ".."), File(userDir, "../.."))
-        val found = candidates.firstOrNull { File(it, "Strand/Resources/Localizable.xcstrings").isFile }
+        val found = candidates.firstOrNull { File(it, "android/app/src/main/java").isDirectory }
         assertNotNull(
             "repo root not found from user.dir=$userDir — this guard cannot run, and a skip reads as a " +
                 "pass. Add this host's working dir rather than letting it slide.",
             found,
         )
         return found!!
-    }
-
-    /**
-     * Both captions must carry the SAME English text on both platforms.
-     *
-     * `Vital.missingCaption` is documented as the "Kotlin twin of `BodyVitalReading.missingCaption`
-     * (VitalSignsSummary.swift) — same wording", and nothing enforced it: Apple wrapped these in
-     * `String(localized:)` while Android used raw Kotlin literals, so the two could drift silently and
-     * a German phone got English on exactly one platform. Reading both catalogues is the only check
-     * available here: a Kotlin test cannot import the Swift side at any cost, compiled or not.
-     */
-    @Test
-    fun bothCaptionsMatchTheSwiftCatalogueWordForWord() {
-        val root = repoRoot()
-        val androidXml = File(root, "android/app/src/main/res/values/strings.xml").readText()
-        val xcstrings = File(root, "Strand/Resources/Localizable.xcstrings").readText()
-
-        val expected = mapOf(
-            "l10n_health_screen_no_spo_import_or_health_value_408f8c55" to "No SpO₂ import or Health value",
-            "l10n_health_screen_raw_counts_only_needs_an_import_d0e33552" to "Raw counts only — needs an import",
-        )
-        for ((key, en) in expected) {
-            assertTrue(
-                "Android is missing $key -> \"$en\"",
-                androidXml.contains("<string name=\"$key\">$en</string>"),
-            )
-            assertTrue(
-                "the Swift catalogue has no entry for \"$en\" — the twin captions have drifted apart",
-                xcstrings.contains("\"$en\""),
-            )
-        }
     }
 
     /**

@@ -1493,7 +1493,7 @@ object NoopPrefs {
         val addr = of(context).getString(KEY_LAST_DEVICE_ADDR, null) ?: return null
         val model = of(context).getString(KEY_LAST_DEVICE_MODEL, null)
             ?.let { name -> runCatching { WhoopModel.valueOf(name) }.getOrNull() }
-            ?: WhoopModel.WHOOP4
+            ?: WhoopModel.WHOOP5_MG
         return addr to model
     }
 

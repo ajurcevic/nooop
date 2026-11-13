@@ -1,6 +1,5 @@
 package com.noop.protocol
 
-import java.io.File
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -9,9 +8,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Holds [EventNumber] in lockstep with the shared schema
- * (`Packages/WhoopProtocol/Sources/WhoopProtocol/Resources/whoop_protocol.json`), which iOS reads directly
- * at runtime.
+ * Holds [EventNumber] in lockstep with the protocol schema (`whoop_protocol.json`, copied into the test
+ * resources from the former Swift `WhoopProtocol` package).
  *
  * Android used to name only 13 of the 58 events, so every other event rendered as a bare `0x44(68)` in an
  * Android strap log while iOS named it. #791 was filed partly on the strength of an "uncatalogued" event
@@ -22,9 +20,8 @@ import org.junit.Test
  * grew and Android did not follow", so a test carrying its own copy of the catalogue would pass straight
  * through a recurrence — it could only catch a deletion or a renumber.
  *
- * The lockstep check `Assume`-skips when the Swift tree is absent, following [DecoderOracleTest]'s
- * convention, so it is a drift guard for a full checkout and not a hard gate everywhere. The targeted checks
- * below never skip, so the #791 events and the revived RTC diagnostic stay pinned either way.
+ * The schema is read off the test classpath, so the lockstep check always runs, and the targeted checks
+ * below keep the #791 events and the revived RTC diagnostic pinned.
  */
 class EventCatalogueTest {
 
@@ -35,14 +32,10 @@ class EventCatalogueTest {
      */
     @Test
     fun everyEventInTheSharedSchemaIsNamedOnAndroid() {
-        val rel = "Packages/WhoopProtocol/Sources/WhoopProtocol/Resources/whoop_protocol.json"
-        val userDir = File(System.getProperty("user.dir") ?: ".")
-        val schemaFile = listOf(File(userDir, rel), File(userDir, "../../$rel")).firstOrNull { it.exists() }
-        org.junit.Assume.assumeTrue(
-            "shared schema not found from user.dir=$userDir — skipping the catalogue lockstep check",
-            schemaFile != null,
-        )
-        val events = JSONObject(schemaFile!!.readText()).getJSONObject("enums").getJSONObject("EventNumber")
+        val schemaText = requireNotNull(javaClass.classLoader!!.getResourceAsStream("whoop_protocol.json")) {
+            "whoop_protocol.json missing from the test resources"
+        }.use { it.readBytes().toString(Charsets.UTF_8) }
+        val events = JSONObject(schemaText).getJSONObject("enums").getJSONObject("EventNumber")
         val schema = events.keys().asSequence().associate { it.toInt() to events.getString(it) }
         assertTrue("EventNumber block parsed empty", schema.isNotEmpty())
 

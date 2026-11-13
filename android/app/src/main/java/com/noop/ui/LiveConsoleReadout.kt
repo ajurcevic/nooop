@@ -1,6 +1,5 @@
 package com.noop.ui
 
-import com.noop.ble.ExperimentalBrand
 import com.noop.ble.SourceIdentity
 import com.noop.data.PairedDeviceRow
 
@@ -50,7 +49,7 @@ object LiveConsoleReadout {
     fun activeIsOura(devices: List<PairedDeviceRow>, activeId: String?): Boolean {
         if (activeId == null) return false
         val active = devices.firstOrNull { it.id == activeId } ?: return false
-        return active.brand.equals(ExperimentalBrand.OURA.displayBrand, ignoreCase = true)
+        return active.brand.equals("Oura", ignoreCase = true)
     }
 
     /**

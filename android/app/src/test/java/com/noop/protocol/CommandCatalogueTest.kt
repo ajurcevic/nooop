@@ -1,6 +1,5 @@
 package com.noop.protocol
 
-import java.io.File
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -9,9 +8,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Holds [CommandNames] in lockstep with the shared schema
- * (`Packages/WhoopProtocol/Sources/WhoopProtocol/Resources/whoop_protocol.json`), which iOS reads directly
- * at runtime — the [EventCatalogueTest] treatment of `EventNumber` (#791), applied to the command table it
+ * Holds [CommandNames] in lockstep with the protocol schema (`whoop_protocol.json`, copied into the test
+ * resources from the former Swift `WhoopProtocol` package) — the [EventCatalogueTest] treatment of `EventNumber` (#791), applied to the command table it
  * did not cover.
  *
  * Android named only 34 of the schema's 80 commands, so 46 rendered as a bare `0x8B(139)` in an Android
@@ -27,8 +25,7 @@ import org.junit.Test
  * constructible, which is the opposite of the safety property. So the reader gets its own dictionary and the
  * sender enum is left alone; [senderEnumStaysCuratedAfterTheLabelFix] pins that separation.
  *
- * The lockstep check `Assume`-skips when the Swift tree is absent, following [EventCatalogueTest] and
- * [DecoderOracleTest]. The targeted checks never skip.
+ * The schema is read off the test classpath, so the lockstep check always runs.
  */
 class CommandCatalogueTest {
 
@@ -38,14 +35,10 @@ class CommandCatalogueTest {
     /** Reads the schema rather than restating it: the bug is "the schema grew and Android did not follow". */
     @Test
     fun everyCommandInTheSharedSchemaIsNamedOnAndroid() {
-        val rel = "Packages/WhoopProtocol/Sources/WhoopProtocol/Resources/whoop_protocol.json"
-        val userDir = File(System.getProperty("user.dir") ?: ".")
-        val schemaFile = listOf(File(userDir, rel), File(userDir, "../../$rel")).firstOrNull { it.exists() }
-        org.junit.Assume.assumeTrue(
-            "shared schema not found from user.dir=$userDir — skipping the catalogue lockstep check",
-            schemaFile != null,
-        )
-        val cmds = JSONObject(schemaFile!!.readText()).getJSONObject("enums").getJSONObject("CommandNumber")
+        val schemaText = requireNotNull(javaClass.classLoader!!.getResourceAsStream("whoop_protocol.json")) {
+            "whoop_protocol.json missing from the test resources"
+        }.use { it.readBytes().toString(Charsets.UTF_8) }
+        val cmds = JSONObject(schemaText).getJSONObject("enums").getJSONObject("CommandNumber")
         val schema = cmds.keys().asSequence().associate { it.toInt() to cmds.getString(it) }
         assertTrue("CommandNumber block parsed empty", schema.isNotEmpty())
 

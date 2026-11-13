@@ -162,37 +162,7 @@ class FrameIntegrityOracleTest {
         assertTrue(metas.any { it.startsWith("end(") })
     }
 
-    /**
-     * The Android and Swift copies MUST be byte-identical, so neither platform can edit its fixture
-     * without the other. The Android copy is read off the test classpath; the Swift copy lives in the
-     * source tree, located relative to the `user.dir` the JVM test runner is launched from. Skips
-     * gracefully (passes) if the Swift tree is not present.
-     */
-    @Test
-    fun oracleCopiesAreIdentical() {
-        val androidBytes = javaClass.classLoader!!
-            .getResourceAsStream(ORACLE_RESOURCE)!!
-            .use { it.readBytes() }
-
-        // Gradle runs unit tests with the module dir (android/app) or repo root as user.dir; try both.
-        val userDir = java.io.File(System.getProperty("user.dir") ?: ".")
-        val candidates = listOf(
-            java.io.File(userDir, SWIFT_COPY),
-            java.io.File(userDir, "../../$SWIFT_COPY"),
-        )
-        val swiftFile = candidates.firstOrNull { it.exists() }
-        org.junit.Assume.assumeTrue(
-            "swift oracle copy not found from user.dir=$userDir — skipping cross-copy identity check",
-            swiftFile != null,
-        )
-        assertTrue(
-            "$ORACLE_RESOURCE copies differ — keep the Android and Swift copies in lockstep",
-            androidBytes.contentEquals(swiftFile!!.readBytes()),
-        )
-    }
-
     private companion object {
         const val ORACLE_RESOURCE = "frame_integrity_oracle.json"
-        const val SWIFT_COPY = "Packages/WhoopProtocol/Tests/WhoopProtocolTests/Resources/frame_integrity_oracle.json"
     }
 }
