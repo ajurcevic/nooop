@@ -2852,8 +2852,8 @@ class WhoopBleClient(
     @Volatile
     private var intentionalDisconnect = false
     /// The strap family the user chose to pair, remembered so an auto-reconnect after a
-    /// dropout re-scans for the same model instead of falling back to WHOOP 4.0.
-    private var selectedModel = WhoopModel.WHOOP4
+    /// dropout re-scans for the same model instead of falling back to the default (WHOOP 5.0 / MG).
+    private var selectedModel = WhoopModel.WHOOP5_MG
     /** #1635: one [ScanAdvertisementSummary] line per scan session, not one per discovery burst. */
     private var advertisementLogged = false
 
@@ -3786,7 +3786,7 @@ class WhoopBleClient(
      * ~4.8s drop that no user had asked for. Apple has kept these two entries apart since #78 hole-2.
      */
     @SuppressLint("MissingPermission")
-    fun connect(model: WhoopModel = WhoopModel.WHOOP4) = connectInternal(model, userInitiated = true)
+    fun connect(model: WhoopModel = WhoopModel.WHOOP5_MG) = connectInternal(model, userInitiated = true)
 
     /**
      * SYSTEM-initiated connect: identical to [connect] except it never grants the handshake retry.

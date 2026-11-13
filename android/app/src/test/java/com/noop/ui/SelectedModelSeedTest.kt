@@ -51,8 +51,8 @@ class SelectedModelSeedTest {
     }
 
     @Test
-    fun freshInstallFallsBackToWhoop4() {
-        // Nothing known at all: unchanged from the old hardcoded default.
-        assertEquals(WhoopModel.WHOOP4, resolveSelectedModel(recorded = null, remembered = null))
+    fun freshInstallFallsBackToWhoop5Mg() {
+        // Nothing known at all: this fork defaults to the WHOOP 5.0 / MG strap.
+        assertEquals(WhoopModel.WHOOP5_MG, resolveSelectedModel(recorded = null, remembered = null))
     }
 }

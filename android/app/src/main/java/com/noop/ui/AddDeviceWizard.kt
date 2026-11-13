@@ -197,7 +197,7 @@ fun AddDeviceWizard(
 
     fun startScan(t: DeviceType) {
         when {
-            t.isWhoop -> viewModel.presentWhoopScan(t.whoopModel ?: WhoopModel.WHOOP4)
+            t.isWhoop -> viewModel.presentWhoopScan(t.whoopModel ?: WhoopModel.WHOOP5_MG)
             t == DeviceType.GymEquipment -> ftmsScanner.scan()
             t == DeviceType.Amazfit || t == DeviceType.MiBand -> huamiScanner.scan()
             t == DeviceType.Oura -> ouraScanner.scan()
@@ -528,7 +528,7 @@ fun AddDeviceWizard(
                                     viewModel.stopWhoopScan()
                                     step = WizardStep.Confirm
                                 },
-                                onRescan = { viewModel.presentWhoopScan(t.whoopModel ?: WhoopModel.WHOOP4) },
+                                onRescan = { viewModel.presentWhoopScan(t.whoopModel ?: WhoopModel.WHOOP5_MG) },
                             )
                             t == DeviceType.GymEquipment -> FtmsPickStep(
                                 scanner = ftmsScanner,

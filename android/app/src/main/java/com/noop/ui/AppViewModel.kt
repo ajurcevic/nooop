@@ -3399,15 +3399,16 @@ internal fun elapsedClock(elapsedS: Long): String {
  *
  * The same precedence, for the same reason, is already reasoned out in `AndroidDiagnostics.reportedModel`,
  * which picks `detected ?: remembered` so a report cannot invent a model. Note that `NoopPrefs.lastDevice`
- * widens a MISSING family to WHOOP4 before it ever reaches [remembered], so a null here means "no strap
+ * widens a MISSING family to WHOOP5_MG before it ever reaches [remembered], so a null here means "no strap
  * remembered at all", never "remembered without a family" — this function cannot recover the difference
- * and does not try, because both land on WHOOP4 anyway.
+ * and does not try, because both land on WHOOP5_MG anyway.
  *
- * WHOOP4 remains the last resort so a fresh install behaves as it always has.
+ * WHOOP5_MG is the last resort: this fork targets the WHOOP 5.0 / MG strap, so a fresh install scans
+ * for it first. A WHOOP 4.0 still works; the scan's fallback rotation finds the other family.
  *
  * Pure on purpose: both inputs are read from SharedPreferences at the call sites, and there is no
  * Robolectric in this module, so the decision itself is only testable once it is separated from the
  * `Context` that supplies it.
  */
 internal fun resolveSelectedModel(recorded: WhoopModel?, remembered: WhoopModel?): WhoopModel =
-    recorded ?: remembered ?: WhoopModel.WHOOP4
+    recorded ?: remembered ?: WhoopModel.WHOOP5_MG
