@@ -8,11 +8,18 @@
 # version-stamped artifacts. releases/latest returns it, so UpdateCheck finds it (isNewer strips the
 # `-staging` suffix, so an installed staging build compares clean).
 #
+# It also runs on EVERY push to main (every merged PR): a patch bump, a commit of that bump back to
+# main, and a `v<VERSION>` release carrying the APK, so each build has its own version and installs
+# over the previous one. The bump commit is pushed with the workflow token, which GitHub does not let
+# trigger another run, so this cannot loop. A manual run still offers minor / major / none.
+#
 # Contrast with fork-testing-build.yml: THAT publishes the rolling `testing-latest` PRERELEASE (a
 # snapshot), which releases/latest deliberately ignores. THIS never touches testing-latest.
 name: Release build (fork)
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       bump:
@@ -49,11 +56,16 @@ jobs:
       sha: ${{ steps.b.outputs.sha }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          # The branch tip, not the triggering sha: runs queue on the concurrency group, so a run
+          # behind an earlier one must build on top of that run's bump commit or its push is rejected.
+          ref: ${{ github.ref_name }}
       - id: b
         env:
           GH_TOKEN: ${{ github.token }}
-          BUMP: ${{ github.event.inputs.bump }}
-          OVERRIDE: ${{ github.event.inputs.version }}
+          # A push carries no inputs, so it takes the patch default below.
+          BUMP: ${{ github.event.inputs.bump || 'patch' }}
+          OVERRIDE: ${{ github.event.inputs.version || '' }}
         run: |
           set -euo pipefail
           GRADLE=android/app/build.gradle.kts
@@ -90,8 +102,8 @@ jobs:
             else
               echo "::warning::No docs/releases/${TAG}.md — GitHub notes + in-app 'What's New' will use placeholders."
             fi
-            git config user.name 'ryanbr'
-            git config user.email 'mp3geek@gmail.com'
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git commit -am "Release ${NEW}: bump version (${BUMP}) + build numbers + What's New"
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi

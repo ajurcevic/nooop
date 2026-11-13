@@ -89,7 +89,8 @@ python3 Tools/doc_comment_lint.py                          # detached doc commen
 | `source-hygiene.yml` | Doc comments that bind to nothing (`Tools/doc_comment_lint.py`) | **active** |
 | `i18n-coverage.yml` | Diff-scoped translation gate (`Tools/i18n_audit.py --ci`) | **active** |
 | `prune-stale-branches.yml` | Deletes branches whose PR merged or closed unmerged | weekly + dispatch |
-| `fork-testing-build.yml` / `fork-release.yml` | Staging / release APK builds | on dispatch |
+| `fork-release.yml` | Patch bump committed to `main` + `v<VERSION>` release with the APK | **every push to `main`** + dispatch |
+| `fork-testing-build.yml` | Rolling `testing-latest` debug + release APKs | on dispatch |
 
 **BLE behavior cannot be CI-tested.** Anything on the connection / offload / live-HR path
 (`com.noop.ble`) must be **validated on a real strap**; compile success proves
@@ -143,8 +144,11 @@ nothing about connection behavior. Say what you tested on hardware.
 - **Reference issues neutrally** with `Refs #N`; avoid GitHub auto-closing keywords.
 - **Show your verification.** BLE → what you tested on hardware. Analytics → the method + a test.
   UI → design tokens only.
-- **Versioning (SemVer):** bump `versionName` in `android/app/build.gradle.kts`; `versionCode` increments
-  independently. The parts are counters, not decimals (`2.0.10` follows `2.0.9`).
+- **Versioning (SemVer):** do not bump the patch version in a PR. Every merge to `main` runs
+  `fork-release.yml`, which bumps the patch part of `versionName` and `versionCode` in
+  `android/app/build.gradle.kts`, commits that to `main`, and publishes a `v<VERSION>` release with the APK.
+  Raise the minor or major part by hand in a PR only when the change warrants it, or run the workflow
+  manually with `minor` / `major`. The parts are counters, not decimals (`2.0.10` follows `2.0.9`).
 - **Voice:** docs/comments are neutral, third-person, project-voice. Keep upstream credits intact.
 
 When in doubt, prefer the smallest change that's correct and covered by a test that runs without a strap.
