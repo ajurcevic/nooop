@@ -333,21 +333,6 @@ class Whoop5RawOpticalTest {
         assertNull(Whoop5RawOptical.decode(reseal(sealedSyntheticFrame().also { it[9] = 21 })))
     }
 
-    /**
-     * The Swift and Android copies of the oracle MUST be byte-identical, so neither platform can edit
-     * its fixture without the other. Skips when the Swift tree is not present in this checkout.
-     */
-    @Test
-    fun oracleCopiesAreIdentical() {
-        val android = File("src/test/resources/r20_optical_oracle.json")
-        val swift = File("../Packages/WhoopProtocol/Tests/WhoopProtocolTests/Resources/r20_optical_oracle.json")
-        if (!android.exists() || !swift.exists()) return
-        assertTrue(
-            "r20_optical_oracle.json copies differ — keep Swift and Android in lockstep",
-            android.readBytes().contentEquals(swift.readBytes()),
-        )
-    }
-
     // MARK: - Synthetic frame helpers
 
     /**

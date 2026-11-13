@@ -146,7 +146,7 @@ class StressWidgetStoredGateTest {
     @Test fun everyStressGateUsesTheUnionWitness() {
         val userDir = File(System.getProperty("user.dir") ?: ".")
         val root = listOf(userDir, File(userDir, ".."), File(userDir, "../.."))
-            .firstOrNull { File(it, "Strand/Data/StressDayCurve.swift").isFile }
+            .firstOrNull { File(it, "android/app/src/main/java").isDirectory }
             ?: error("could not locate the repo root from ${userDir.absolutePath}")
         fun source(path: String) = File(root, path).readText()
 
@@ -170,19 +170,5 @@ class StressWidgetStoredGateTest {
                 source(path).contains("hrFingerprintWindow("),
             )
         }
-
-        // The Apple producer is the documented twin of StressWidgetProducer and guards the same union
-        // reads. Its witness used to be a union SUM, one count and one max across the ids, which holds
-        // steady when the window's composition changes without its totals changing. Asserted from here
-        // because this is the suite that runs on every push; the Swift side has no JVM reach of its own.
-        val appleProducer = source("Strand/Data/StressDayCurve.swift")
-        assertTrue(
-            "the Apple producer must gate on the per-id union witness",
-            appleProducer.contains("await repo.hrFingerprintUnion(from: from, to: to)"),
-        )
-        assertFalse(
-            "the superseded summed witness must not come back",
-            source("Strand/Data/Repository.swift").contains("func hrFingerprint(from:"),
-        )
     }
 }

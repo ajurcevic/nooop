@@ -39,7 +39,7 @@ class SleepStageRowOrderTest {
     private fun repoRoot(): File {
         val userDir = File(System.getProperty("user.dir") ?: ".")
         val candidates = listOf(userDir, File(userDir, ".."), File(userDir, "../.."))
-        return candidates.firstOrNull { File(it, "Strand/Screens/StagesCard.swift").isFile }
+        return candidates.firstOrNull { File(it, "android/app/src/main/java").isDirectory }
             ?: error("could not locate the repo root from ${userDir.absolutePath}")
     }
 
@@ -52,29 +52,6 @@ class SleepStageRowOrderTest {
         val end = src.indexOf("\n    }", start)
         assertTrue("unterminated: $callSite", end > start)
         return Regex(marker).findAll(src.substring(start, end)).map { it.groupValues[1].lowercase() }.toList()
-    }
-
-    @Test
-    fun `apple sleep detail lists both its row stacks in chart-depth order`() {
-        val src = source("Strand/Screens/SleepView.swift")
-        assertEquals("breakdown rows", expected,
-                     order(src, "private func stageBreakdownRows", """stageBreakdownRow\(\.(\w+)"""))
-        assertEquals("timeline rows", expected,
-                     order(src, "private func stageTimeline(", """stageTimelineRow\(\.(\w+)"""))
-    }
-
-    /**
-     * The hosted card is the half PR #2536 left behind, and it is not a dead surface: `LiquidTodayView`
-     * renders it and Liquid Today is the default. Leaving it would have made Today and Sleep detail disagree
-     * on exactly the axis the report is about.
-     */
-    @Test
-    fun `apple hosted stages card lists both its row stacks in chart-depth order`() {
-        val src = source("Strand/Screens/StagesCard.swift")
-        assertEquals("breakdown rows", expected,
-                     order(src, "private func stageBreakdownRows", """stageBreakdownRow\(\.(\w+)"""))
-        assertEquals("timeline rows", expected,
-                     order(src, "private func stageTimeline(", """stageTimelineRow\(\.(\w+)"""))
     }
 
     /** Android routes every surface through these two, so pinning them covers all of its screens. */
@@ -95,25 +72,4 @@ class SleepStageRowOrderTest {
         assertEquals("StageTimeline", expected, found)
     }
 
-    /**
-     * Every ROW STACK agrees, which is the property the report is actually about: two screens showing the
-     * same night must not order its stages differently. Not "every surface in the app", see the scope note.
-     */
-    @Test
-    fun `every stage row stack agrees, so no two screens can disagree`() {
-        val all = listOf(
-            order(source("Strand/Screens/SleepView.swift"), "private func stageBreakdownRows",
-                  """stageBreakdownRow\(\.(\w+)"""),
-            order(source("Strand/Screens/SleepView.swift"), "private func stageTimeline(",
-                  """stageTimelineRow\(\.(\w+)"""),
-            order(source("Strand/Screens/StagesCard.swift"), "private func stageBreakdownRows",
-                  """stageBreakdownRow\(\.(\w+)"""),
-            order(source("Strand/Screens/StagesCard.swift"), "private func stageTimeline(",
-                  """stageTimelineRow\(\.(\w+)"""),
-            order(source("android/app/src/main/java/com/noop/ui/SleepStageBreakdownUi.kt"),
-                  "internal fun StageBreakdownRows", """StageBreakdownRow\("(\w+)""""),
-        )
-        assertEquals("every row stack must read the same: " + all, 1, all.distinct().size)
-        assertEquals(expected, all.first())
-    }
 }

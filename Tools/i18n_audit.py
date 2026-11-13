@@ -657,24 +657,9 @@ def android_format_gaps(read: Reader | None = None) -> dict[str, list[str]]:
 # Apple: catalog drift + un-extracted literals
 # ---------------------------------------------------------------------------
 
-CATALOGS = [
-    (
-        [ROOT / "Packages/StrandDesign/Sources/StrandDesign"],
-        ROOT / "Packages/StrandDesign/Sources/StrandDesign/Resources/Localizable.xcstrings",
-    ),
-    (
-        [ROOT / "NOOPWatch"],
-        ROOT / "NOOPWatch/Localizable.xcstrings",
-    ),
-    (
-        [ROOT / "NOOPWatchComplications"],
-        ROOT / "NOOPWatchComplications/Localizable.xcstrings",
-    ),
-    (
-        [ROOT / "Strand", ROOT / "StrandiOS", ROOT / "StrandiOSShared", ROOT / "StrandiOSWidgets"],
-        ROOT / "Strand/Resources/Localizable.xcstrings",
-    ),
-]
+# The Apple targets (and their String Catalogs) were removed when this fork went Android-only, so
+# there is no Apple catalog left to audit. The Swift helpers below stay inert with an empty list.
+CATALOGS: list[tuple[list[Path], Path]] = []
 
 SWIFT_CALL_START_PATTERN = re.compile(
     r"\b(?:Text|Button|Label|Toggle|Menu|Picker|ProgressView|SectionHeader)\s*\("
