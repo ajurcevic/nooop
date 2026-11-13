@@ -48,8 +48,14 @@ enum class TodaySection(val raw: String, @StringRes val titleRes: Int) {
             HERO, LIVE_SESSION, SYNTHESIS, KEY_METRICS, WORKOUTS, HEART_RATE, RECOVERY_VITALS, YOUR_CARDS,
             MENSTRUAL_CYCLE, JOURNAL, ADDED_CARDS,
         )
+
+        /** Sections whose content the Home tab draws itself, so the Metrics tab does not repeat them. */
+        val homeOwned: Set<TodaySection> = setOf(HERO, HEART_RATE)
     }
 }
+
+/** Which tab [TodayScreen] is rendering: the one-screen Home, or the arrangeable Metrics list. */
+enum class TodayMode { HOME, METRICS }
 
 /**
  * Display-only persistence for the Today section order and explicit hidden set. Every known section remains

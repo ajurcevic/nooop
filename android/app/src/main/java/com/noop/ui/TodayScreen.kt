@@ -32,6 +32,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
@@ -330,7 +334,11 @@ fun TodayScreen(
     // The #627 journal-reminder card links straight to the journal (Insights). Defaulted to a no-op so
     // the call site stays compiling; AppRoot binds it to nav.navigateTopLevel(Insights), same as Sleep.
     onOpenJournal: () -> Unit = {},
+    // HOME is the bottom-bar Today tab: live heart rate, the three scores and the three recovery vitals,
+    // sized to fit one screen. METRICS is the Metrics tab: every other Today section, still arrangeable.
+    mode: TodayMode = TodayMode.HOME,
 ) {
+    val homeMode = mode == TodayMode.HOME
     val today by viewModel.today.collectAsStateWithLifecycle()
     val alert by viewModel.healthAlert.collectAsStateWithLifecycle()
     val days by viewModel.recentDays.collectAsStateWithLifecycle()
@@ -948,12 +956,16 @@ fun TodayScreen(
     // merges imported + computed sleep_performance (imported-wins), so an importer sees the export's
     // figure and a Bluetooth-only user sees the on-device composite. Null until loaded / no night yet.
     var restScoreForDay by remember { mutableStateOf<Double?>(null) }
+    // The same resolved Rest series keyed by day, kept so Home can compare the day's Rest with its own
+    // trailing 7-day average without a second read.
+    var restHistory by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
     LaunchedEffect(days, selectedDayKey, selectedDayOffset) {
         val byDay = runCatching {
             viewModel.repo.resolvedSeries("sleep_performance", "my-whoop", "0000-00-00", "9999-99-99",
                 strapDeviceId = viewModel.activeStrapId)
                 .values.associate { it.first to it.second }
         }.getOrDefault(emptyMap())
+        restHistory = byDay
         // #977: the tail-fallback (latest scored night) is now freshness-gated. A live 5.0 whose sleep never
         // scores used to pin Rest to the weeks-old series tail forever while Charge advanced; if that tail is
         // stale, fall through to null so the Rest ring shows its needs-a-tracked-night state instead of a
@@ -1448,7 +1460,9 @@ fun TodayScreen(
             // control exactly, so the wordmark stays optically centred while owning the space BETWEEN them.
             // Overlap is now unexpressible at any label width, in any locale, because the two occupy
             // different slots rather than the same one.
-            Row(
+            // Home drops the wordmark and the Arrange control, so the row only appears there while the
+            // strap is away and the reconnect control has something to offer.
+            if (!homeMode || !liveSnap.connected) Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1481,9 +1495,13 @@ fun TodayScreen(
                     }
                 }
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    LiquidWordmark()
+                    if (!homeMode) LiquidWordmark()
                 }
-                CustomizeDisc(onClick = { showLayoutEditor = true })
+                if (homeMode) {
+                    Spacer(modifier = Modifier.size(HeaderClusterControl))
+                } else {
+                    CustomizeDisc(onClick = { showLayoutEditor = true })
+                }
             }
             // The reply to a tap that went nowhere. Wording comes from the BLE layer, the same text
             // Live and Onboarding show, so this adds no copy of its own.
@@ -1525,7 +1543,7 @@ fun TodayScreen(
         // lead with the "live now, history one import away" note so the empty tiles
         // below are explained rather than just dashed out. A small × dismisses it INTO
         // the Updates inbox (restorable from there). Only anchored to today (offset 0).
-        if (displayMetric?.recovery == null) {
+        if (!homeMode && displayMetric?.recovery == null) {
             item {
             // While the strap is mid-offload, say so, empty tiles read as final otherwise (#77).
             if (liveSnap.backfilling) SyncingHistoryNote(chunks = liveSnap.syncChunksThisSession)
@@ -1629,6 +1647,37 @@ fun TodayScreen(
             days.lastOrNull()?.day == resolveTodayRow(days, todayDate.toString(), LocalDate.now().toString())?.day
         ) item { IllnessBanner(alert!!) }
 
+        // HOME: live heart rate, the three scores, the three recovery vitals. Nothing else, so the tab
+        // fits one phone screen; everything else lives on the Metrics tab.
+        if (homeMode) {
+            item {
+                HeartRateTrendCard(viewModel, days, selectedDay, todayDate, displayMetric,
+                    effortScale, effortForDay, dayCycleMode, compact = true)
+            }
+            item {
+                HomeScoreCard(
+                    day = displayMetric,
+                    days = days,
+                    selectedDayKey = selectedDayKey,
+                    effortForDay = effortForDay,
+                    effortScale = effortScale,
+                    restScore = restScoreForDay,
+                    restHistory = restHistory,
+                    onChargeTap = { showChargeBreakdown = true },
+                    onOpenMetric = onOpenMetric,
+                )
+            }
+            item {
+                HomeVitalsCard(
+                    day = displayMetric,
+                    vitalsDay = lastVitalsDay,
+                    days = days,
+                    selectedDayKey = selectedDayKey,
+                    onOpenMetric = onOpenMetric,
+                )
+            }
+        }
+
         // #486: the "Arrange" affordance moved UP into the header/wordmark cluster (see above) so it no
         // longer sits alone in its own full-width band here. It stays pinned; only its position changed.
 
@@ -1639,7 +1688,11 @@ fun TodayScreen(
         // neighbours as it crosses their centres (the screen-level frame loop also auto-scrolls at the
         // viewport edges and keeps swapping while it does), and the order persists on drop. The stagger
         // index follows the section's live position.
-        sectionOrder.filterNot { it in hiddenSections }.forEach { section ->
+        // HOME renders none of the arrangeable sections; METRICS renders all of them except the two
+        // whose content now lives on Home (the score hero and the heart-rate chart).
+        sectionOrder.filterNot {
+            homeMode || it in hiddenSections || it in TodaySection.homeOwned
+        }.forEach { section ->
             // Entrance stagger keyed on the section's FIXED default position, not its live position: the
             // stagger only matters on first appearance (staggeredAppear latches), and a live-position
             // stagger changes every moved section's content lambda on every mid-drag swap — recomposing
@@ -1941,12 +1994,12 @@ fun TodayScreen(
         // Auto-detect workouts (MVP, opt-in, default OFF), a NON-DESTRUCTIVE "looks like a workout?"
         // card that suggests logging a detected sustained-elevated-HR bout. Renders nothing when the
         // toggle is off or there's nothing to suggest. Save → a manual "Workout" row; × → dismissed forever.
-        if (selectedDayOffset == 0) {
+        if (!homeMode && selectedDayOffset == 0) {
             item { AutoWorkoutNudgeCard(viewModel = viewModel, days = days) }
         }
         // Strap battery only while the link is up AND a real reading exists, a stale % from a
         // dropped connection must not present as live (#159).
-        item {
+        if (!homeMode) item {
             TodaySourcesSection(
                 footer,
                 // NOT routed through LiveConsoleReadout.batteryPercent, which substitutes the RING's charge
@@ -2108,8 +2161,9 @@ fun TodayScreen(
     // cards" button hands off to the hosted-cards editor above (#today-hosted-cards).
     if (showLayoutEditor) {
         TodayLayoutEditorDialog(
-            initialOrder = sectionOrder,
-            initialHidden = hiddenSections,
+            // The Home-owned sections never render on Metrics, so the editor does not offer them.
+            initialOrder = sectionOrder.filterNot { it in TodaySection.homeOwned },
+            initialHidden = hiddenSections.filterNot { it in TodaySection.homeOwned },
             onDismiss = { showLayoutEditor = false },
             onEditAdded = {
                 showLayoutEditor = false
@@ -3888,6 +3942,278 @@ private fun HeroVitalRow(
     }
 }
 
+// MARK: - Home tab cards
+//
+// The one-screen Home: a heart-rate card led by the live bpm, then the three daily scores and the three
+// recovery vitals as plain numbers, each set against its own trailing 7-day average. Neutral surfaces;
+// the only colour is the heart-rate line, the zone label and the live dot.
+
+/** Placeholder for a number Home has no value for. */
+private const val HOME_EMPTY_VALUE = "—"
+
+/**
+ * Home's heart-rate card: the live bpm (or, with no strap streaming, the latest 5-minute average) over
+ * the day's heart-rate line. [note] replaces the chart when the day has too little heart rate to draw.
+ */
+@Composable
+private fun HomeHeartCard(
+    liveBpm: Int?,
+    latestAvg: Int?,
+    note: String?,
+    chart: (@Composable () -> Unit)?,
+) {
+    val context = LocalContext.current
+    val zoneSet = remember { ProfileStore.from(context.applicationContext).hrZoneSet }
+    val zone = liveBpm?.let { zoneSet.zoneNumber(it.toDouble()) } ?: 0
+    val shown = liveBpm ?: latestAvg
+    NoopCard(padding = Metrics.space16) {
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space8)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space6),
+            ) {
+                Text(
+                    uiString(R.string.today_section_heart_rate),
+                    style = NoopType.subhead,
+                    color = Palette.textSecondary,
+                    modifier = Modifier.weight(1f),
+                )
+                if (liveBpm != null) {
+                    LivePulseDot()
+                    Text(uiString(R.string.home_hr_live), style = NoopType.caption, color = Palette.textSecondary)
+                }
+            }
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space6),
+            ) {
+                Text(
+                    shown?.toString() ?: HOME_EMPTY_VALUE,
+                    style = NoopType.number(48f, FontWeight.Medium),
+                    color = if (shown != null) Palette.textPrimary else Palette.textTertiary,
+                )
+                Text(
+                    uiString(R.string.today_unit_bpm),
+                    style = NoopType.subhead,
+                    color = Palette.textSecondary,
+                    modifier = Modifier.padding(bottom = Metrics.space8),
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                val status = when {
+                    liveBpm != null && zone >= 1 -> uiString(R.string.home_hr_zone, zone)
+                    liveBpm != null -> uiString(R.string.home_hr_below_zones)
+                    else -> uiString(R.string.home_hr_not_streaming)
+                }
+                Text(
+                    status,
+                    style = NoopType.caption,
+                    color = if (liveBpm != null && zone >= 1) Palette.hrZoneColor(zone) else Palette.textTertiary,
+                    modifier = Modifier.padding(bottom = Metrics.space10),
+                )
+            }
+            chart?.invoke()
+            note?.let { Text(it, style = NoopType.footnote, color = Palette.textTertiary) }
+        }
+    }
+}
+
+/** The live signature: a small rose dot that breathes while the strap streams, posed still (#909). */
+@Composable
+private fun LivePulseDot() {
+    val still = rememberPoseStill()
+    val pulse = if (still) {
+        1f
+    } else {
+        val transition = rememberInfiniteTransition()
+        val a by transition.animateFloat(
+            initialValue = 0.35f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        )
+        a
+    }
+    Box(
+        modifier = Modifier
+            .size(Metrics.space8)
+            .graphicsLayer { alpha = pulse }
+            .background(Palette.metricRose, CircleShape),
+    )
+}
+
+/** Charge, Effort and Rest for the selected day, each against its own trailing 7-day average. */
+@Composable
+private fun HomeScoreCard(
+    day: DailyMetric?,
+    days: List<DailyMetric>,
+    selectedDayKey: String,
+    effortForDay: Double?,
+    effortScale: EffortScale,
+    restScore: Double?,
+    restHistory: Map<String, Double>,
+    onChargeTap: () -> Unit,
+    onOpenMetric: (String) -> Unit,
+) {
+    val charge = day?.recovery
+    val chargeAvg = remember(days, selectedDayKey) { trailingAverage(days.seriesOf { it.recovery }, selectedDayKey) }
+    val effortAvg = remember(days, selectedDayKey) { trailingAverage(days.seriesOf { it.strain }, selectedDayKey) }
+    val restAvg = remember(restHistory, selectedDayKey) { trailingAverage(restHistory, selectedDayKey) }
+    val effortDecimals = if (effortScale == EffortScale.WHOOP) 1 else 0
+    NoopCard(padding = Metrics.space16) {
+        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            HomeStat(
+                label = uiString(R.string.today_metric_charge),
+                value = charge?.roundToInt()?.toString(),
+                comparison = homeComparison(charge, chargeAvg, decimals = 0),
+                onClick = onChargeTap,
+                modifier = Modifier.weight(1f),
+            )
+            HomeStatDivider()
+            HomeStat(
+                label = uiString(R.string.today_metric_effort),
+                value = effortForDay?.let {
+                    if (effortDecimals == 0) UnitFormatter.effortValue(it, effortScale).roundToInt().toString()
+                    else UnitFormatter.effortDisplay(it, effortScale)
+                },
+                comparison = homeComparison(
+                    effortForDay?.let { UnitFormatter.effortValue(it, effortScale) },
+                    effortAvg?.let { UnitFormatter.effortValue(it, effortScale) },
+                    decimals = effortDecimals,
+                ),
+                onClick = { onOpenMetric(HERO_EFFORT_METRIC_KEY) },
+                modifier = Modifier.weight(1f),
+            )
+            HomeStatDivider()
+            HomeStat(
+                label = uiString(R.string.today_metric_rest),
+                value = restScore?.roundToInt()?.toString(),
+                comparison = homeComparison(restScore, restAvg, decimals = 0),
+                onClick = { onOpenMetric(HERO_REST_METRIC_KEY) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/** HRV, resting heart rate and breathing rate from last night, each against its trailing 7-day average. */
+@Composable
+private fun HomeVitalsCard(
+    day: DailyMetric?,
+    vitalsDay: DailyMetric?,
+    days: List<DailyMetric>,
+    selectedDayKey: String,
+    onOpenMetric: (String) -> Unit,
+) {
+    // Per field, today first, the same carry rule as the Recovery vitals section on Metrics.
+    val hrv = day?.avgHrv ?: vitalsDay?.avgHrv
+    val rhr = (day?.restingHr ?: vitalsDay?.restingHr)?.toDouble()
+    val resp = day?.respRateBpm ?: vitalsDay?.respRateBpm
+    val hrvAvg = remember(days, selectedDayKey) { trailingAverage(days.seriesOf { it.avgHrv }, selectedDayKey) }
+    val rhrAvg = remember(days, selectedDayKey) {
+        trailingAverage(days.seriesOf { it.restingHr?.toDouble() }, selectedDayKey)
+    }
+    val respAvg = remember(days, selectedDayKey) { trailingAverage(days.seriesOf { it.respRateBpm }, selectedDayKey) }
+    fun open(card: DashboardCard): (() -> Unit)? = dashboardCardMetricKey(card)?.let { key -> { onOpenMetric(key) } }
+    NoopCard(padding = Metrics.space16) {
+        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            HomeStat(
+                label = uiString(R.string.today_card_hrv),
+                value = hrv?.roundToInt()?.toString(),
+                unit = DashboardCard.HRV.unit,
+                comparison = homeComparison(hrv, hrvAvg, decimals = 0),
+                onClick = open(DashboardCard.HRV),
+                compact = true,
+                modifier = Modifier.weight(1f),
+            )
+            HomeStatDivider()
+            HomeStat(
+                label = uiString(R.string.today_card_resting_hr),
+                value = rhr?.roundToInt()?.toString(),
+                unit = DashboardCard.RESTING_HR.unit,
+                comparison = homeComparison(rhr, rhrAvg, decimals = 0),
+                onClick = open(DashboardCard.RESTING_HR),
+                compact = true,
+                modifier = Modifier.weight(1f),
+            )
+            HomeStatDivider()
+            HomeStat(
+                label = uiString(R.string.today_card_respiratory),
+                value = resp?.let { String.format(Locale.getDefault(), "%.1f", it) },
+                unit = DashboardCard.RESPIRATORY.unit,
+                comparison = homeComparison(resp, respAvg, decimals = 1),
+                onClick = open(DashboardCard.RESPIRATORY),
+                compact = true,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/** "+4 vs 7-day avg", or the no-average line when either side of the comparison is missing. */
+@Composable
+private fun homeComparison(value: Double?, average: Double?, decimals: Int): String =
+    if (value != null && average != null) {
+        uiString(R.string.home_vs_7day_avg, signedDelta(value - average, decimals))
+    } else {
+        uiString(R.string.home_no_7day_avg)
+    }
+
+/** One figure in a Home card: label, number with an optional unit, and its comparison line. */
+@Composable
+private fun HomeStat(
+    label: String,
+    value: String?,
+    comparison: String,
+    onClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    unit: String? = null,
+    compact: Boolean = false,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(Metrics.space8))
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .padding(horizontal = Metrics.space8, vertical = Metrics.space4),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        Text(label, style = NoopType.caption, color = Palette.textSecondary, maxLines = 1)
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            Text(
+                value ?: HOME_EMPTY_VALUE,
+                style = NoopType.number(if (compact) 22f else 30f, FontWeight.Medium),
+                color = if (value != null) Palette.textPrimary else Palette.textTertiary,
+                maxLines = 1,
+            )
+            if (unit != null && value != null) {
+                Text(
+                    unit,
+                    style = NoopType.caption,
+                    color = Palette.textTertiary,
+                    modifier = Modifier.padding(bottom = Metrics.space2),
+                )
+            }
+        }
+        Text(comparison, style = NoopType.footnote, color = Palette.textTertiary, maxLines = 2)
+    }
+}
+
+/** The hairline between figures in a Home card. */
+@Composable
+private fun HomeStatDivider() {
+    Box(
+        modifier = Modifier
+            .fillMaxHeight()
+            .padding(vertical = Metrics.space4)
+            .width(Metrics.divider)
+            .background(Palette.hairline),
+    )
+}
+
 // MARK: - "Your cards" dashboard (WHOOP "My Dashboard"), iOS yourCardsSection parity
 //
 // A persisted, reorderable selection of metric cards surfaced on Today as flat WHOOP metric ROWS. The
@@ -5308,7 +5634,7 @@ private fun TodayLayoutEditorDialog(
                     TextButton(
                         onClick = {
                             shown.clear()
-                            shown.addAll(TodaySection.defaultOrder)
+                            shown.addAll(TodaySection.defaultOrder.filterNot { it in TodaySection.homeOwned })
                             hidden.clear()
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = Palette.textSecondary),
@@ -6504,6 +6830,9 @@ private fun HeartRateTrendCard(
     // daily row — so on an active morning the badge trailed the hero ring by the whole morning's load.
     effortForDay: Double? = null,
     dayCycleMode: DayCycleMode = DayCycleMode.SLEEP_ONSET,
+    // Home's version: the live bpm leads, the chart is shorter, and the window pills, min/avg/max row
+    // and zoom hint are left to the Metrics and Health screens.
+    compact: Boolean = false,
 ) {
     // "Today" here is the LOGICAL day (rolls at 04:00 local), so in the small hours after midnight the
     // trend keeps the evening's curve, window start at the logical day's own midnight, "since midnight"
@@ -6537,6 +6866,8 @@ private fun HeartRateTrendCard(
     // (No "show a past day curve" fallback, rejected behaviour change; this only re-queries the SAME
     // selected-day window when fresh samples land.) Mirrors the iOS Today HR lane keying off the sync state.
     val live by viewModel.live.collectAsStateWithLifecycle()
+    // The smoothed live heart rate, null whenever no strap is streaming. Only the compact card reads it.
+    val liveBpm by viewModel.bpm.collectAsStateWithLifecycle()
     // Re-load when the day list changes (an import updates it), when the day selector moves, and, via the
     // sync tokens, when a strap offload banks fresh HR samples for the current window. Also on first compose.
     LaunchedEffect(days, selectedDay, today, live.lastSyncAt, live.syncChunksThisSession, dayCycleMode) {
@@ -6619,6 +6950,20 @@ private fun HeartRateTrendCard(
     // wrong place. One stored block is also not "no heart rate", so it gets its own line rather than being
     // rounded down to zero.
     if (winBuckets.size < 2) {
+        if (compact) {
+            val emptyRes = hrEmptyMessageRes(
+                isToday = selectedDay == today,
+                windowIsWholeDay = true,
+                dayBucketCount = buckets.size,
+            )
+            HomeHeartCard(
+                liveBpm = liveBpm,
+                latestAvg = null,
+                note = if (emptyRes == R.string.today_hr_empty_window) null else uiString(emptyRes),
+                chart = null,
+            )
+            return
+        }
         SectionHeader(uiString(R.string.today_section_heart_rate), overline = selectedLabel)
         NoopCard {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -6685,6 +7030,36 @@ private fun HeartRateTrendCard(
     }
     val visTimestamps = remember(visBuckets) { visBuckets.map { it.bucket } }
 
+    if (compact) {
+        HomeHeartCard(
+            liveBpm = liveBpm,
+            latestAvg = latest,
+            note = null,
+            chart = {
+                Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
+                    OverviewHRChart(
+                        buckets = visBuckets,
+                        bpm = visBpm,
+                        sleep = sleepToday,
+                        workouts = workoutsToday,
+                        recovery = displayMetric?.recovery,
+                        strain = effortForDay ?: displayMetric?.strain,
+                        effortScale = effortScale,
+                        timeTicks = timeTicks,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(Metrics.compactChartHeight),
+                    )
+                    HrTimeAxisLabels(
+                        ticks = timeTicks,
+                        timestamps = visTimestamps,
+                        showNow = selectedDay == today,
+                    )
+                }
+            },
+        )
+        return
+    }
     SectionHeader(uiString(R.string.today_section_heart_rate), overline = selectedLabel)
     NoopCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

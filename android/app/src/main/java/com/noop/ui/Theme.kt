@@ -489,10 +489,9 @@ object NoopType {
     val caption = TextStyle(fontFamily = sans, fontWeight = FontWeight.Normal, fontSize = 12.sp)
     val footnote = TextStyle(fontFamily = sans, fontWeight = FontWeight.Normal, fontSize = 11.sp)
 
-    /** Overline 11 / Bold, +1.4 tracking, ALL-CAPS at use site. */
+    /** Overline 12 / Medium, sentence case, no extra tracking: a quiet label, not a shouted one. */
     val overline = TextStyle(
-        fontFamily = sans, fontWeight = FontWeight.Bold, fontSize = 11.sp,
-        letterSpacing = 1.4.sp,
+        fontFamily = sans, fontWeight = FontWeight.Medium, fontSize = 12.sp,
     )
 
     /** Mono 13 — raw / log views. */

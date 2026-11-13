@@ -2860,4 +2860,12 @@
     <string name="raw_diag_ecg_probe_running">Puede que siga activa una captura en esta correa. El veredicto se registra en el strap log.</string>
     <string name="today_customize_live_session_availability">Aparece hoy si Live Sessions está activado en Ajustes o hay una sesión activa.</string>
     <string name="l10n_app_changelog_today_your_way_heart_rate_any_5e1308b3">Hoy a tu manera, frecuencia cardíaca para cualquier aplicación e italiano</string>
+    <!-- Home tab and the Metrics tab -->
+    <string name="nav_metrics">Métricas</string>
+    <string name="home_hr_live">En vivo</string>
+    <string name="home_hr_zone">Zona %1$d</string>
+    <string name="home_hr_below_zones">Bajo la zona 1</string>
+    <string name="home_hr_not_streaming">Sin transmisión</string>
+    <string name="home_vs_7day_avg">%1$s vs. media de 7 días</string>
+    <string name="home_no_7day_avg">Aún sin media de 7 días</string>
 </resources>
