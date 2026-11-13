@@ -479,30 +479,4 @@ class StalledLinkDiagnosticsTest {
         )
     }
 
-    /**
-     * [standardHrHostReceivedLine] is dead unless enqueue calls it. Apple emits at ingest; Android
-     * buffers raw samples and range-gates at flush, so the line is computed from this sample's gates
-     * plus [rowsOf] pending, WITHOUT moving the 30-sample trigger onto accepted-only rows (#1770).
-     */
-    @Test
-    fun `enqueue emits host-received without moving the flush trigger onto accepted rows`() {
-        var root = java.io.File(System.getProperty("user.dir") ?: ".").canonicalFile
-        val src = run {
-            repeat(4) {
-                val f = java.io.File(root, "android/app/src/main/java/com/noop/ble/StandardHrSource.kt")
-                if (f.isFile) return@run f.readText()
-                root = root.parentFile ?: root
-            }
-            error("StandardHrSource.kt not found — this test must not pass by default")
-        }
-        val enqueue = src.substringAfter("private fun enqueue(").substringBefore("private fun rowsOf(")
-        // Since the summary (StandardHrHostReceivedTrace) the line is rendered THROUGH the trace, which writes
-        // it in full for a refusal or with a Test Centre mode on and counts it into the window otherwise. The
-        // fields still come from this call site, which is what #1770 pinned here.
-        assertTrue("enqueue must record the host-received twin", enqueue.contains("hostReceived.record("))
-        assertTrue("it must carry this sample's gated counts", enqueue.contains("acceptedHrRows = acceptedHr"))
-        assertTrue("pending counts must use the gated rowsOf helper", enqueue.contains("rowsOf(buffer)"))
-        assertTrue("cadence must stay on raw buffer size", enqueue.contains("buffer.size >= flushCount"))
-    }
-
 }

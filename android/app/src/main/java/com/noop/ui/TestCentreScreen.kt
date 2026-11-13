@@ -54,7 +54,6 @@ import com.noop.ble.WhoopModel
 import com.noop.data.DailyMetric
 import com.noop.data.GravitySample
 import com.noop.data.HrSample
-import com.noop.polar.PolarModel
 import com.noop.testcentre.CaptureAccumulator
 import com.noop.testcentre.CaptureKind
 import com.noop.testcentre.DisplayPerformanceMonitor
@@ -811,20 +810,6 @@ private fun DiagnosticToolsCard(vm: AppViewModel) {
     var showRecalibrate by remember { mutableStateOf(false) }
     // "Debug logging" moved here from Settings: dev-only, mirrors the strap log to logcat over adb.
     var debugLogging by remember { mutableStateOf(NoopPrefs.debugLogging(context)) }
-    // #polar-debug: the model NOOP auto-detects for a PAIRED Polar strap, from its stored advertised name
-    // (no live connection needed). null when no Polar strap is paired → the whole toggle stays hidden, so a
-    // non-Polar user never sees Polar debug. Loaded once from the registry.
-    var polarIdentity by remember { mutableStateOf<String?>(null) }
-    var polarDebugLogging by remember { mutableStateOf(NoopPrefs.polarDebugLogging(context)) }
-    // #1284 residual 3: the experimental Oura onset-keying toggle, shown only when an Oura ring is paired.
-    var ouraPaired by remember { mutableStateOf(false) }
-    var ouraOnsetKeying by remember { mutableStateOf(NoopPrefs.ouraOnsetKeying(context)) }
-    var ouraNotifyMaskFull by remember { mutableStateOf(NoopPrefs.ouraNotifyMaskFull(context)) }
-    LaunchedEffect(Unit) {
-        val paired = runCatching { vm.pairedDevices() }.getOrDefault(emptyList())
-        polarIdentity = PolarModel.debugIdentification(paired.firstOrNull { PolarModel.isPolar(it.model) }?.model)
-        ouraPaired = paired.any { it.brand.equals("Oura", ignoreCase = true) }
-    }
     var detailedCapture by remember { mutableStateOf(NoopPrefs.detailedCapture(context)) }
     var captureShareBusy by remember { mutableStateOf(false) }
     // #646/#651: LogExport.shareStrapLog's file write now runs on Dispatchers.IO instead of blocking the
@@ -887,38 +872,6 @@ private fun DiagnosticToolsCard(vm: AppViewModel) {
                     checked = debugLogging,
                     onCheckedChange = { debugLogging = it; vm.setDebugLogging(it) },
                     colors = settingsSwitchColors(),
-                )
-            }
-            // #polar-debug: only shown when a Polar strap is paired (polarIdentity != null). The subtitle is
-            // the model auto-detected from the paired record; the toggle also writes it to the strap log on
-            // each connect. Off by default. Diagnostic-only — nothing gates behaviour on it.
-            polarIdentity?.let { identity ->
-                ToggleRowTC(
-                    title = "Polar debug logging",
-                    description = "$identity.\nLogs this identification to the strap log on each connect, " +
-                        "so a Polar bug report shows the model NOOP resolved your strap to.",
-                    checked = polarDebugLogging,
-                    onCheckedChange = { polarDebugLogging = it; vm.setPolarDebugLogging(it) },
-                )
-            }
-            // #1284 residual 3: experimental Oura 0x49-onset keying, only when an Oura ring is paired.
-            if (ouraPaired) {
-                ToggleRowTC(
-                    title = "Oura onset keying (experimental)",
-                    description = "Keys each Oura sleep night on its stable 0x49 onset and suppresses " +
-                        "duplicate re-serves at the source, instead of the shipped end-anchored persist " +
-                        "(#1284). Off by default — a hardware-validation toggle. Watch the strap log for " +
-                        "'onset-key(#1284)' lines.",
-                    checked = ouraOnsetKeying,
-                    onCheckedChange = { ouraOnsetKeying = it; vm.setOuraOnsetKeying(it) },
-                )
-                // Packed-notification A/B (OURA_PROTOCOL.md s2.3). Takes effect at the NEXT connect only;
-                // nothing is written until then and nothing persists on the ring.
-                ToggleRowTC(
-                    title = stringResource(R.string.oura_notify_mask_full_title),
-                    description = stringResource(R.string.oura_notify_mask_full_desc),
-                    checked = ouraNotifyMaskFull,
-                    onCheckedChange = { ouraNotifyMaskFull = it; vm.setOuraNotifyMaskFull(it) },
                 )
             }
             // #1121 Detailed capture: an adb-like rolling on-device log, no computer needed. Off by default.

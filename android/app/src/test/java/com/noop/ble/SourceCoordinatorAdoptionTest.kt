@@ -25,8 +25,7 @@ import org.junit.Test
  * Harness mirrors DeviceRegistryTest: the project ships NO mocking framework and NO Robolectric (junit +
  * kotlinx-coroutines-test only — see app/build.gradle.kts), so this runs the REAL [DeviceRegistry] over an
  * in-memory [FakeRegistryDao] (the DAO's SQL semantics reproduced by hand). The coordinator's Android-only
- * deps ([context]/[repository]) are passed null — only [switchToStrap] touches them, and the adoption path
- * never reaches it. [Dispatchers.Unconfined] makes `scope.launch { … }` run eagerly inside `runBlocking`,
+ * deps ([context]/[repository]) are passed null; no WHOOP or adoption path reads them. [Dispatchers.Unconfined] makes `scope.launch { … }` run eagerly inside `runBlocking`,
  * so the registry write is observable synchronously after the call.
  */
 class SourceCoordinatorAdoptionTest {
@@ -175,7 +174,7 @@ class SourceCoordinatorAdoptionTest {
 
     private fun coordinatorOver(dao: FakeRegistryDao, log: (String) -> Unit = {}): SourceCoordinator =
         SourceCoordinator(
-            context = null,                       // adoption path never reaches switchToStrap
+            context = null,
             registry = registryWith(dao),
             repository = null,                    // same
             liveSink = { _, _ -> },
@@ -200,17 +199,6 @@ class SourceCoordinatorAdoptionTest {
         scope = CoroutineScope(Dispatchers.Unconfined),
     )
 
-    private fun ouraAdoptionCoordinatorOver(dao: FakeRegistryDao): SourceCoordinator = SourceCoordinator(
-        context = null,
-        registry = registryWith(dao),
-        repository = null,
-        liveSink = { _, _ -> },
-        startWhoop = {},
-        stopWhoop = {},
-        scope = CoroutineScope(Dispatchers.Unconfined),
-        migrateOuraInstallKey = { _, _ -> },
-    )
-
     @Test
     fun awaitedReconcileReturnsTrueAfterSuccessIncludingSameId() = runBlocking {
         val dao = FakeRegistryDao().apply {
@@ -226,7 +214,7 @@ class SourceCoordinatorAdoptionTest {
     }
 
     @Test
-    fun awaitedReconcileReturnsFalseWhenStrapActivationFails() = runBlocking {
+    fun awaitedReconcileReturnsFalseForANonWhoopRow() = runBlocking {
         val dao = FakeRegistryDao().apply {
             devices["whoop-a"] = whoopRow("whoop-a", peripheralId = "AA:BB:CC:DD:EE:01")
             devices["polar-b"] = strapRow("polar-b", peripheralId = "11:22:33:44:55:66")
@@ -236,36 +224,10 @@ class SourceCoordinatorAdoptionTest {
         assertTrue(coordinator.reconcileActiveDevice("whoop-a"))
         assertEquals("whoop-a", coordinator.activeDeviceId.value)
         assertFalse(
-            "completion must report the context-less makeSource activation failure",
+            "a non-WHOOP row is refused in this WHOOP-only build",
             coordinator.reconcileActiveDevice("polar-b"),
         )
         assertEquals("a failed switch must never publish its requested id", "whoop-a", coordinator.activeDeviceId.value)
-    }
-
-    @Test
-    fun ouraSerialAdoptionPublishesReconciledStableId() = runBlocking {
-        val transientId = "oura-transient-address"
-        val stableId = "oura-S12345678"
-        val dao = FakeRegistryDao().apply {
-            // The direct adoption callback is under test. A liveBLE-shaped row keeps this plain-JVM
-            // harness off Android BLE while exercising the real registry re-key + internal reconcile.
-            devices[transientId] = whoopRow(transientId, peripheralId = "AA:BB:CC:DD:EE:01")
-        }
-        val coordinator = ouraAdoptionCoordinatorOver(dao)
-        assertTrue(coordinator.reconcileActiveDevice(transientId))
-        assertEquals(transientId, coordinator.activeDeviceId.value)
-
-        SourceCoordinator::class.java
-            .getDeclaredMethod("adoptOuraSerial", String::class.java, String::class.java)
-            .apply { isAccessible = true }
-            .invoke(coordinator, transientId, "S12345678")
-
-        assertEquals(stableId, dao.activeDeviceId())
-        assertEquals(
-            "the Oura-internal A→S path must reach the same success-only publication as UI selection",
-            stableId,
-            coordinator.activeDeviceId.value,
-        )
     }
 
     @Test
