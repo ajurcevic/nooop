@@ -1,16 +1,16 @@
 # NOOP — Android
 
-An **offline WHOOP companion** for Android. NOOP connects directly to a WHOOP 4.0
-(and WHOOP 5.0) strap over Bluetooth Low Energy, reads heart rate, R-R intervals,
+An **offline WHOOP companion** for Android. NOOP connects directly to a WHOOP 5.0 / MG
+(or WHOOP 4.0) strap over Bluetooth Low Energy, reads heart rate, R-R intervals,
 battery, and sensor data, and stores everything **locally** on the device. There is
 no NOOP account, hosted server, or telemetry. Network access exists only for explicit,
 default-off features such as the AI Coach and Experimental one-way push to an endpoint
 the user owns.
 
-This is an independent Kotlin / Jetpack Compose reimplementation of the macOS/iOS
-reference app (`Strand/`, Swift). The protocol, framing, and BLE handshake are
-translated from that hardware-verified implementation, not invented here, and kept in
-byte-for-byte parity with it (see the repo root [`AGENTS.md`](../AGENTS.md)).
+This repository is an Android-only fork. The upstream macOS/iOS reference app and its Swift packages
+have been removed, so this Kotlin / Jetpack Compose app is now the only implementation. Its protocol,
+framing, and BLE handshake were translated from that hardware-verified upstream implementation (see
+the repo root [`AGENTS.md`](../AGENTS.md)).
 
 ---
 
