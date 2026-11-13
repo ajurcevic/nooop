@@ -1706,8 +1706,8 @@ fun SettingsScreen(
                 },
             )
 
-            // Day-cycle background (#698): the time-of-day scene behind Today. On by default. Off swaps it
-            // for a plain dark canvas for people who find the moving scene distracting. Takes effect next
+            // Day-cycle background (#698): the time-of-day scene behind Today. Off by default, which leaves
+            // the plain neutral canvas; on brings the scene back behind the header. Takes effect next
             // time Today is opened (the pref is read once on entry, like the other Today-screen toggles).
             Row(
                 modifier = Modifier.fillMaxWidth(),

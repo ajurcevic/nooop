@@ -2830,4 +2830,12 @@
     <string name="raw_diag_ecg_probe_running">此腕带上可能仍在采集。结论会写入 strap log。</string>
     <string name="today_customize_live_session_availability">在设置中启用Live Sessions 实时记录或有正在进行的训练时，今天会显示此部分。</string>
     <string name="l10n_app_changelog_today_your_way_heart_rate_any_5e1308b3">自定义「今天」页面、任何应用都能读取的心率，以及意大利语</string>
+    <!-- Home tab and the Metrics tab -->
+    <string name="nav_metrics">指标</string>
+    <string name="home_hr_live">实时</string>
+    <string name="home_hr_zone">区间 %1$d</string>
+    <string name="home_hr_below_zones">低于区间 1</string>
+    <string name="home_hr_not_streaming">未在传输</string>
+    <string name="home_vs_7day_avg">较 7 日均值 %1$s</string>
+    <string name="home_no_7day_avg">暂无 7 日均值</string>
 </resources>

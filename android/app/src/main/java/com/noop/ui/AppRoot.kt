@@ -26,11 +26,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.BugReport
@@ -135,6 +135,9 @@ internal enum class Destination(
 ) {
     // Group: Today
     Today("today", R.string.nav_today, Icons.Filled.Home),
+    // The Today sections that do not fit Home's single screen: summary, metric grids, workouts, cards.
+    // A bottom-bar tab, so like Today it is absent from every [DrawerGroup].
+    Metrics("metrics", R.string.nav_metrics, Icons.Outlined.GridView),
     Intelligence("intelligence", R.string.nav_intelligence, Icons.Filled.Psychology),
     // Optional, default-OFF (task #43): the Coupled view (WHOOP-style day read). Reached ONLY via the
     // Today dashboard "Coupled view" card tap-through, so it is deliberately NOT in any [DrawerGroup].
@@ -154,7 +157,7 @@ internal enum class Destination(
     Trends("trends", R.string.nav_trends, Icons.AutoMirrored.Filled.TrendingUp),
 
     // Group: Insight
-    Coach("coach", R.string.nav_coach, Icons.Filled.AutoAwesome),
+    Coach("coach", R.string.nav_coach, Icons.AutoMirrored.Filled.Chat),
     // Coach settings (#2243), reached ONLY from the strip on the Coach page, so like [CoupledView]
     // it is deliberately absent from every [DrawerGroup]: the drawer groups mirror the iOS More list
     // one-for-one, and the iOS twin hangs off Coach in the same way.
@@ -626,9 +629,15 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 popExitTransition = { fadeOut(navFadeSpec) },
             ) {
                 // --- Live, working screens (existing waves) ---
-                composable(Destination.Today.route) {
+                // Home and Metrics are the same screen in two modes, so every tap-through below is
+                // wired once and both tabs behave the same.
+                for ((route, mode) in listOf(
+                    Destination.Today.route to TodayMode.HOME,
+                    Destination.Metrics.route to TodayMode.METRICS,
+                )) composable(route) {
                     TodayScreen(
                         viewModel = viewModel,
+                        mode = mode,
                         // The quick-action "+" lives in the Today header's top-right now (off the
                         // bottom bar) — it opens the same quick-action sheet the bar used to.
                         onQuickActions = { showQuickActions = true },
@@ -1105,10 +1114,11 @@ private fun MoreRow(dest: Destination, onClick: () -> Unit) {
 /** A single bottom-bar nav slot: the destination it switches to, plus the bar-specific icon/label. */
 internal data class BarTab(val dest: Destination, val icon: ImageVector, @StringRes val labelRes: Int)
 
-/** The nav slots in iOS order: Today · Trends · Sleep · Coach · More.
+/** The nav slots: Today · Metrics · Trends · Sleep · Coach · More.
  *  More is special-cased (it opens the sheet rather than a route), so it is appended at the call site. */
 internal val barLeadingTabs = listOf(
-    BarTab(Destination.Today, Icons.Outlined.GridView, R.string.nav_today),
+    BarTab(Destination.Today, Icons.Filled.Home, R.string.nav_today),
+    BarTab(Destination.Metrics, Icons.Outlined.GridView, R.string.nav_metrics),
     // chart.line.uptrend.xyaxis on iOS — the rising-trend glyph, not a flat bar chart.
     BarTab(Destination.Trends, Icons.AutoMirrored.Filled.TrendingUp, R.string.nav_trends),
 )
@@ -1119,10 +1129,9 @@ internal val barLeadingTabs = listOf(
 internal val barTrailingTabs = listOf(
     BarTab(Destination.Sleep, Icons.Filled.Bedtime, R.string.nav_sleep),
     // #2218: Coach was promoted to a top-level tab on iOS and this side did not follow, so it sat in
-    // the More list while the comment above claimed the two bars matched. AutoAwesome is the sparkles
-    // glyph iOS uses, and the same one the More row already shows, so the entry a wearer has learned
-    // keeps its face when it moves up.
-    BarTab(Destination.Coach, Icons.Filled.AutoAwesome, R.string.nav_coach),
+    // the More list while the comment above claimed the two bars matched. A plain chat glyph rather
+    // than sparkles: the tab is a conversation, and the Destination icon uses the same one.
+    BarTab(Destination.Coach, Icons.AutoMirrored.Filled.Chat, R.string.nav_coach),
 )
 
 /**
@@ -1165,8 +1174,9 @@ private fun GlassBottomBar(
             // The glass alpha is the user's transparency step; 0.80 was the shipped constant and remains
             // the default (step 6), so an untouched install is unchanged.
             color = Palette.surfaceRaised.copy(alpha = BottomBarStyleStore.barAlpha),
-            tonalElevation = 2.dp,
-            shadowElevation = 4.dp,
+            // Flat: depth comes from the surface step and the hairline, not a shadow.
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 // Cap the width so the pill stays a centred floating island on tablets, not a full-bleed bar.

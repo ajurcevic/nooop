@@ -255,12 +255,12 @@ fun SyncingHistoryNote(chunks: Int, modifier: Modifier = Modifier) {
     }
 }
 
-// MARK: - Overline label (ALL-CAPS, semibold, +0.8 tracking, secondary)
+// MARK: - Overline label (sentence case, medium, secondary)
 
 @Composable
 fun Overline(text: String, modifier: Modifier = Modifier, color: Color = Palette.textSecondary) {
     Text(
-        text = text.uppercase(),
+        text = text,
         style = NoopType.overline,
         color = color,
         modifier = modifier,
