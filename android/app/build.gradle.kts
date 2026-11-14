@@ -23,7 +23,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.noop.whoop"
+        applicationId = "com.zoop.app"
         minSdk = 34 // Android 14
         targetSdk = 34
         versionCode = 565
@@ -88,7 +88,7 @@ android {
             }
             // Fork staging release: built with -PstagingRelease (the fork testing-build CI only), the
             // release APK gets its own id/name so it installs BESIDE both the official app and the
-            // .debug staging build. A real release (no property) keeps the true com.noop.whoop id.
+            // .debug staging build. A real release (no property) keeps the true com.zoop.app id.
             if (isStagingRelease) {
                 applicationIdSuffix = ".staging"
                 versionNameSuffix = "-staging"
@@ -97,8 +97,8 @@ android {
     }
 
     // Two clearly-distinct apps that install side-by-side:
-    //   • full → "Zoop"      (com.noop.whoop)     — the real app, starts empty, pair a strap / import.
-    //   • demo → "Zoop Demo"  (com.noop.whoop.demo) — preloaded with 120 days of synthetic data and
+    //   • full → "Zoop"      (com.zoop.app)       — the real app, starts empty, pair a strap / import.
+    //   • demo → "Zoop Demo"  (com.zoop.app.demo) — preloaded with 120 days of synthetic data and
     //                          a visible DEMO badge, so anyone can explore every screen with no strap.
     // Build e.g. ./gradlew assembleFullRelease assembleDemoRelease.
     flavorDimensions += "tier"

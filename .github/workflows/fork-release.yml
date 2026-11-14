@@ -152,7 +152,7 @@ jobs:
             fi
             {
               printf '\n---\n\n**Downloads:**\n'
-              printf -- '- **Android** — `Zoop-android-v%s.apk` (`com.noop.whoop.staging`) — installs **beside** the official app, with its own data.\n' "$NEW"
+              printf -- '- **Android** — `Zoop-android-v%s.apk` (`com.zoop.app.staging`) — installs **beside** the official app, with its own data.\n' "$NEW"
             } >> "$BODY"
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$(git rev-parse HEAD)" \
               --title "Zoop ${NEW}" --notes-file "$BODY"

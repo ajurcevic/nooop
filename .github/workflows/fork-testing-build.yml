@@ -89,8 +89,8 @@ jobs:
             --title "Zoop Staging — base ${VER} · ${DATE} · ${SHA}" \
             --notes "Rolling **latest** testing build — refreshed in place, so this tag is always the newest. Built with the **Zoop Staging** identity. The release APK installs **beside** the official app. Filenames carry the base app version (\`v${VER}\`).
 
-          - **Android (release)** — \`Zoop-android-v${VER}.apk\` — optimized, non-debuggable build; installs beside the official app. \`com.noop.whoop.staging\`.
-          - **Android (debug)** — \`Zoop-android-debug-v${VER}.apk\` — debuggable build. \`com.noop.whoop.debug\`.
+          - **Android (release)** — \`Zoop-android-v${VER}.apk\` — optimized, non-debuggable build; installs beside the official app. \`com.zoop.app.staging\`.
+          - **Android (debug)** — \`Zoop-android-debug-v${VER}.apk\` — debuggable build. \`com.zoop.app.debug\`.
 
           Base app version ${VER} · built ${DATE} · \`${SHA}\`."
           # Belt-and-braces: a rolling tag is deleted with --cleanup-tag and recreated seconds later, and
