@@ -2689,4 +2689,8 @@
     <string name="home_hr_not_streaming">Нет потока</string>
     <string name="home_vs_7day_avg">%1$s к сред. за 7 дн.</string>
     <string name="home_no_7day_avg">Пока нет сред. за 7 дн.</string>
+    <string name="l10n_settings_screen_downloading_c177e4b0">Загрузка…</string>
+    <string name="l10n_settings_screen_install_fd6c3ebf">Установить</string>
+    <string name="l10n_settings_screen_download_failed_try_again_6dda10a9">Не удалось загрузить. Попробуйте ещё раз.</string>
+    <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Разрешите NOOP устанавливать приложения, затем нажмите «Установить».</string>
 </resources>

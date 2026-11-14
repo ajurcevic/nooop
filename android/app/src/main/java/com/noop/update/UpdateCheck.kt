@@ -2,14 +2,16 @@ package com.noop.update
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * "Check for updates": a single call to the project's PUBLIC releases API (GitHub) that reads the latest
- * version and compares it to the installed one. Nothing about the user is sent, and it never installs
- * anything.
+ * "Check for updates": a single call to this fork's PUBLIC releases API (GitHub, `ajurcevic/nooop`) that
+ * reads the latest version and compares it to the installed one, and picks out the release's APK asset so
+ * the Settings button can download it ([ApkUpdate]). Nothing about the user is sent, and this check never
+ * installs anything on its own: installing needs a tap in Settings and Android's own confirmation.
  *
  * TWO callers share this, and the distinction matters to anyone auditing what the app does on its own:
  *  - the Settings button, which runs only when tapped;
@@ -24,11 +26,21 @@ import java.net.URL
  */
 object UpdateCheck {
 
-    private const val ENDPOINT = "https://api.github.com/repos/ryanbr/noop/releases/latest"
+    /** The fork's own repository. Every merge to `main` publishes a `v<VERSION>` release here with the
+     *  APK attached (`fork-release.yml`). */
+    const val REPO = "ajurcevic/nooop"
+    private const val ENDPOINT = "https://api.github.com/repos/$REPO/releases/latest"
 
     sealed interface Result {
         data class UpToDate(val version: String) : Result
-        data class Available(val version: String, val url: String, val notes: String) : Result
+        /** [url] is the release page; [apkUrl] is the release's APK download, or null when the release
+         *  has no APK yet (the asset uploads a few minutes after the release is created). */
+        data class Available(
+            val version: String,
+            val url: String,
+            val notes: String,
+            val apkUrl: String? = null,
+        ) : Result
         object Failed : Result
     }
 
@@ -48,13 +60,36 @@ object UpdateCheck {
                 val latest = json.getString("tag_name").removePrefix("v")
                 val url = json.getString("html_url")
                 val notes = cleanNotes(json.optString("body", ""))
-                if (isNewer(latest, currentVersion)) Result.Available(latest, url, notes)
+                val apkUrl = pickApkUrl(assetsOf(json.optJSONArray("assets")))
+                if (isNewer(latest, currentVersion)) Result.Available(latest, url, notes, apkUrl)
                 else Result.UpToDate(latest)
             } finally {
                 conn.disconnect()
             }
         }.getOrDefault(Result.Failed)
     }
+
+    /** A release asset reduced to the two fields the APK pick needs. */
+    data class Asset(val name: String, val downloadUrl: String)
+
+    private fun assetsOf(array: JSONArray?): List<Asset> {
+        if (array == null) return emptyList()
+        return (0 until array.length()).mapNotNull { i ->
+            val o = array.optJSONObject(i) ?: return@mapNotNull null
+            val name = o.optString("name", "")
+            val dl = o.optString("browser_download_url", "")
+            if (name.isEmpty() || dl.isEmpty()) null else Asset(name, dl)
+        }
+    }
+
+    /**
+     * The download URL of the release's APK, or null if it has none. The first asset whose name ends in
+     * `.apk` wins (the release workflow uploads exactly one, `NOOP-android-v<VERSION>.apk`). Only an
+     * `https://` URL is accepted, so a malformed asset can never turn into a cleartext download.
+     */
+    fun pickApkUrl(assets: List<Asset>): String? =
+        assets.firstOrNull { it.name.endsWith(".apk", ignoreCase = true) && it.downloadUrl.startsWith("https://") }
+            ?.downloadUrl
 
     /**
      * True iff [latest] is a strictly newer version than [current]. Compares dot-separated numeric

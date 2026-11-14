@@ -2785,4 +2785,8 @@
     <string name="home_hr_not_streaming">Sem transmissão</string>
     <string name="home_vs_7day_avg">%1$s vs média de 7 dias</string>
     <string name="home_no_7day_avg">Ainda sem média de 7 dias</string>
+    <string name="l10n_settings_screen_downloading_c177e4b0">A transferir…</string>
+    <string name="l10n_settings_screen_install_fd6c3ebf">Instalar</string>
+    <string name="l10n_settings_screen_download_failed_try_again_6dda10a9">A transferência falhou. Tenta novamente.</string>
+    <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Permite que a NOOP instale apps e depois toca em Instalar.</string>
 </resources>

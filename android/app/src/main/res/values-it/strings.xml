@@ -2762,4 +2762,8 @@
     <string name="home_hr_not_streaming">Nessun flusso live</string>
     <string name="home_vs_7day_avg">%1$s vs media 7 giorni</string>
     <string name="home_no_7day_avg">Ancora nessuna media 7 giorni</string>
+    <string name="l10n_settings_screen_downloading_c177e4b0">Download in corso…</string>
+    <string name="l10n_settings_screen_install_fd6c3ebf">Installa</string>
+    <string name="l10n_settings_screen_download_failed_try_again_6dda10a9">Download non riuscito. Riprova.</string>
+    <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Consenti a NOOP di installare app, poi tocca Installa.</string>
 </resources>

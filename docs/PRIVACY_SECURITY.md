@@ -161,7 +161,8 @@ If you never build the lane in, your binary cannot call `ouraring.com` — the c
 
 NOOP is sideloaded on every platform — there is no App Store or Play Store to update it — so an install
 that is never told about a release simply runs an old build indefinitely. Two paths address that, and
-both read the **same** public endpoint: `https://api.github.com/repos/ryanbr/noop/releases/latest`.
+both read the **same** public endpoint: `https://api.github.com/repos/ajurcevic/nooop/releases/latest` (this
+Android fork's own releases).
 
 - **"Check for updates"** in Settings → About. Runs only when tapped. It has always existed;
   it was previously undocumented here, which is why this section is new rather than merely amended.
@@ -171,15 +172,19 @@ both read the **same** public endpoint: `https://api.github.com/repos/ryanbr/noo
 
 What is sent: an unauthenticated `GET` of a public URL, with normal HTTP headers but no app-added
 user/account identifier or biometric data. What comes back is a version number and the
-release notes. **It never installs anything** — on iOS no API permits that for a sideloaded app (see
-[docs/IOS.md](IOS.md)); the row tells you a release exists and where to get it.
+release notes, plus the address of the release's APK. **Neither check installs anything on its own.**
+The daily check only puts a row in the inbox. On Android, tapping **Download** in Settings → About after
+a manual check downloads that APK from GitHub into the app's cache and hands it to Android's package
+installer, which asks you to confirm (and, the first time, asks you to allow NOOP to install apps — the
+`REQUEST_INSTALL_PACKAGES` permission). If the release has no APK yet, the button opens the release page
+instead.
 
 The request is a plain HTTPS call, so your IP address is visible to GitHub exactly as it would be if
 you opened the releases page in a browser. If that is not a trade you want, turn the toggle off; the
 manual button then remains the only way NOOP touches the network for this.
 
 Code: `Strand/System/UpdateChecker.swift` + `Strand/System/UpdateAvailability.swift` (Swift),
-`com.noop.update.UpdateCheck` + `com.noop.update.UpdateAvailability` (Android).
+`com.noop.update.UpdateCheck` + `com.noop.update.UpdateAvailability` + `com.noop.update.ApkUpdate` (Android).
 
 ### 1.1d Self-hosted push (Experimental, Android, off by default)
 

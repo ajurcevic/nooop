@@ -2763,4 +2763,8 @@
     <string name="home_hr_not_streaming">未在传输</string>
     <string name="home_vs_7day_avg">较 7 日均值 %1$s</string>
     <string name="home_no_7day_avg">暂无 7 日均值</string>
+    <string name="l10n_settings_screen_downloading_c177e4b0">正在下载…</string>
+    <string name="l10n_settings_screen_install_fd6c3ebf">安装</string>
+    <string name="l10n_settings_screen_download_failed_try_again_6dda10a9">下载失败，请重试。</string>
+    <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">请允许 NOOP 安装应用，然后点按“安装”。</string>
 </resources>
