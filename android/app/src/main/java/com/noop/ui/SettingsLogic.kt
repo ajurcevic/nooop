@@ -106,3 +106,34 @@ internal object SettingsDisclosurePrefs {
     fun read(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY, DEFAULT_OPEN)
     fun write(prefs: SharedPreferences, open: Boolean) { prefs.edit().putBoolean(KEY, open).apply() }
 }
+
+// MARK: - Settings tabs
+
+/**
+ * The groups the Settings screen is split into, shown one at a time behind a tab row. [prefValue] is
+ * the stable persisted token, kept separate from the enum name so a rename cannot strand a saved choice.
+ */
+internal enum class SettingsTab(val prefValue: String) {
+    YOU("you"),
+    STRAP("strap"),
+    HEALTH("health"),
+    LOOK("look"),
+    DATA("data"),
+    ABOUT("about"),
+}
+
+/**
+ * The persisted Settings tab, so reopening Settings lands where the user left it. A fresh install, or a
+ * stored token no current tab carries, reads as [SettingsTab.YOU].
+ */
+internal object SettingsTabPrefs {
+    const val KEY = "noop.settingsTab"
+    val DEFAULT = SettingsTab.YOU
+
+    fun read(prefs: SharedPreferences): SettingsTab {
+        val stored = prefs.getString(KEY, null) ?: return DEFAULT
+        return SettingsTab.entries.firstOrNull { it.prefValue == stored } ?: DEFAULT
+    }
+
+    fun write(prefs: SharedPreferences, tab: SettingsTab) { prefs.edit().putString(KEY, tab.prefValue).apply() }
+}

@@ -1916,6 +1916,13 @@
     <string name="timeline_resp_not_on_whoop5">Questa fascia non invia un flusso grezzo della respirazione. La tua frequenza respiratoria stimata compare nella schermata Salute.</string>
     <string name="settings_disclosure_expanded">Espanso</string>
     <string name="settings_disclosure_collapsed">Compresso</string>
+    <string name="settings_tab_you">Tu</string>
+    <string name="settings_tab_strap">Fascia</string>
+    <string name="settings_tab_health">Salute</string>
+    <string name="settings_tab_look">Aspetto</string>
+    <string name="settings_tab_data">Dati</string>
+    <string name="settings_tab_about">Info</string>
+    <string name="settings_tabs_label">Sezioni impostazioni</string>
     <string name="l10n_data_sources_screen_last_shared_6bf8389c">\"Ultima condivisione \"%1$s</string>
     <string name="l10n_data_sources_screen_sharing_paused_health_connect_permission_was_e8950315">Condivisione in pausa — l\'autorizzazione di Health Connect è stata revocata. Tocca per concederla di nuovo.</string>
     <string name="l10n_data_sources_screen_last_share_didn_t_finish_noop_0d6c27f0">L\'ultima condivisione non è stata completata — NOOP riproverà automaticamente.</string>
