@@ -105,14 +105,15 @@ class SchemaOracleTest {
                 Col(
                     name = f.getString("columnName"),
                     affinity = sqliteAffinity(f.getString("affinity")),
-                    notNull = f.getBoolean("notNull"),
+                    // Room 2.7+ serializes with defaults omitted, so an absent `notNull` means false.
+                    notNull = f.optBoolean("notNull", false),
                     default = if (f.has("defaultValue")) f.getString("defaultValue") else null,
                 )
             }
             val indices = e.optJSONArray("indices").orEmptyArray().let { arr ->
                 (0 until arr.length()).map { j ->
                     val idx = arr.getJSONObject(j)
-                    Idx(idx.getString("name"), idx.getBoolean("unique"), idx.getJSONArray("columnNames").strings())
+                    Idx(idx.getString("name"), idx.optBoolean("unique", false), idx.getJSONArray("columnNames").strings())
                 }.sortedBy { it.name }
             }
             e.getString("tableName") to Tbl(cols, e.getJSONObject("primaryKey").getJSONArray("columnNames").strings(), indices)
