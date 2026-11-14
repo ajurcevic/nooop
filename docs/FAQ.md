@@ -48,8 +48,8 @@ into something diagnosable.
 ## Does my data ever leave my device?
 
 No, unless you export it yourself or explicitly enable an optional network path. NOOP operates no
-servers, accounts, telemetry, or cloud sync. The AI Coach sends a compact summary only when you ask
-it a question. Android's Experimental self-hosted push can send fresh database rows after offload,
+servers, accounts, telemetry, or cloud sync. The AI Coach exists only in upstream NOOP; this
+Android fork does not include it. Android's Experimental self-hosted push can send fresh database rows after offload,
 at app-launch catch-up, or when the user explicitly selects **Export now**,
 but is off until you configure your own endpoint and bearer token; it is one-way and never reads
 records back. A receiver may only advertise which fixed protocol streams it accepts. A source-built

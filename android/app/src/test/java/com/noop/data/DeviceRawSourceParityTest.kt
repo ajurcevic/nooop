@@ -88,11 +88,7 @@ class DeviceRawSourceParityTest {
     }
 
     @Test
-    fun aiCoachAndFullDayTimelineUseAllSourceRawFacades() {
-        val coach = production("android/app/src/main/java/com/noop/ai/AiCoach.kt")
-        assertTrue("AI Coach stress context must union R-R across the worn timeline", coach.contains("repo.rrIntervalsUnion("))
-        assertFalse("AI Coach must not select one R-R owner", coach.contains("repo.rrIntervalsForDevice(activeStrapId()"))
-
+    fun fullDayTimelineUsesAllSourceRawFacades() {
         val timeline = production("android/app/src/main/java/com/noop/ui/FullDayChartScreen.kt")
         for (call in listOf("repo.hrBucketsUnion(", "repo.rrIntervalsUnion(", "repo.gravitySamplesUnion(")) {
             assertTrue("Full Day Chart must use $call", timeline.contains(call))

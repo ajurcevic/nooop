@@ -1510,7 +1510,7 @@ interface WhoopDao : DeviceRegistryDao {
     @Query("DELETE FROM sleepSession WHERE startTs > :maxTs OR (startTs < :minTs AND deviceId LIKE '%-noop')")
     suspend fun pruneSleepSessionByTs(minTs: Long, maxTs: Long): Int
 
-    // MARK: - PRD-K2: persisted Coach conversation
+    // MARK: - PRD-K2: persisted Coach conversation (the Coach UI is removed; kept for schema parity)
 
     /** The full stored conversation, oldest first (by orderIndex). */
     @Query("SELECT * FROM coachMessage ORDER BY orderIndex ASC")

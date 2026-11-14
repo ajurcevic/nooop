@@ -722,7 +722,6 @@ fun SettingsScreen(
     var stressCheckIn by remember { mutableStateOf(BiofeedbackPrefs.checkInEnabled(context)) }
     var stressAutoNudge by remember { mutableStateOf(BiofeedbackPrefs.autoNudge(context)) }
     var rhythmEnabled by remember { mutableStateOf(RhythmConsent.isEnabled(context)) }
-    var coachSignals by remember { mutableStateOf(NoopPrefs.coachSignals(context)) }
     var autoDetectWorkouts by remember { mutableStateOf(NoopPrefs.autoDetectWorkouts(context)) }
     var journalReminder by remember { mutableStateOf(NoopPrefs.journalReminderEnabled(context)) }
     // Keep the screen on during a manual workout recording (#703), default OFF. The live-workout
@@ -1868,18 +1867,6 @@ fun SettingsScreen(
             title = uiString(R.string.l10n_settings_screen_bottom_bar_f84098a9),
             blurb = uiString(R.string.l10n_settings_screen_how_the_navigation_bar_looks_f186b099),
         ) {
-            // The Coach tab's master switch. It sits in this section because the tab is where a wearer
-            // meets the feature, but it is NOT tab chrome: switching it off disables the AI itself, takes
-            // the Today launcher card with it, and cancels the daily brief (which otherwise keeps calling
-            // a provider from the background and posting notifications, with no UI attached to reveal that
-            // it is still running). The saved provider key is kept, so this is a flip and not a re-setup.
-            SettingsFormRow(label = uiString(R.string.l10n_settings_screen_ai_coach_130c3eab)) {
-                Switch(
-                    checked = BottomBarStyleStore.coachEnabled,
-                    onCheckedChange = { BottomBarStyleStore.setCoachEnabled(context, it) },
-                )
-            }
-            SettingsRowDivider()
             // #1836: which bottom-bar layout to draw. Default OFF — the shipped reserved slot. The
             // overlay lets a screen's own backdrop show through the bar's glass, which is what it was
             // built for, but it is app-shell layout no test can judge, so it ships switchable.
@@ -3452,16 +3439,6 @@ fun SettingsScreen(
                         }
                     },
                 )
-                SettingsRowDivider()
-                SettingsToggleRow(
-                    title = uiString(R.string.l10n_settings_screen_share_on_device_signals_with_the_b3fd747e),
-                    detail = "When the opt-in Coach is set up with your own key, also include a short summary of your strongest on-device patterns and Lab Book markers in its context. Summary only; no raw data leaves your phone. Requires the Coach's own data consent first.",
-                    checked = coachSignals,
-                    onCheckedChange = {
-                        coachSignals = it
-                        NoopPrefs.setCoachSignals(context, it)
-                    },
-                )
             }
         }
 
@@ -3806,7 +3783,7 @@ fun SettingsScreen(
 
                 // Check for updates — a single, user-initiated call to the project's public releases API (GitHub)
                 // when the button is tapped. No background polling, no auto-update; nothing about you
-                // is sent. Android already holds INTERNET (for the opt-in Coach), so this adds nothing.
+                // is sent. Android already holds INTERNET for other opt-ins, so this adds nothing.
                 var updChecking by remember { mutableStateOf(false) }
                 var updResult by remember { mutableStateOf<UpdateCheck.Result?>(null) }
                 // #1659: the automatic half. A sideloaded build has no store to update it, so noticing a

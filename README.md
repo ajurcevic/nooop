@@ -58,9 +58,8 @@ locally. There is no NOOP-operated server, no account, no cloud dependency and n
 | **Health / Stress** | Biometric overview (HR, HRV, SpO₂, skin temperature, respiratory rate) and day-level stress. |
 | **Breathe / Intervals** | Haptic breathing biofeedback and a silent haptic interval timer, driven by the strap's motor. |
 | **Data Sources** | Import a WHOOP CSV export, Health Connect data or a nutrition CSV. |
-| **Coach** | An optional AI Coach that is off until you add your own key (or a local model). See [`docs/PRIVACY_SECURITY.md`](docs/PRIVACY_SECURITY.md). |
 | **Devices** | Pair and manage WHOOP straps (5.0 / MG by default, 4.0 also supported). |
-| **Widgets** | Home-screen widgets for the day's summary, heart rate, stress and the coach brief. |
+| **Widgets** | Home-screen widgets for the day's summary, heart rate and stress. |
 
 ## Build and install
 

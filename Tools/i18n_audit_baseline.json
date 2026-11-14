@@ -1,10 +1,6 @@
 {
   "android": [
     [
-      "android/app/src/main/java/com/noop/ui/AddDeviceWizard.kt",
-      "The most common cause is the ring was not fully reset in the Oura app, or the Oura "
-    ],
-    [
       "android/app/src/main/java/com/noop/ui/AppRoot.kt",
       "Collapsed"
     ],
@@ -95,38 +91,6 @@
     [
       "android/app/src/main/java/com/noop/ui/Charts.kt",
       "Trend"
-    ],
-    [
-      "android/app/src/main/java/com/noop/ui/CoachScreen.kt",
-      "Bring your own API key. It is stored encrypted on this device and only used to "
-    ],
-    [
-      "android/app/src/main/java/com/noop/ui/CoachScreen.kt",
-      "Fetching…"
-    ],
-    [
-      "android/app/src/main/java/com/noop/ui/CoachScreen.kt",
-      "Only if your server requires one"
-    ],
-    [
-      "android/app/src/main/java/com/noop/ui/CoachScreen.kt",
-      "Paste your ${provider.displayName} key"
-    ],
-    [
-      "android/app/src/main/java/com/noop/ui/CoachScreen.kt",
-      "Point the coach at any OpenAI-compatible server: a local model (Ollama, LM "
-    ],
-    [
-      "android/app/src/main/java/com/noop/ui/CoachScreen.kt",
-      "Private by default: only your question and a short metrics summary are sent, "
-    ],
-    [
-      "android/app/src/main/java/com/noop/ui/CoachScreen.kt",
-      "Refresh models"
-    ],
-    [
-      "android/app/src/main/java/com/noop/ui/CoachScreen.kt",
-      "The coach talks only to the server URL you set. Point it at a local model to "
     ],
     [
       "android/app/src/main/java/com/noop/ui/CompareScreen.kt",
@@ -655,14 +619,6 @@
     [
       "android/app/src/main/java/com/noop/ui/TestCentreScreen.kt",
       "Detailed capture to file"
-    ],
-    [
-      "android/app/src/main/java/com/noop/ui/TestCentreScreen.kt",
-      "Oura onset keying (experimental)"
-    ],
-    [
-      "android/app/src/main/java/com/noop/ui/TestCentreScreen.kt",
-      "Polar debug logging"
     ],
     [
       "android/app/src/main/java/com/noop/ui/TestCentreScreen.kt",

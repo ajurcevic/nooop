@@ -650,7 +650,8 @@ UI, keep that parity.
 network clients; it does not make BLE collection or local scoring depend on a connection.
 The [canonical privacy inventory](PRIVACY_SECURITY.md#11-network-paths-canonical-inventory)
 describes each feature's default, trigger and payload. In particular, automatic release checks
-are on by default; AI Coach and Experimental self-hosted push require configuration.
+are on by default; Experimental self-hosted push requires configuration. The upstream AI Coach is
+not part of this Android fork.
 
 Selected permissions from the manifest (the manifest is the complete list):
 

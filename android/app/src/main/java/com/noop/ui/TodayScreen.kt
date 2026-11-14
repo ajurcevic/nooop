@@ -159,7 +159,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.noop.R
-import com.noop.ai.AiKeyStore
 import com.noop.analytics.Baselines
 import com.noop.analytics.ChargeBaselines
 import com.noop.analytics.BatteryEstimator
@@ -323,8 +322,6 @@ fun TodayScreen(
     // Optional Coupled view card (task #43): a tap-through to the WHOOP-style day screen. Defaulted to a
     // no-op so the call site stays compiling; AppRoot binds it to nav.navigate(CoupledView).
     onOpenCoupled: () -> Unit = {},
-    /** #1862: open Coach, optionally with a question the Today launcher already collected. */
-    onOpenCoach: (String?) -> Unit = {},
     // The "workout in progress" indicator card routes to Live and re-opens the in-exercise overlay. Defaulted
     // to a no-op so the call site stays compiling; AppRoot binds it to openActiveWorkout() + nav.navigate(Live).
     onOpenActiveWorkout: () -> Unit = {},
@@ -1704,12 +1701,7 @@ fun TodayScreen(
             // the hero and the beta flag is off for most users. The section keeps its place in the saved
             // order; its item simply reappears when eligible.
             val visibleDashboardCards = enabledDashboardCards.filter {
-                    (it != DashboardCard.HYDRATION || hydrationEnabled) &&
-                        // Coach off is not just "no tab": the launcher card is the OTHER way into
-                        // the AI, and leaving it on Today would offer a feature the wearer has just
-                        // switched off. Same shape as the hydration gate, so a card the wearer had
-                        // added keeps its place in the saved order and returns when Coach comes back.
-                        (it != DashboardCard.COACH || BottomBarStyleStore.coachEnabled)
+                    it != DashboardCard.HYDRATION || hydrationEnabled
             }
             val sectionVisible = when (section) {
                 TodaySection.LIVE_SESSION ->
@@ -1952,7 +1944,6 @@ fun TodayScreen(
                             onOpenMetric = onOpenMetric,
                             onOpenSleep = onOpenSleep,
                             onOpenCoupled = onOpenCoupled,
-                            onOpenCoach = onOpenCoach,
                             onCustomise = { showDashboardEditor = true },
                             spo2CandidateByDay = spo2CandidateByDay,
                         )
@@ -4491,7 +4482,6 @@ private fun YourCardsSection(
     onOpenMetric: (String) -> Unit,
     onOpenSleep: () -> Unit,
     onOpenCoupled: () -> Unit,
-    onOpenCoach: (String?) -> Unit,
     onCustomise: () -> Unit,
     spo2CandidateByDay: Map<String, Double> = emptyMap(),
 ) {
@@ -4499,22 +4489,6 @@ private fun YourCardsSection(
     // Swift twin) do. The classic dashboard hardcoded Celsius here alone, so a °F user saw °C on this
     // screen only.
     val fahrenheit = UnitPrefs.temperature(LocalContext.current) == TemperatureUnit.FAHRENHEIT
-    // #1862: the optional Coach card opens a launcher BOTTOM SHEET rather than a destination. Local
-    // presentation state — showing it requests nothing from a provider.
-    var showCoachLauncher by remember { mutableStateOf(false) }
-    if (showCoachLauncher) {
-        val ctx = LocalContext.current
-        CoachLauncherSheet(
-            isConfigured = AiKeyStore.hasKey(ctx),
-            onPick = { prompt ->
-                showCoachLauncher = false
-                CoachHandoff.pendingPrompt = prompt
-                onOpenCoach(prompt)
-            },
-            onSetup = { showCoachLauncher = false; onOpenCoach(null) },
-            onDismiss = { showCoachLauncher = false },
-        )
-    }
     Box(modifier = Modifier.fillMaxWidth().staggeredAppear(2)) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
             // Header: "YOUR CARDS" overline + a right-aligned blue EDIT action (the WHOOP ✎ affordance).
@@ -4587,7 +4561,6 @@ private fun YourCardsSection(
                         onOpenSleep = onOpenSleep,
                         onOpenHydration = onOpenHydration,
                         onOpenCoupled = onOpenCoupled,
-                        onOpenCoach = { showCoachLauncher = true },
                     ),
                 )
             }
@@ -4628,9 +4601,7 @@ internal fun dashboardCardMetricKey(card: DashboardCard): String? = when (card) 
     DashboardCard.STEPS, DashboardCard.STEPS_AVERAGE_30 -> "steps_est"
     DashboardCard.CALORIES -> "active_kcal"
     // These carry their own full screen, not a per-metric trend.
-    DashboardCard.STRESS, DashboardCard.SLEEP, DashboardCard.HYDRATION, DashboardCard.COUPLED,
-    // #1862: a launcher row, not a metric — no explorer key.
-    DashboardCard.COACH -> null
+    DashboardCard.STRESS, DashboardCard.SLEEP, DashboardCard.HYDRATION, DashboardCard.COUPLED -> null
 }
 
 /** The destination callback a dashboard card opens when tapped. Mirrors the iOS dashboardCardRow switch:
@@ -4644,17 +4615,12 @@ private fun dashboardCardDestination(
     onOpenSleep: () -> Unit,
     onOpenHydration: () -> Unit,
     onOpenCoupled: () -> Unit,
-    // #1862: Coach is the one card that opens a SHEET rather than a destination, so its "destination" is
-    // a callback that shows the launcher. Kept in this same resolver so every card still resolves to
-    // exactly one tap action and the chevron stays honest.
-    onOpenCoach: () -> Unit,
 ): () -> Unit = when (card) {
     DashboardCard.STRESS -> onOpenStress
     DashboardCard.SLEEP -> onOpenSleep
     DashboardCard.HYDRATION -> onOpenHydration
     // The Coupled view card (#43) taps through to the full WHOOP-style day screen.
     DashboardCard.COUPLED -> onOpenCoupled
-    DashboardCard.COACH -> onOpenCoach
     // Every overnight vital + Fitness age / Vitality / Steps / Calories opens its own metric-detail trend.
     else -> {
         val key = dashboardCardMetricKey(card)
@@ -4685,7 +4651,6 @@ private fun dashboardCardTint(card: DashboardCard): Color = when (card) {
     DashboardCard.CALORIES -> Palette.metricAmber
     DashboardCard.HYDRATION -> Palette.metricCyan
     DashboardCard.COUPLED -> Palette.chargeColor
-    DashboardCard.COACH -> Palette.accent
 }
 
 /**
@@ -4734,7 +4699,6 @@ private fun dashboardCardFraction(
         DashboardCard.SLEEP -> over(vd?.totalSleepMin, 480.0)
         DashboardCard.STEPS_AVERAGE_30 -> over(stepsAverage30, 10000.0)
         DashboardCard.COUPLED -> 0.6
-        DashboardCard.COACH -> 0.5
         // Not wired to a real read yet — an EMPTY ring (not half-full) so it doesn't imply a reading.
         DashboardCard.BLOOD_OXYGEN, DashboardCard.SKIN_TEMP, DashboardCard.CALORIES,
         DashboardCard.HYDRATION -> null
@@ -4863,10 +4827,6 @@ private fun dashboardCardValue(
         DashboardCard.COUPLED ->
             // A tap-through row with no metric value of its own, the row shows just the chevron. An empty
             // string (not NO_DATA) renders no number and leaves it un-dimmed. Mirrors iOS dashboardValue.
-            ""
-        DashboardCard.COACH ->
-            // #1862: likewise a launcher row. Empty rather than NO_DATA for the same reason — there is no
-            // missing measurement here, there is no measurement at all.
             ""
     }
 }

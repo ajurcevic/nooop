@@ -20,7 +20,7 @@ import java.net.URL
  * automatic caller was added, and a false claim here is worse than none: it is the file someone opens to
  * answer "does this app poll?". Documented for real in docs/PRIVACY_SECURITY.md §1.1c.
  *
- * (Android already holds INTERNET for the opt-in AI Coach, so this adds no new capability.)
+ * (Android already holds INTERNET for other opt-ins, so this adds no new capability.)
  */
 object UpdateCheck {
 
