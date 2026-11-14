@@ -1,0 +1,104 @@
+# TEMPORARY: regenerates the Gradle wrapper, the dependency lockfile and the verification metadata
+# for the Gradle 9 / AGP 9 upgrade, because the authoring session cannot reach Google's Maven
+# repository or Gradle's distribution host. Removed again before the PR is merged.
+name: Regenerate build locks (temporary)
+
+on:
+  push:
+    branches: [claude/project-thread-ac99i2]
+    paths:
+      - '.github/workflows/regen-build-locks.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: regen-build-locks
+  cancel-in-progress: false
+
+env:
+  GRADLE_VERSION: 9.6.1
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+          cache-disabled: true
+      - name: Regenerate the wrapper with the official distribution checksum
+        run: |
+          set -euo pipefail
+          SHA=$(curl -fsSL "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip.sha256")
+          echo "Distribution SHA-256: $SHA"
+          W="$RUNNER_TEMP/wrapper"
+          mkdir -p "$W" && cd "$W"
+          touch settings.gradle.kts
+          gradle wrapper --gradle-version "$GRADLE_VERSION" --gradle-distribution-sha256-sum "$SHA"
+          cp gradlew gradlew.bat "$GITHUB_WORKSPACE/android/"
+          cp gradle/wrapper/gradle-wrapper.jar gradle/wrapper/gradle-wrapper.properties \
+            "$GITHUB_WORKSPACE/android/gradle/wrapper/"
+          cat "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.properties"
+      - name: Regenerate lockfile and verification metadata
+        working-directory: android
+        run: |
+          rm -f gradle/verification-metadata.xml app/gradle.lockfile
+          ./gradlew --no-daemon --continue -PstagingRelease \
+            --write-locks --write-verification-metadata sha256 \
+            :app:dependencies assembleFullDebug assembleDemoDebug \
+            assembleFullRelease assembleDemoRelease \
+            testFullDebugUnitTest testDemoDebugUnitTest 2>&1 | tee "$RUNNER_TEMP/regen.log" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regen-linux-log
+          path: ${{ runner.temp }}/regen.log
+      - name: Commit regenerated files
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android/gradlew android/gradlew.bat android/gradle/wrapper \
+            android/gradle/verification-metadata.xml android/app/gradle.lockfile
+          git commit -m "Regenerate Gradle wrapper, lockfile and verification metadata (Linux)" || exit 0
+          git push origin "HEAD:${{ github.ref_name }}"
+
+  macos:
+    # Records the macOS-only artifacts (aapt2 -osx.jar) so Android Studio on a Mac passes verification.
+    needs: linux
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Add macOS artifacts to verification metadata
+        working-directory: android
+        run: |
+          ./gradlew --no-daemon --continue -PstagingRelease \
+            --write-verification-metadata sha256 \
+            assembleFullDebug assembleFullRelease 2>&1 | tee "$RUNNER_TEMP/regen.log" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regen-macos-log
+          path: ${{ runner.temp }}/regen.log
+      - name: Commit regenerated files
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android/gradle/verification-metadata.xml android/app/gradle.lockfile
+          git commit -m "Add macOS artifacts to verification metadata" || exit 0
+          git push origin "HEAD:${{ github.ref_name }}"

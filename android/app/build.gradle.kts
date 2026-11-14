@@ -2,7 +2,7 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
 }
 
@@ -24,7 +24,7 @@ android {
 
     defaultConfig {
         applicationId = "com.noop.whoop"
-        minSdk = 26
+        minSdk = 34 // Android 14
         targetSdk = 34
         versionCode = 564
         versionName = "12.2.5"
@@ -122,19 +122,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    // Built-in Kotlin (AGP 9) takes its JVM target from targetCompatibility above, so no separate
+    // Kotlin jvmTarget is set.
 
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-
-    composeOptions {
-        // Compose Compiler extension matched to Kotlin 1.9.24 (see the official
-        // Compose-to-Kotlin compatibility map). Bumping Kotlin requires bumping this.
-        kotlinCompilerExtensionVersion = "1.5.14"
     }
 
     packaging {
@@ -279,7 +272,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
     // --- Room (local-only persistence; on-device, nothing leaves the phone) ---
-    val roomVersion = "2.6.1"
+    val roomVersion = "2.8.5"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")

@@ -63,7 +63,7 @@ locally. There is no NOOP-operated server, no account, no cloud dependency and n
 
 ## Build and install
 
-You need **JDK 17** and the **Android SDK** (`platforms;android-35`, `build-tools;34.0.0`). Gradle is
+You need **JDK 17 or newer, up to 25** and the **Android SDK** (`platforms;android-35`, `build-tools;36.0.0`). Gradle is
 provisioned by the wrapper, so do not install a system Gradle. Point Gradle at the SDK with
 `android/local.properties` (`sdk.dir=…`) or `$ANDROID_HOME`.
 

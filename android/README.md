@@ -33,10 +33,10 @@ on a phone with Bluetooth **and** an actual strap — say what you tested on har
 
 | Requirement | Version | Notes |
 |---|---|---|
-| **JDK** | 17 | The build targets `jvmTarget = "17"`. JDK 17 ships inside recent Android Studio (Jellyfish / Koala) — use *Settings → Build Tools → Gradle → Gradle JDK → 17*, or install Temurin 17. |
-| **Android SDK** | API 34 (compileSdk/targetSdk) | Install "Android 14 (UpsideDownCake)" + Platform-Tools via the SDK Manager. `minSdk` is 26 (Android 8.0). |
-| **Android Studio** | New enough for Gradle 8.7 (Ladybug 2024.2+ / recent Koala) | The project pins Gradle **8.7** + AGP **8.5.2** via the checked-in wrapper. |
-| **A physical device** | Android 8.0+ with BLE | An emulator has no Bluetooth radio — you cannot test the strap link on it. |
+| **JDK** | 17 to 25 | The build targets JVM 17. Gradle 9.6 runs on any JDK from 17 through 25, including the one bundled with current Android Studio. |
+| **Android SDK** | API 35 (compileSdk), API 34 (targetSdk) | Install the API 35 platform, build-tools 36 and Platform-Tools via the SDK Manager. `minSdk` is 34 (Android 14). |
+| **Android Studio** | A release that supports AGP 9.5 | The project pins Gradle **9.6.1** + AGP **9.5.0** via the checked-in wrapper. |
+| **A physical device** | Android 14+ with BLE | An emulator has no Bluetooth radio — you cannot test the strap link on it. |
 | **A WHOOP strap** | WHOOP 4.0 or 5.0/MG (both shipped/verified) | Required to exercise the protocol end-to-end. |
 
 ### Point Gradle at your SDK
@@ -55,12 +55,12 @@ Android Studio writes this for you automatically when you open the project.
 
 These are fixed in the build files; keep them in lockstep if you upgrade:
 
-- **Android Gradle Plugin** 8.5.2 · **Gradle** 8.7 (wrapper)
-- **Kotlin** 1.9.24 · **KSP** 1.9.24-1.0.20 (KSP must always match the Kotlin version)
-- **Compose Compiler** extension 1.5.14 (matched to Kotlin 1.9.24)
+- **Android Gradle Plugin** 9.5.0 (built-in Kotlin) · **Gradle** 9.6.1 (wrapper)
+- **Kotlin** 2.4.10 · **KSP** 2.3.13
+- **Compose compiler plugin** 2.4.10 (always equal to the Kotlin version)
 - **Compose BOM** 2024.06.00 · **Material3** (from the BOM)
-- **Room** 2.6.1 · **coroutines** 1.8.1
-- **minSdk** 26 · **compile/targetSdk** 34 · **JDK target** 17
+- **Room** 2.8.5 · **coroutines** 1.8.1
+- **minSdk** 34 · **compileSdk** 35 · **targetSdk** 34 · **JDK target** 17
 
 ### Updating dependencies safely
 
@@ -167,7 +167,7 @@ android/
 ├── gradle.properties            # AndroidX on, JVM args
 ├── gradlew / gradlew.bat        # checked-in wrapper launchers
 ├── gradle/verification-metadata.xml # SHA-256 allowlist for plugins + dependencies
-├── gradle/wrapper/…             # checked-in Gradle 8.7 wrapper + distribution checksum
+├── gradle/wrapper/…             # checked-in Gradle 9.6.1 wrapper + distribution checksum
 └── app/
     ├── build.gradle.kts         # android{} config + dependencies + locking policy
     ├── gradle.lockfile          # exact resolved versions for every Android variant
