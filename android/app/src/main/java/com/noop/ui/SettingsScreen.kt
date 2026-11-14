@@ -154,8 +154,7 @@ import com.noop.analytics.ClockFormatPreference
 //
 // Profile (the numbers that power HR zones / calories / recovery baselines), a
 // Backup & restore section wiring DataBackup export/import through the Storage
-// Access Framework, and an About section with version + attribution + a Support
-// link. Re-skinned to the locked NOOP component system: every surface is a
+// Access Framework, and an About section with version + attribution. Re-skinned to the locked NOOP component system: every surface is a
 // NoopCard, every status uses StatePill, the two-column form feel is preserved.
 //
 // macOS parity notes:
@@ -3482,51 +3481,6 @@ fun SettingsScreen(
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
                 )
-
-                SettingsRowDivider()
-
-                // Support link — opens the project's contact email (same address the
-                // Support screen lists). NOOP is anonymous, so email is the support channel.
-                val supportInteraction = remember { MutableInteractionSource() }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .liquidPress(supportInteraction)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Palette.accent.copy(alpha = 0.10f))
-                        .border(1.dp, Palette.accent.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
-                        .clickable(
-                            interactionSource = supportInteraction,
-                            indication = null,
-                        ) {
-                            val intent = Intent(Intent.ACTION_SENDTO).apply {
-                                data = Uri.parse("mailto:$SUPPORT_EMAIL")
-                                putExtra(Intent.EXTRA_SUBJECT, "NOOP support")
-                            }
-                            try {
-                                context.startActivity(intent)
-                            } catch (_: ActivityNotFoundException) {
-                                Toast.makeText(context, "Email us at $SUPPORT_EMAIL", Toast.LENGTH_LONG).show()
-                            }
-                        }
-                        .padding(horizontal = 14.dp, vertical = 12.dp)
-                        .semantics { contentDescription = uiString(R.string.l10n_settings_screen_contact_support_at_support_email_f0c4adce, SUPPORT_EMAIL) },
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(uiString(R.string.l10n_settings_screen_support_contact_f4c31b01), style = NoopType.headline, color = Palette.textPrimary)
-                            Text(
-                                uiString(R.string.l10n_settings_screen_questions_feedback_bugs_support_email_ed10662a, SUPPORT_EMAIL),
-                                style = NoopType.footnote,
-                                color = Palette.textSecondary,
-                            )
-                        }
-                        Text("›", style = NoopType.title2, color = Palette.accent)
-                    }
-                }
             }
         }
 
@@ -4210,8 +4164,6 @@ fun SettingsScreen(
         }
     }
 }
-
-private const val SUPPORT_EMAIL = "thenoopapp@gmail.com"
 
 // MARK: - App icon swap (v3 "Titanium & Gold")
 

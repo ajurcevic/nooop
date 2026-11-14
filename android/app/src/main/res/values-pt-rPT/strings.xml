@@ -1446,7 +1446,6 @@
     <string name="l10n_settings_screen_check_for_updates_736b9062">Verifique se existem atualizações</string>
     <string name="l10n_settings_screen_checking_820d6004">Verificando…</string>
     <string name="l10n_settings_screen_checks_github_for_the_latest_version_c10a81e2">Verifica o GitHub para obter a versão mais recente quando toca. Nada mais é enviado.</string>
-    <string name="l10n_settings_screen_contact_support_at_support_email_f0c4adce">Contacte o suporte em %1$s</string>
     <string name="l10n_settings_screen_continuous_hrv_capture_1f0805d8">Captura contínua de HRV</string>
     <string name="l10n_settings_screen_couldn_t_check_try_again_b3c885d9">Não foi possível verificar. Tente novamente.</string>
     <string name="l10n_settings_screen_counter_ticks_per_step_leave_at_3ce8c1d5">Contador de ticks por etapa. Deixe em 1,0, a menos que os teus passos sejam altos. Num WHOOP 5/MG podem correr muito alto (10× ou mais), por isso isto vai até 30. Caminhe 1.000 passos conhecidos e divida a contagem do NOOP pela contagem real para obter o teu valor.</string>
@@ -1500,7 +1499,6 @@
     <string name="l10n_settings_screen_profile_photo_33f385bb">Foto de perfil</string>
     <string name="l10n_settings_screen_project_home_and_source_on_github_a067ed35">Página inicial e fonte do projeto no GitHub</string>
     <string name="l10n_settings_screen_project_home_source_994627c1">Início e fonte do projeto</string>
-    <string name="l10n_settings_screen_questions_feedback_bugs_support_email_ed10662a">Perguntas, comentários, erros: %1$s</string>
     <string name="l10n_settings_screen_recalibrate_aaa989ea">Recalibrar</string>
     <string name="l10n_settings_screen_recalibrate_charge_baseline_52a05a26">Recalibrar linha de base de carga</string>
     <string name="l10n_settings_screen_recalibrate_your_charge_baseline_018e3846">Recalibrar a tua linha de base de faturação?</string>
@@ -1534,7 +1532,6 @@
     <string name="l10n_settings_screen_strap_02b88eeb">Alça</string>
     <string name="l10n_settings_screen_strap_name_350de547">Nome da bracelete</string>
     <string name="l10n_settings_screen_stress_check_ins_haptic_bf2746ba">Check-ins de stress (tátil)</string>
-    <string name="l10n_settings_screen_support_contact_f4c31b01">Suporte e contacto</string>
     <string name="l10n_settings_screen_temperature_0a9062a9">Temperatura</string>
     <string name="l10n_settings_screen_test_centre_37b36828">Centro de testes</string>
     <string name="l10n_settings_screen_theme_a797e309">Tema</string>

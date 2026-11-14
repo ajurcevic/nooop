@@ -1483,7 +1483,6 @@
     <string name="l10n_settings_screen_check_for_updates_736b9062">Nach Updates suchen</string>
     <string name="l10n_settings_screen_checking_820d6004">Wird geprüft…</string>
     <string name="l10n_settings_screen_checks_github_for_the_latest_version_c10a81e2">Prüft GitHub auf die neueste Version, wenn du tippst. Nichts anderes wird verschickt.</string>
-    <string name="l10n_settings_screen_contact_support_at_support_email_f0c4adce">Kontakt-Support bei %1$s</string>
     <string name="l10n_settings_screen_continuous_hrv_capture_1f0805d8">Kontinuierliche HRV-Erfassung</string>
     <string name="l10n_settings_screen_couldn_t_check_try_again_b3c885d9">Prüfung fehlgeschlagen. Versuch es erneut.</string>
     <string name="l10n_settings_screen_counter_ticks_per_step_leave_at_3ce8c1d5">Zählerticks pro Schritt. Lass es auf 1,0, außer deine Schritte fallen zu hoch aus. Auf einem WHOOP 5/MG können sie sehr hoch ausfallen (10× oder mehr), daher geht das hier bis 30. Geh bekannte 1.000 Schritte und teile NOOPs Zählung durch die echte Zahl, um deinen Wert zu erhalten.</string>
@@ -1537,7 +1536,6 @@
     <string name="l10n_settings_screen_profile_photo_33f385bb">Profilfoto</string>
     <string name="l10n_settings_screen_project_home_and_source_on_github_a067ed35">Projekthaus und Quelle auf GitHub</string>
     <string name="l10n_settings_screen_project_home_source_994627c1">Projekt-Zuhause &amp; Quellcode</string>
-    <string name="l10n_settings_screen_questions_feedback_bugs_support_email_ed10662a">Fragen, Feedback, Bugs: %1$s</string>
     <string name="l10n_settings_screen_recalibrate_aaa989ea">Neu kalibrieren</string>
     <string name="l10n_settings_screen_recalibrate_charge_baseline_52a05a26">Ladungs-Basislinie neu kalibrieren</string>
     <string name="l10n_settings_screen_recalibrate_your_charge_baseline_018e3846">Deine Ladungs-Basislinie neu kalibrieren?</string>
@@ -1571,7 +1569,6 @@
     <string name="l10n_settings_screen_strap_02b88eeb">Strap</string>
     <string name="l10n_settings_screen_strap_name_350de547">Strap-Name</string>
     <string name="l10n_settings_screen_stress_check_ins_haptic_bf2746ba">Stress-Check-ins (haptisch)</string>
-    <string name="l10n_settings_screen_support_contact_f4c31b01">Support &amp; Kontakt</string>
     <string name="l10n_settings_screen_temperature_0a9062a9">Temperatur</string>
     <string name="l10n_settings_screen_test_centre_37b36828">Testzentrum</string>
     <string name="l10n_settings_screen_theme_a797e309">Design</string>

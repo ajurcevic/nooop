@@ -1284,7 +1284,6 @@
     <string name="l10n_settings_screen_check_for_updates_736b9062">Buscar actualizaciones</string>
     <string name="l10n_settings_screen_checking_820d6004">Comprobando…</string>
     <string name="l10n_settings_screen_checks_github_for_the_latest_version_c10a81e2">Chequea GitHub para la última versión cuando pulsa. Nada más es enviado.</string>
-    <string name="l10n_settings_screen_contact_support_at_support_email_f0c4adce">Soporte de contacto en %1$s</string>
     <string name="l10n_settings_screen_continuous_hrv_capture_1f0805d8">Captura continua de VFC</string>
     <string name="l10n_settings_screen_couldn_t_check_try_again_b3c885d9">No se pudo comprobar. Inténtalo de nuevo.</string>
     <string name="l10n_settings_screen_counter_ticks_per_step_leave_at_3ce8c1d5">Pulsos del contador por paso. Déjalo en 1.0 salvo que tus pasos salgan altos. En una WHOOP 5/MG pueden salir muy altos (10× o más), por eso llega hasta 30. Camina 1.000 pasos conocidos y divide el conteo de NOOP entre el conteo real para obtener tu valor.</string>
@@ -1338,7 +1337,6 @@
     <string name="l10n_settings_screen_profile_photo_33f385bb">Foto de perfil</string>
     <string name="l10n_settings_screen_project_home_and_source_on_github_a067ed35">Casa de proyecto y fuente en GitHub</string>
     <string name="l10n_settings_screen_project_home_source_994627c1">Página del proyecto y código fuente</string>
-    <string name="l10n_settings_screen_questions_feedback_bugs_support_email_ed10662a">Preguntas, comentarios, errores: %1$s</string>
     <string name="l10n_settings_screen_recalibrate_aaa989ea">Recalibrar</string>
     <string name="l10n_settings_screen_recalibrate_charge_baseline_52a05a26">Recalibrar la línea base de Carga</string>
     <string name="l10n_settings_screen_recalibrate_your_charge_baseline_018e3846">¿Recalibrar tu línea base de Carga?</string>
@@ -1372,7 +1370,6 @@
     <string name="l10n_settings_screen_strap_02b88eeb">Pulsera</string>
     <string name="l10n_settings_screen_strap_name_350de547">Nombre de la pulsera</string>
     <string name="l10n_settings_screen_stress_check_ins_haptic_bf2746ba">Chequeos de estrés (hápticos)</string>
-    <string name="l10n_settings_screen_support_contact_f4c31b01">Contacto</string>
     <string name="l10n_settings_screen_temperature_0a9062a9">Temperatura</string>
     <string name="l10n_settings_screen_test_centre_37b36828">Centro de pruebas</string>
     <string name="l10n_settings_screen_theme_a797e309">Tema</string>
