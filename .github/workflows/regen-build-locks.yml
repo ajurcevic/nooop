@@ -1,7 +1,7 @@
 # TEMPORARY: regenerates the Gradle wrapper, the dependency lockfile and the verification metadata
 # for the Gradle 9 / AGP 9 upgrade, because the authoring session cannot reach Google's Maven
 # repository or Gradle's distribution host. Removed again before the PR is merged.
-# Run 2: after the lazy KSP task wiring fix.
+# Run 3: locks written in a separate invocation, K2 inference fixes.
 name: Regenerate build locks (temporary)
 
 on:
@@ -52,9 +52,13 @@ jobs:
         working-directory: android
         run: |
           rm -f gradle/verification-metadata.xml app/gradle.lockfile
+          # Lock state is only written by a build that succeeds, so lock in its own invocation first.
+          ./gradlew --no-daemon --write-locks --write-verification-metadata sha256 \
+            :app:dependencies > "$RUNNER_TEMP/locks.log" 2>&1 || { tail -50 "$RUNNER_TEMP/locks.log"; exit 1; }
+          ls -l app/gradle.lockfile
           ./gradlew --no-daemon --continue -PstagingRelease \
-            --write-locks --write-verification-metadata sha256 \
-            :app:dependencies assembleFullDebug assembleDemoDebug \
+            --write-verification-metadata sha256 \
+            assembleFullDebug assembleDemoDebug \
             assembleFullRelease assembleDemoRelease \
             testFullDebugUnitTest testDemoDebugUnitTest 2>&1 | tee "$RUNNER_TEMP/regen.log" || true
       - uses: actions/upload-artifact@v4
