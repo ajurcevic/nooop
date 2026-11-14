@@ -1883,6 +1883,70 @@ object IntelligenceEngine {
         // chronologically, so the string range IS a date range. `oldestDay` / `newestDay` are bound above,
         // with the Charge baselines (#2525), which anchor their window on `newestDay`.
 
+        // Everything after scoring (import-only fold, persistence, sleep heal, workout re-score) lives in
+        // [persistScoredWindow]. Kept out of this function because Kotlin 2's JVM backend otherwise pushes
+        // its bytecode past the JVM's 64 KB per-method limit.
+        val healDroppedCount = persistScoredWindow(
+            repo = repo,
+            profile = profile,
+            importedDeviceId = importedDeviceId,
+            computedId = computedId,
+            maxHROverride = maxHROverride,
+            nowSeconds = nowSeconds,
+            nowLocalMidnight = nowLocalMidnight,
+            tzOffsetSeconds = tzOffsetSeconds,
+            windowStart = windowStart,
+            oldestDay = oldestDay,
+            newestDay = newestDay,
+            ownerSource = ownerSource,
+            candidatePriorities = candidatePriorities,
+            manualStepCoefficient = manualStepCoefficient,
+            persistStepsCalibration = persistStepsCalibration,
+            diag = diag,
+            stepsTraceSink = stepsTraceSink,
+            effortMethod = effortMethod,
+            scoredNights = scoredNights,
+            editedRows = editedRows,
+            physiologicalSteps = physiologicalSteps,
+            resolvedScoreOwnerByDay = resolvedScoreOwnerByDay,
+            out = out,
+            dailies = dailies,
+            sleepRows = sleepRows,
+            restRows = restRows,
+            workoutBackfills = workoutBackfills,
+        )
+        return out to healDroppedCount
+    }
+
+    private suspend fun persistScoredWindow(
+        repo: WhoopRepository,
+        profile: UserProfile,
+        importedDeviceId: String,
+        computedId: String,
+        maxHROverride: Double?,
+        nowSeconds: Long,
+        nowLocalMidnight: Long,
+        tzOffsetSeconds: Long,
+        windowStart: Long,
+        oldestDay: String,
+        newestDay: String,
+        ownerSource: DayOwnerSource?,
+        candidatePriorities: List<Pair<String, Int>>,
+        manualStepCoefficient: Double?,
+        persistStepsCalibration: (StepsEstimateEngine.Calibration) -> Unit,
+        diag: (String) -> Unit,
+        stepsTraceSink: ((String) -> Unit)?,
+        effortMethod: StrainScorer.Method,
+        scoredNights: List<DayResult>,
+        editedRows: List<SleepSession>,
+        physiologicalSteps: PhysiologicalStepCycleEngine.Result,
+        resolvedScoreOwnerByDay: MutableMap<String, String>,
+        out: MutableList<Computed>,
+        dailies: MutableList<DailyMetric>,
+        sleepRows: List<SleepSession>,
+        restRows: MutableList<MetricSeriesRow>,
+        workoutBackfills: List<WorkoutRow>,
+    ): Int {
         // ── Source-only Charge/Rest fold for imported-only days (#823) ──────────────────────────────────
         // A user who ONLY imports (Health Connect, or an Oura/Fitbit/Garmin export, or Apple Health) has
         // DAILY aggregates (HRV + resting HR) but no raw HR stream, so the raw-HR scoring loop above never
@@ -2096,7 +2160,7 @@ object IntelligenceEngine {
         rescoreManualWorkouts(repo, profile, importedDeviceId, maxHROverride, nowSeconds,
             measuredResting, effortMethod)
 
-        return out to healDropped.size
+        return healDropped.size
     }
 
     private suspend fun persistFitnessVitalityAndSteps(
