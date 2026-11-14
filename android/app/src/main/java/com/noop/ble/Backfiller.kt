@@ -511,14 +511,14 @@ class Backfiller(
                 when (support) {
                     com.noop.protocol.HistoricalLayoutSupport.UNMAPPED ->
                         log(
-                            "Historical records use firmware layout v$v, which NOOP doesn't decode yet: " +
+                            "Historical records use firmware layout v$v, which Zoop doesn't decode yet: " +
                                 "those records carry no heart rate or motion, so any night made only of them " +
                                 "can't be staged from the strap. A strap emitting a mix of layouts still " +
                                 "stages the nights it can. Please report this (issue #1992).",
                         )
                     com.noop.protocol.HistoricalLayoutSupport.DECODES_WITHOUT_NAMED_SIGNAL ->
                         log(
-                            "Historical records use firmware layout v$v. NOOP decodes it, but these records " +
+                            "Historical records use firmware layout v$v. Zoop decodes it, but these records " +
                                 "carry no per-second heart rate and no motion (they hold raw sensor channels " +
                                 "nothing scores yet), so any night made only of them can't be staged from the " +
                                 "strap. A strap emitting a mix of layouts still stages the nights it can. " +
@@ -530,7 +530,7 @@ class Backfiller(
                         // #1992 line would be asking for a report about working software. Twin of the
                         // Swift emit.
                         log(
-                            "Historical records use firmware layout v$v: a flash-banked ECG reading. NOOP " +
+                            "Historical records use firmware layout v$v: a flash-banked ECG reading. Zoop " +
                                 "stores these records whole and reads nothing from them (issue #752) - no " +
                                 "rhythm interpretation, no alerts. Nothing is missing and nothing needs " +
                                 "reporting.",
@@ -627,7 +627,7 @@ class Backfiller(
                     log(
                         "Backfill: the strap sent $n record(s) of packet type $typeName, which this " +
                             "decoder has no rows for — they are being dropped. If $typeName is not a name " +
-                            "you recognise, this is a firmware record type NOOP has never mapped: please " +
+                            "you recognise, this is a firmware record type Zoop has never mapped: please " +
                             "report it on #891 with the strap model and firmware build.",
                     )
                     // #891: and the bytes, so the report is actionable. Without this the line above asks a
@@ -649,7 +649,7 @@ class Backfiller(
                         "Backfill: strap reported ${ev.kind} with an implausible own-timestamp " +
                             "${BadClockDiagnostics.isoDay(ev.rawTs)} (${BadClockDiagnostics.hoursOffset(ev.rawTs, nowForRtc)} " +
                             "vs now) — the strap's RTC reset to a wrong base (#324/#928); this is the ground-truth " +
-                            "cause of the future-dated banking, not a NOOP decode bug.",
+                            "cause of the future-dated banking, not a Zoop decode bug.",
                     )
                 }
             }
@@ -1018,7 +1018,7 @@ class Backfiller(
         fun futureRtcLine(endUnix: Long, wallNowUnix: Long): String {
             val aheadDays = maxOf(0L, endUnix - wallNowUnix) / 86_400L
             return "Backfill: the strap reported a record dated about $aheadDays day(s) in the FUTURE - " +
-                "its clock (RTC) is corrupt, not a NOOP problem. Those records can't be filed onto the " +
+                "its clock (RTC) is corrupt, not a Zoop problem. Those records can't be filed onto the " +
                 "right day. Fully charge the strap to 100% and reconnect so it re-syncs its clock; if it " +
                 "persists, forget and re-pair the strap."
         }
@@ -1057,10 +1057,10 @@ class Backfiller(
             val ageDays = maxOf(0L, wallNowUnix - newestUnix) / 86_400L
             return "Backfill: this sync banked nothing and the strap's newest stored record is about " +
                 "$ageDays day(s) old. If you have worn it since then, it has stopped saving history to " +
-                "its flash. NOOP already re-sends the clock on every connect, so charging alone may not " +
+                "its flash. Zoop already re-sends the clock on every connect, so charging alone may not " +
                 "be enough: charge to 100% and reconnect, then use Restart strap in Devices, and if that " +
                 "does not help forget and re-pair. If the official WHOOP app is also missing these days, " +
-                "the strap is the cause and not NOOP."
+                "the strap is the cause and not Zoop."
         }
 
         /**
@@ -1084,9 +1084,9 @@ class Backfiller(
             val ageDays = maxOf(0L, wallNowUnix - newestUnix) / 86_400L
             return "Synced, but your strap handed over no stored history, and its newest saved record is " +
                 "about $ageDays day(s) old. If you have been wearing it since then, it has stopped saving " +
-                "to flash. Charge it to 100% and reconnect; NOOP already re-sets its clock every connect, " +
+                "to flash. Charge it to 100% and reconnect; Zoop already re-sets its clock every connect, " +
                 "so if that does not help, try Restart strap in Devices, then forget and re-pair. If the " +
-                "official WHOOP app is missing these days too, the strap is the cause and not NOOP."
+                "official WHOOP app is missing these days too, the strap is the cause and not Zoop."
         }
 
         /** #1754: the banner for an empty offload whose flash cursor is VALID and ADVANCING — the strap

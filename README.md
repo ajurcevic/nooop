@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/assets/logo-v3.png" alt="NOOP" width="72">
+  <img src="docs/assets/logo-v3.png" alt="Zoop" width="72">
 </p>
 
-<h1 align="center">NOOP for Android</h1>
+<h1 align="center">Zoop for Android</h1>
 
 <p align="center"><b>Your strap. Your data. Your phone. Offline, on-device, no cloud.</b></p>
 
@@ -22,7 +22,7 @@
 
 ---
 
-This repository is an **Android-only fork** of [NOOP](https://github.com/ryanbr/noop), focused on the
+Zoop is an **Android-only fork** of [NOOP](https://github.com/ryanbr/noop), focused on the
 **WHOOP 5.0 / MG** strap. The macOS, iOS and watch apps, the Swift packages, and the support for other
 wearables (Oura, Polar, Garmin, Amazfit / Mi Band, generic heart-rate chest straps and FTMS gym machines)
 have been removed. WHOOP 4.0 support is still in the code, but WHOOP 5.0 / MG is the default everywhere a
@@ -30,7 +30,7 @@ model has to be assumed.
 
 ## Contents
 
-- [What NOOP is](#what-noop-is)
+- [What Zoop is](#what-zoop-is)
 - [Features](#features)
 - [Build and install](#build-and-install)
 - [How your data flows](#how-your-data-flows)
@@ -40,11 +40,11 @@ model has to be assumed.
 - [License](#license)
 - [Docs](#docs)
 
-## What NOOP is
+## What Zoop is
 
-NOOP is an **offline-by-default, on-device** companion app for WHOOP straps. It pairs over Bluetooth,
+Zoop is an **offline-by-default, on-device** companion app for WHOOP straps. It pairs over Bluetooth,
 stores everything in an on-device SQLite (Room) database, and computes recovery, strain, HRV and sleep
-locally. There is no NOOP-operated server, no account, no cloud dependency and no telemetry.
+locally. There is no Zoop-operated server, no account, no cloud dependency and no telemetry.
 
 ## Features
 
@@ -104,7 +104,7 @@ Every arrow stays on your phone.
 
 ## Privacy
 
-**Offline by default.** NOOP has no server, no telemetry, and no account. Your strap data, imports,
+**Offline by default.** Zoop has no server, no telemetry, and no account. Your strap data, imports,
 and computed metrics live in a local SQLite database on your device. They leave only through an
 export or optional network feature you deliberately configure, including the default-off
 Experimental one-way push to your own endpoint; see
@@ -112,23 +112,23 @@ Experimental one-way push to your own endpoint; see
 
 ## Attribution
 
-NOOP stands on community interoperability and protocol-documentation work. With thanks:
+Zoop stands on community interoperability and protocol-documentation work. With thanks:
 
 - **[`ryanbr/noop`](https://github.com/ryanbr/noop)** — the upstream project this fork is cut down from.
 - **`johnmiddleton12/my-whoop`** — the WHOOP 4.0 BLE protocol.
 - **`b-nnett/goose`** — the WHOOP 5.0 / MG BLE protocol documentation (the `fd4b0001-…` service family,
-  CRC16-Modbus header, and "puffin" packet types) that NOOP's WHOOP 5.0 path is ported from.
+  CRC16-Modbus header, and "puffin" packet types) that Zoop's WHOOP 5.0 path is ported from.
 
-NOOP contains no WHOOP proprietary code, firmware, logos, or assets, and performs no DRM circumvention.
+Zoop contains no WHOOP proprietary code, firmware, logos, or assets, and performs no DRM circumvention.
 Full detail in [`ATTRIBUTION.md`](ATTRIBUTION.md).
 
 ## Disclaimer
 
-NOOP is an independent, unofficial, non-commercial interoperability project. It is
+Zoop is an independent, unofficial, non-commercial interoperability project. It is
 **not affiliated with, endorsed by, or connected to WHOOP, Inc.** All references to "WHOOP" are
-nominative — used only to identify the third-party hardware NOOP interoperates with.
+nominative — used only to identify the third-party hardware Zoop interoperates with.
 
-**NOOP is not a medical device.** Heart rate, HRV, recovery, strain, sleep stages, SpO₂, respiratory
+**Zoop is not a medical device.** Heart rate, HRV, recovery, strain, sleep stages, SpO₂, respiratory
 rate, and skin temperature are **approximations** computed from published methods. They are not
 clinically validated and are not medical advice. Do not use them to diagnose, treat, or make health
 decisions — consult a qualified professional.
@@ -138,7 +138,7 @@ risk. Read the full notice in [`DISCLAIMER.md`](DISCLAIMER.md).
 
 ## License
 
-NOOP is **source-available** under the [PolyForm Noncommercial License 1.0.0](LICENSE): free for
+Zoop is **source-available** under the [PolyForm Noncommercial License 1.0.0](LICENSE): free for
 personal and other non-commercial use. Commercial use is not granted by this license. Keep the
 [`LICENSE`](LICENSE) and `Copyright 2026 NoopApp` notice intact. Bundled dependencies keep their own
 licenses (see [`NOTICE`](NOTICE)).
