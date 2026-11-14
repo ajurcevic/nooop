@@ -1,0 +1,47 @@
+# TEMPORARY: commits Room 2.8's export of the current schema (its serializer changed format) and prints
+# the JaCoCo method-size measurements, for the Gradle 9 / AGP 9 upgrade. Removed before merge.
+name: Regenerate Room schema (temporary)
+
+on:
+  push:
+    branches: [claude/project-thread-ac99i2]
+    paths:
+      - '.github/workflows/regen-room-schema.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  schema:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Run unit tests
+        working-directory: android
+        run: ./gradlew testFullDebugUnitTest --continue || true
+      - name: Print JaCoCo budget and failures
+        working-directory: android/app/build/test-results
+        run: |
+          grep -rh "instrumented Code length" . || true
+          grep -rl "<failure" . | while read f; do echo "== $f"; grep -A3 "<failure" "$f" | head -8; done || true
+      - name: Commit current Room schema export
+        run: |
+          set -euo pipefail
+          V=$(grep -m1 'const val SCHEMA_VERSION' android/app/src/main/java/com/noop/data/WhoopDatabase.kt | grep -o '[0-9]\+')
+          SRC="android/app/build/roomSchemaOracle/com.noop.data.WhoopDatabase/$V.json"
+          DST="android/app/src/test/resources/roomSchemas/com.noop.data.WhoopDatabase/$V.json"
+          ls -l "$SRC"
+          git diff --no-index --stat "$DST" "$SRC" || true
+          cp "$SRC" "$DST"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$DST"
+          git commit -m "Re-export schema v$V with Room 2.8's serializer" || exit 0
+          git push origin "HEAD:${{ github.ref_name }}"
