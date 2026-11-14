@@ -4,7 +4,6 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import java.util.Calendar
 
 /**
@@ -123,9 +122,8 @@ object SmartAlarmScheduler {
         store.scheduledWindowStartMs = 0L
     }
 
-    /** True if the OS will honour an exact alarm right now (API 31+ gates this behind a permission). */
+    /** True if the OS will honour an exact alarm right now (it is gated behind a permission). */
     fun canScheduleExact(context: Context): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
         val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         return am.canScheduleExactAlarms()
     }

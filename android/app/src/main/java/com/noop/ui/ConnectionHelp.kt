@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -41,10 +40,7 @@ fun ConnectionHelp(viewModel: AppViewModel, modifier: Modifier = Modifier) {
     val live by viewModel.live.collectAsStateWithLifecycle()
 
     val perms = remember {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
-        else
-            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
     }
     val btOn = (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)
         ?.adapter?.isEnabled == true

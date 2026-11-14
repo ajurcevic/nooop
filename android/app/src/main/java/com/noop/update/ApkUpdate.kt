@@ -4,7 +4,6 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
@@ -106,9 +105,8 @@ object ApkUpdate {
         }.getOrDefault(Download.Failed).also { if (it !is Download.Done) part.delete() }
     }
 
-    /** False when Android still needs the user to allow NOOP to install apps (API 26+ per-app switch). */
-    fun canInstall(context: Context): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.O || context.packageManager.canRequestPackageInstalls()
+    /** False when Android still needs the user to allow NOOP to install apps (per-app switch). */
+    fun canInstall(context: Context): Boolean = context.packageManager.canRequestPackageInstalls()
 
     /** Open the system screen where the user allows NOOP to install apps. Returns false if no such
      *  screen exists on this device. */

@@ -5,7 +5,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -601,7 +600,6 @@ private fun hhmm(minutes: Int): String {
 /** Open the system page where the user grants the exact-alarm special-access permission (API 31+).
  *  There's no runtime dialog for this; the user toggles it in Settings and returns. */
 private fun requestExactAlarmAccess(context: android.content.Context) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
     runCatching {
         context.startActivity(
             Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}"))

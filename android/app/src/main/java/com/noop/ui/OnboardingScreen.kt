@@ -4,7 +4,6 @@ import com.noop.R
 import androidx.compose.ui.res.stringResource
 import android.Manifest
 import android.content.pm.PackageManager
-import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -138,8 +137,7 @@ fun OnboardingScreen(viewModel: AppViewModel, onFinished: () -> Unit) {
                 if (!live.bonded) { pageIndex = pages.indexOf(OnboardingPage.Profile); return }
             }
             OnboardingPage.Notifications -> {
-                val needsNotif = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                val needsNotif = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
                     PackageManager.PERMISSION_GRANTED
                 if (needsNotif) { notifAdvanceLauncher.launch(Manifest.permission.POST_NOTIFICATIONS); return }
             }
