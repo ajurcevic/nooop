@@ -641,6 +641,9 @@ data class AppleStepHour(
  *
  * Fields are declared in the SAME order as the Swift GRDB schema (id, role, text, provider,
  * createdAt, orderIndex) so the migration's CREATE TABLE column order matches Room's generated shape.
+ *
+ * The AI Coach was removed from this Android fork. The table and entity stay so the Room schema and
+ * migrations are unchanged and existing databases keep opening; nothing in the app writes to it now.
  */
 @Entity(tableName = "coachMessage")
 data class CoachMessageRow(

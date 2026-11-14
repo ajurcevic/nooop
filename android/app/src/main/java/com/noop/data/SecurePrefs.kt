@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * The one place an encrypted `SharedPreferences` file is opened.
  *
- * Two credential stores needed this and each grew its own copy: `AiKeyStore` (the AI provider API key)
+ * Two credential stores needed this and each grew its own copy: the former AI Coach key store
  * and `OuraInstallKeyStore` (per-ring install keys); the self-hosted push bearer token also uses this
  * single audited helper. The bodies were byte-identical apart from the file
  * name, which is the shape that lets a hardening change, a key-scheme migration or a fallback fix land
@@ -19,17 +19,14 @@ import java.util.concurrent.ConcurrentHashMap
  * **Cached, which is the part that matters at runtime.** `EncryptedSharedPreferences.create` is not a
  * cheap accessor: it builds a [MasterKey] — an Android Keystore round trip — and sets up Tink AEAD
  * primitives, on every call. Neither store cached it, so all twenty of their read/write sites paid that
- * cost per operation. `CoachViewModel` reads five values in PROPERTY INITIALISERS, so opening the Coach
- * screen ran five full Keystore + Tink setups synchronously on the main thread. They now collapse to one
- * per file for the process lifetime.
+ * cost per operation. They now collapse to one per file for the process lifetime.
  *
  * Instances are safe to hold: `SharedPreferences` is designed as a long-lived singleton (the platform
  * caches the plaintext kind by name internally; the encrypted wrapper is what does not), and only the
  * application context is captured, so nothing leaks an Activity.
  *
- * [ConcurrentHashMap.computeIfAbsent] rather than a plain map: `AiKeyStore` is reached from the main
- * thread through `CoachViewModel`, while `OuraInstallKeyStore` is reached from BLE callbacks on binder
- * threads. Two threads racing the first call must get the same instance, not two.
+ * [ConcurrentHashMap.computeIfAbsent] rather than a plain map: callers reach it from the main thread
+ * and from background threads (BLE callbacks on binder threads, push workers). Two threads racing the first call must get the same instance, not two.
  */
 object SecurePrefs {
 

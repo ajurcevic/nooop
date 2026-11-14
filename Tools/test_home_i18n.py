@@ -73,7 +73,7 @@ ANDROID_INDIRECT_NON_UI_LITERALS = {
     "today.keyMetricsWindowDays", ",",
     # Stable DashboardCard raw values + preference; units remain measurement metadata.
     "stress", "fitnessAge", "vo2max", "vitality", "skinTemp", "sleep", "hydration", "coupled",
-    "coach", "stepsAverage30",
+    "stepsAverage30",
     "today.dashboardCards", "yrs", "kcal", "",
 }
 

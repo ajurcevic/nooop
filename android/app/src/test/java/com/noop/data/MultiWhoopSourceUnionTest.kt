@@ -12,7 +12,7 @@ import java.lang.reflect.Proxy
  * `recentDaysMergedFlow`, `rrIntervals`, …) resolve their read ids through [WhoopRepository.importedSourceIdsFor]
  * / [WhoopRepository.computedSourceIdsFor].
  *
- * The trap this pins (the bug fixed across CoupledScreen / TodayScreen hero+battery / AiCoach /
+ * The trap this pins (the bug fixed across CoupledScreen / TodayScreen hero+battery /
  * WhoopConnectionService): passing the LITERAL "my-whoop" into a union-aware method collapses the union
  * to the canonical id alone and RE-DROPS the 2nd strap. Callers must pass the ACTIVE strap id instead —
  * which is exactly what these assertions lock. Pure companion functions, no DB (twin of
@@ -49,7 +49,7 @@ class MultiWhoopSourceUnionTest {
     // ── Data Sources badge union counts (#1304) — dao-backed via a fake WhoopDao ──────
 
     /** A fake [WhoopDao] returning canned `latestHrSampleTs` per source id; every other method throws
-     *  (the union HR read must touch only this). Same Proxy technique as AiCoachContextTest. The days
+     *  (the union HR read must touch only this), via a java.lang.reflect.Proxy. The days
      *  badge uses [WhoopRepository.daysMerged] (already tested — the Swift `repo.days` twin), so it needs
      *  no bespoke fake here. */
     private fun fakeDao(latestHrById: Map<String, Long?> = emptyMap()): WhoopDao = Proxy.newProxyInstance(

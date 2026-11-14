@@ -34,6 +34,5 @@ class VitalRowKeyTest {
     @Test fun `a card with its own screen yields no metric key`() {
         assertNull(dashboardCardMetricKey(DashboardCard.SLEEP))
         assertNull(dashboardCardMetricKey(DashboardCard.STRESS))
-        assertNull(dashboardCardMetricKey(DashboardCard.COACH))
     }
 }

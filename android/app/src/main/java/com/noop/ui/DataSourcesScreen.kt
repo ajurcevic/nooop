@@ -1054,7 +1054,7 @@ private fun RoadmapNote(text: String) {
     Text(text, style = NoopType.footnote, color = Palette.textTertiary)
 }
 
-// MARK: - Backup action button (matches the accent fill used by CoachPrimaryButton)
+// MARK: - Backup action button (accent fill)
 
 @Composable
 private fun BackupButton(

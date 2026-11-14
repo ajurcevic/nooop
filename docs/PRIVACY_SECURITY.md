@@ -90,6 +90,8 @@ importers. Neither opens a socket.
 
 ### 1.1a The AI Coach (optional, provider setup required)
 
+This Android fork has removed the AI Coach. The section below describes upstream NOOP.
+
 The AI Coach sends requests directly to the provider you choose:
 
 - **Unconfigured until you set it up.** Hosted providers (Anthropic, OpenAI and Google Gemini)
