@@ -1,6 +1,7 @@
 # TEMPORARY: regenerates the Gradle wrapper, the dependency lockfile and the verification metadata
 # for the Gradle 9 / AGP 9 upgrade, because the authoring session cannot reach Google's Maven
 # repository or Gradle's distribution host. Removed again before the PR is merged.
+# Run 2: after the lazy KSP task wiring fix.
 name: Regenerate build locks (temporary)
 
 on:

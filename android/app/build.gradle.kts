@@ -183,7 +183,11 @@ fun isKspKotlinTask(name: String) = name.startsWith("ksp") && name.endsWith("Kot
 fun isMainSourceSetKspTask(name: String) =
     isKspKotlinTask(name) && !name.contains("UnitTest") && !name.contains("AndroidTest")
 
-tasks.matching { isMainSourceSetKspTask(it.name) }.configureEach {
+// Filtered by TYPE, not with `tasks.matching { … }`: a name predicate forces Gradle to create every
+// registered task to test it, and AGP 9.5 registers Compose Preview tasks whose creation fails outright
+// in this module (they demand `unitTests.isIncludeAndroidResources`). `withType` only creates KSP tasks.
+tasks.withType<com.google.devtools.ksp.gradle.KspAATask>().configureEach {
+    if (!isMainSourceSetKspTask(name)) return@configureEach
     outputs.dir(roomSchemaDir).withPropertyName("roomSchemaExport")
     // SELF-HEALING. Declaring the output is not sufficient on its own: the export can still go missing
     // between builds (Gradle's stale-output cleanup removes it after the task graph is reconfigured —
@@ -209,7 +213,7 @@ val syncRoomSchemaSnapshot = tasks.register<Sync>("syncRoomSchemaSnapshot") {
     // ONE variant is enough, and deliberately so: the schema comes from the entities alone, so every
     // variant's KSP round writes byte-identical JSON. Depending on all of them would make a single
     // `testFullDebugUnitTest` run four KSP rounds instead of one.
-    dependsOn(tasks.matching { it.name == "kspFullDebugKotlin" })
+    dependsOn("kspFullDebugKotlin")
     // Every KSP round writes `roomSchemaDir` — `room.schemaLocation` is set once, outside any variant
     // block — so EVERY one of them is both a producer Sync must not race and a producer Gradle expects
     // a declared relationship with. This was scoped to the UnitTest rounds, which covered the observed
@@ -220,7 +224,7 @@ val syncRoomSchemaSnapshot = tasks.register<Sync>("syncRoomSchemaSnapshot") {
     //
     // Ordering only, so nothing is forced to execute and the one-variant `dependsOn` above keeps its
     // point: a `testFullDebugUnitTest` run still triggers exactly one KSP round.
-    mustRunAfter(tasks.matching { isKspKotlinTask(it.name) })
+    mustRunAfter(tasks.withType<com.google.devtools.ksp.gradle.KspAATask>().matching { isKspKotlinTask(it.name) })
 }
 
 tasks.withType<Test>().configureEach {
