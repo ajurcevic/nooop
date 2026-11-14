@@ -62,9 +62,9 @@ that runs with no phone and no strap.
 ## Build, test & CI
 
 ### Prerequisites
-- **JDK 17** (`sourceCompatibility`/`jvmTarget` are 17 in `android/app/build.gradle.kts`). Gradle **8.7**
-  is provisioned by `android/gradlew`; don't install a system Gradle.
-- **Android SDK**: `platform-tools`, `platforms;android-35`, `build-tools;34.0.0`. Point Gradle at it via
+- **JDK 17 to 25** (the build targets JVM 17 via `sourceCompatibility` in `android/app/build.gradle.kts`).
+  Gradle **9.6.1** is provisioned by `android/gradlew`; don't install a system Gradle.
+- **Android SDK**: `platform-tools`, `platforms;android-35`, `build-tools;36.0.0`. Point Gradle at it via
   `android/local.properties` (`sdk.dir=…`, gitignored) or `$ANDROID_HOME`.
 - **Python 3.12** for the tooling under `Tools/`.
 - **Non-x86-64 Linux (e.g. arm64):** Google ships `aapt2` / `d8` as x86-64 only, so install

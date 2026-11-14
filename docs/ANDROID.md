@@ -108,18 +108,19 @@ android/
 ### Version contract
 
 From `android/build.gradle.kts` and `android/app/build.gradle.kts` — keep these aligned; a Kotlin
-bump forces matching KSP and Compose-compiler bumps:
+bump forces a matching Compose-compiler plugin bump:
 
 | Component | Version | Notes |
 | --- | --- | --- |
-| Android Gradle Plugin | `8.5.2` | `com.android.application` |
-| Kotlin | `1.9.24` | `org.jetbrains.kotlin.android` |
-| KSP | `1.9.24-1.0.20` | `<kotlinVersion>-<kspVersion>`, must track Kotlin exactly |
+| Gradle | `9.6.1` | wrapper; runs on JDK 17 through 25 |
+| Android Gradle Plugin | `9.5.0` | `com.android.application`, compiles Kotlin itself (built-in Kotlin) |
+| Kotlin | `2.4.10` | pinned by declaring `org.jetbrains.kotlin.android` with `apply false` |
+| KSP | `2.3.13` | KSP2 |
 | Compose BOM | `2024.06.00` | pins all Compose artifacts in lockstep |
-| Compose compiler extension | `1.5.14` | matched to Kotlin 1.9.24 |
-| Room | `2.6.1` | `room-runtime`, `room-ktx`, `room-compiler` (via KSP) |
-| `compileSdk` / `targetSdk` | `34` | |
-| `minSdk` | `26` | Android 8.0 — the floor for the current BLE permission split |
+| Compose compiler plugin | `2.4.10` | `org.jetbrains.kotlin.plugin.compose`, always equal to the Kotlin version |
+| Room | `2.8.5` | `room-runtime`, `room-ktx`, `room-compiler` (via KSP) |
+| `compileSdk` / `targetSdk` | `35` / `34` | |
+| `minSdk` | `34` | Android 14 |
 | `sourceCompatibility` / `jvmTarget` | `17` | JDK 17 |
 | `applicationId` | `com.noop.whoop` | `.debug` suffix on debug builds |
 
@@ -174,12 +175,12 @@ This section maps the surface so contributors know where each piece lives.
 
 | Tool | Version | Notes |
 | --- | --- | --- |
-| JDK | **17** | AGP 8.5 / Kotlin 1.9 target JVM 17 |
-| Android SDK | API **34** platform + build-tools; `minSdk` 26 | install via Android Studio SDK Manager or `sdkmanager` |
-| Android Studio | current stable (Koala / Ladybug or newer) | optional but recommended; provides the SDK and emulator |
-| Gradle | provided by the committed wrapper (target ~8.7) | use `./gradlew`; do not rely on a global Gradle |
+| JDK | **17 to 25** | the build targets JVM 17; Gradle 9.6 runs on JDK 17 through 25 |
+| Android SDK | API **35** platform + build-tools 36; `minSdk` 34 | install via Android Studio SDK Manager or `sdkmanager` |
+| Android Studio | a release that supports AGP 9.5 | optional but recommended; provides the SDK and emulator |
+| Gradle | provided by the committed wrapper (9.6.1) | use `./gradlew`; do not rely on a global Gradle |
 | A physical WHOOP 4.0 or 5.0 strap | — | **required** for any real BLE validation; emulators have no BLE radio |
-| A physical Android device with BLE | Android 8.0+ (API 26+) | the emulator **cannot** reach a real strap |
+| A physical Android device with BLE | Android 14+ (API 34+) | the emulator **cannot** reach a real strap |
 
 Point Gradle at the SDK with `android/local.properties` (untracked):
 

@@ -50,3 +50,16 @@ jobs:
 
       - name: Run unit tests
         run: ./gradlew testFullDebugUnitTest
+
+      # On a failed run, keep the evidence: per-test output (including what a test printed) and Room's
+      # schema export from this build, which a schema-format change has to be compared against.
+      - name: Upload test reports and Room schema export
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: |
+            android/app/build/reports/tests/
+            android/app/build/test-results/
+            android/app/build/roomSchemaOracle/
+          if-no-files-found: ignore
