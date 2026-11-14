@@ -1677,200 +1677,37 @@ object IntelligenceEngine {
             profile, maxHROverride, effortMethod,
         )
 
+        // Per-night fold (edits, Charge, metric rows, logs, sleep and workout rows). A separate,
+        // non-suspending function so Kotlin 2 keeps analyzeRecentOnCpu inside its bytecode budget.
         for (res in scoredNights) {
-            // #299: scope the edits to THIS day before folding. A userEdited row / hand-logged nap belongs
-            // to exactly ONE day — the day its night ENDS on, matching the daily's end-day bucket
-            // (AnalyticsEngine's `matched` filters sleep sessions by end-day). endTs is stable under a
-            // bedtime edit (only the onset/startTsAdjusted moves), so end-day is the right key. Filtering
-            // here keeps a single-night edit overriding only its OWN night instead of every night. The
-            // #547 effective-onset detail is preserved: editOnsetByStart still carries the user-CORRECTED
-            // bedtime (startTsAdjusted ?: startTs) for this day's edited/manual blocks.
-            val dayEditedRows = editedRowsForDay(editedRows, res.daily.day, tzOffsetSeconds)
-            // Substitute an edited block's (reshaped) stages for its detected twin before the daily
-            // sleep aggregate feeds Rest + recovery. No edit touching this night → `daily` is unchanged.
-            val editedDaily = editedCycleDaily(
-                res, dayEditedRows, tzOffsetSeconds, habitualMidsleepSec,
-                physiologicalSteps, computedId, restRows,
+            foldScoredNight(
+                res = res,
+                editedRows = editedRows,
+                tzOffsetSeconds = tzOffsetSeconds,
+                habitualMidsleepSec = habitualMidsleepSec,
+                physiologicalSteps = physiologicalSteps,
+                computedId = computedId,
+                baselines2 = baselines2,
+                spo2CandidateByDay = spo2CandidateByDay,
+                hrvOverCountByDay = hrvOverCountByDay,
+                primarySessionRHRByDay = primarySessionRHRByDay,
+                primarySessionRHRCoverageByDay = primarySessionRHRCoverageByDay,
+                importedWhoopDays = importedWhoopDays,
+                appleHealthDays = appleHealthDays,
+                deepHrvWindow = deepHrvWindow,
+                readOwnerByDay = readOwnerByDay,
+                activeWriteId = activeWriteId,
+                realWorkouts = realWorkouts,
+                diag = diag,
+                recoveryTraceSink = recoveryTraceSink,
+                universalSink = universalSink,
+                workoutsTraceSink = workoutsTraceSink,
+                restRows = restRows,
+                out = out,
+                dailies = dailies,
+                sleepRows = sleepRows,
+                workoutBackfills = workoutBackfills,
             )
-            val daily = recomputeRecoveryDaily(editedDaily, res.nightlySkinTempC, baselines2)
-            val recovery = daily.recovery
-            val skinTempDevC = daily.skinTempDevC
-            // Charge term-breakdown trace (Test Centre Group G): only when the Recovery test mode is on
-            // (recoveryTraceSink non-null). Emits which term moved Charge and which was nil and forced the
-            // renorm, tagged .recovery. The trace's score is RecoveryScorer.recovery verbatim, so the
-            // `recovery` written above is unchanged. Zero cost when off (the sink stays null, this branch
-            // is skipped, recoveryTraceLines is never built). Mirrors the Swift recoveryTraceActive wiring.
-            if (recoveryTraceSink != null) {
-                for (line in recoveryTraceLines(daily, baselines2)) recoveryTraceSink(line)
-            }
-            RestScorer.restFromDaily(daily)?.let { rest ->
-                restRows.add(MetricSeriesRow(deviceId = computedId, day = daily.day, key = "sleep_performance", value = rest))
-            }
-            // #103: persist the SpO₂ candidate @82 nightly mean to metricSeries as "spo2_candidate" so the
-            // Blood Oxygen tile can surface it as a "strap estimate (unverified)" fallback when the toggle
-            // is ON. Written under the "-noop" computed device ID, never to `spo2Pct`.
-            spo2CandidateByDay[daily.day]?.let { cand ->
-                restRows.add(MetricSeriesRow(deviceId = computedId, day = daily.day, key = "spo2_candidate", value = cand.toDouble()))
-            }
-            // #1118: persist the HRV over-count flag (1/0) so the HRV card can mark an over-counted 4.0
-            // night's reading "unverified" until the two-channel de-dup lands. 0 written on a clean night
-            // (not just absent) so a night that flips clean on re-score clears its prior flag.
-            hrvOverCountByDay[daily.day]?.let { oc ->
-                restRows.add(MetricSeriesRow(deviceId = computedId, day = daily.day, key = "hrv_rr_overcount", value = if (oc) 1.0 else 0.0))
-            }
-            // #1169 shadow metric: the primary-session mean RHR, stored beside the shipped floor
-            // (daily.restingHr) under the "-noop" computed ID. Instrumentation only — never shown, never
-            // scored — for later mean-vs-floor evaluation from exports.
-            primarySessionRHRByDay[daily.day]?.let { v ->
-                restRows.add(MetricSeriesRow(deviceId = computedId, day = daily.day, key = "rhr_primary_session", value = v))
-            }
-            // #1169: its coverage inputs beside the mean — valid-sample count + primary-session duration (s)
-            // — so a thin-coverage night can be down-weighted in the later holdout. Raw inputs, not a fraction.
-            primarySessionRHRCoverageByDay[daily.day]?.let { cov ->
-                restRows.add(MetricSeriesRow(deviceId = computedId, day = daily.day, key = "rhr_primary_session_valid_samples", value = cov.validSamples.toDouble()))
-                restRows.add(MetricSeriesRow(deviceId = computedId, day = daily.day, key = "rhr_primary_session_duration_s", value = cov.durationSec))
-            }
-
-            out.add(
-                Computed(
-                    day = daily.day,
-                    recovery = recovery,
-                    strain = daily.strain,
-                    sleepMin = daily.totalSleepMin,
-                    hrv = daily.avgHrv,
-                    rhr = daily.restingHr,
-                ),
-            )
-            // ── Per-day scoring diagnostic (Sleep overhaul §2.5) ──────────────────────────────────────
-            // ONE concise, privacy-safe line per scored day into the shareable strap log: the day key, the
-            // FINAL computed total-sleep minutes (after any edit substitution), how many sleep blocks the
-            // detector matched on the day, and the provenance of the dashboard headline. Counts + a rounded
-            // minute only , no HR/HRV/timestamps , so the next report ships PROOF of what was computed per
-            // day (the project's log-failures-not-successes blind spot) and lets us settle the "Rest repeats
-            // across days" question with data. Gated by the existing strap-log export. Mirrors the Swift line.
-            val tsmLog = daily.totalSleepMin?.let { Math.round(it).toString() } ?: "nil"
-            // #386: the banked stage split + efficiency ride beside the rollup, so a "homepage disagrees
-            // with the Sleep tab" report is self-diagnosing from the export alone — totalSleepMin vs the
-            // deep+rem+light sum is the identity both screens must agree on, now verifiable per pass, per
-            // day, without screenshots. Rounded minutes only (same privacy class as the rest of the line);
-            // stages=nil when the day has no banked stage split (an unstaged or imported-total-only day).
-            val effLog = daily.efficiency?.let { String.format(java.util.Locale.US, "%.2f", it) } ?: "nil"
-            diag(
-                "sleep day=${daily.day} totalSleepMin=$tsmLog " +
-                    "stages=${sleepStagesLogToken(daily.deepMin, daily.remMin, daily.lightMin)} " +
-                    "eff=$effLog " +
-                    "matched=${res.sleepSessions.size} " +
-                    "source=${daySourceToken(daily.day, importedWhoopDays, appleHealthDays)}",
-            )
-            // #674/#1244: flag a COMPUTED day carrying a sleep total with NO matched session — the folded
-            // edited/hand-logged block on a day the detector staged nothing (see sleepDivergenceLogLine).
-            // Scoped to computed days: an imported-total-only day legitimately has a total without our
-            // sessions, so it is NOT a divergence.
-            val imported = daily.day in importedWhoopDays || daily.day in appleHealthDays
-            val finalSleepMin = daily.totalSleepMin
-            if (!imported && finalSleepMin != null && res.sleepSessions.isEmpty()) {
-                diag(sleepDivergenceLogLine(daily.day, Math.round(finalSleepMin).toInt(), dayEditedRows.size))
-            }
-            // #195: one always-on line per scored night with the computed HRV value + the window it used,
-            // so an "HRV reads high / deep-sleep window not changing" report is self-diagnosing straight
-            // from the strap log — the whole-night vs deep-sleep value, and `avgHrv=nil window=deep` when a
-            // deep-window night has no detected deep sleep — without needing the HRV & Autonomic test mode.
-            // Counts-only (a rounded ms + the window), PII-free; byte-identical to the Swift line.
-            val hrvLog = daily.avgHrv?.let { String.format(java.util.Locale.US, "%.1f", it) } ?: "nil"
-            diag("hrv day=${daily.day} window=${if (deepHrvWindow) "deep" else "whole"} avgHrv=$hrvLog")
-            // ── CAPTURE-B: universal dayOwner self-diagnostic (#814/#799) ────────────────────────────────
-            // ONE line per SCORED day, tagged .universal so it rides EVERY Test Centre export regardless of
-            // which mode is on. It pins the read/write split #814 is about: readId is the owner this day was
-            // read+scored from (captured in pass 1), writeActiveId is the registry's active id; a divergence
-            // on a day with HR rows is the symptom. provenance says what backed the day. Verbatim format so
-            // the export parser reads it; byte-identical to the iOS emit (same scored-days loop, same shape).
-            // Only when the universal sink is on (the gate is the sink's nullness, set by the caller).
-            if (universalSink != null) {
-                val read = readOwnerByDay[daily.day]
-                universalSink(
-                    dayOwnerLine(
-                        day = daily.day,
-                        readId = read?.owner ?: activeWriteId,
-                        writeActiveId = activeWriteId,
-                        hrRows = read?.hrRows ?: 0,
-                        importedWhoopDays = importedWhoopDays,
-                        appleHealthDays = appleHealthDays,
-                    ),
-                )
-            }
-            // Stamp the computed source id + the re-scored recovery & skin-temp deviation onto the row.
-            dailies.add(scoredDailyRow(daily, computedId, recovery, skinTempDevC, res.nightlySkinTempC))
-            // Map the rich DetectedSleep sessions → Room SleepSession cache rows.
-            for (s in res.sleepSessions) {
-                sleepRows.add(
-                    SleepSession(
-                        deviceId = computedId,
-                        startTs = s.start,
-                        endTs = s.end,
-                        efficiency = s.efficiency,
-                        restingHr = s.restingHR,
-                        avgHrv = s.avgHRV,
-                        stagesJSON = AnalyticsEngine.encodeStages(s.stages),
-                        // #345 follow-up: stamp the day's motion-coverage verdict so the Sleep tab can
-                        // caption a sparse (likely under-detected) night. Twin of Swift analyzeDay.
-                        stagingSparse = res.gravitySparse,
-                    ),
-                )
-            }
-            // The daily analytics detector still computes bouts for daily analytics and can enrich
-            // missing fields on an overlapping real imported/manual workout. It does NOT publish a new
-            // generic workout: the opt-in Today card remains the only creation path, and requires Save.
-            // #1545: where the detector lost every candidate workout on this day, emitted BEFORE the
-            // per-bout loop so it is present even when that loop runs zero times — which is exactly the
-            // report it exists for. The `effort bout` line below explains a bout that exists; a strap log
-            // showing 37 days and no workouts at all previously carried nothing to explain the absence.
-            res.detectionFunnel?.let { diag(WorkoutDetector.detectionFunnelLine(daily.day, it)) }
-            for (s in res.workouts) {
-                val durMin = maxOf(0L, (s.end - s.start) / 60L).toInt()
-                val avgBpm = s.avgHR.toInt()
-                // #1545: always-on, one line per detected bout naming what this Effort was SCORED AGAINST.
-                // A user reporting "my hard session scored 1.7" cannot currently see the HRmax that set the
-                // zone boundaries, where it came from, or whether the strap even saw most of the bout — and
-                // those three answers separate the three different causes ("the floor is doing its job",
-                // "your HRmax is wrong", "the sensor dropped out"). Reversing the arithmetic out of the
-                // displayed score is what diagnosing #1545 actually took. Same privacy class as the sibling
-                // `sleep day=` line: a day key, a duration, bpm and percentages. Mirrors the Swift line.
-                diag(
-                    WorkoutDetector.boutCalibrationLine(
-                        day = daily.day, durMin = durMin, hrmax = s.hrmax, hrmaxSource = s.hrmaxSource,
-                        avgHRRPct = s.avgHRRPct, hrCoveragePct = s.hrCoveragePct, strain = s.strain,
-                    ),
-                )
-                // Bare time overlap (any source), so a detected bout collapses against a manual session even
-                // though their sports differ , the #975 "two workouts, one vanished" seam. Name the collider.
-                val collider = realWorkouts.firstOrNull { w -> s.start < w.endTs && w.startTs < s.end }
-                if (collider != null) {
-                    // #510: the detected bout's own avgHR/calories/maxHR/strain come from the SAME
-                    // motion+HR trace the detector used to find this activity's actual boundaries —
-                    // often a tighter match than the colliding row's own [startTs,endTs] (e.g. a manual
-                    // entry typed in afterward, whose guessed boundaries can clip most of the real
-                    // HR-rich period and leave WhoopRepository.fillWorkoutHrFromStrap's raw window read
-                    // too thin, silently showing no HR/calories). Same natural key (deviceId, startTs,
-                    // sport), so the upsert below updates the existing row in place rather than
-                    // duplicating it.
-                    val backfilled = backfillWorkoutFromDetectedBout(
-                        collider, avgBpm = avgBpm, peakHR = s.peakHR, caloriesKcal = s.caloriesKcal, strain = s.strain,
-                    )
-                    val didBackfill = backfilled != collider
-                    if (didBackfill) workoutBackfills.add(backfilled)
-                    workoutsTraceSink?.invoke(
-                        WorkoutsTrace.detectedBoutLine(
-                            verdict = if (didBackfill) "droppedOverlapBackfilled" else "droppedOverlap",
-                            durMin = durMin, avgBpm = avgBpm,
-                            overlapSource = colliderSourceLabel(collider.source),
-                        ),
-                    )
-                    continue
-                }
-                workoutsTraceSink?.invoke(
-                    WorkoutsTrace.detectedBoutLine(verdict = "analyticsOnly", durMin = durMin, avgBpm = avgBpm),
-                )
-            }
         }
 
         // #277 migration: the loop now keys days by the LOCAL calendar day. A prior run (before this
@@ -1916,6 +1753,229 @@ object IntelligenceEngine {
             workoutBackfills = workoutBackfills,
         )
         return out to healDroppedCount
+    }
+
+    private fun foldScoredNight(
+        res: DayResult,
+        editedRows: List<SleepSession>,
+        tzOffsetSeconds: Long,
+        habitualMidsleepSec: Long?,
+        physiologicalSteps: PhysiologicalStepCycleEngine.Result,
+        computedId: String,
+        baselines2: ProfileBaselines,
+        spo2CandidateByDay: Map<String, Int>,
+        hrvOverCountByDay: Map<String, Boolean>,
+        primarySessionRHRByDay: Map<String, Double>,
+        primarySessionRHRCoverageByDay: Map<String, PrimarySessionRestingHR.Coverage>,
+        importedWhoopDays: Set<String>,
+        appleHealthDays: Set<String>,
+        deepHrvWindow: Boolean,
+        readOwnerByDay: Map<String, OwnerRead>,
+        activeWriteId: String,
+        realWorkouts: List<WorkoutRow>,
+        diag: (String) -> Unit,
+        recoveryTraceSink: ((String) -> Unit)?,
+        universalSink: ((String) -> Unit)?,
+        workoutsTraceSink: ((String) -> Unit)?,
+        restRows: MutableList<MetricSeriesRow>,
+        out: MutableList<Computed>,
+        dailies: MutableList<DailyMetric>,
+        sleepRows: MutableList<SleepSession>,
+        workoutBackfills: MutableList<WorkoutRow>,
+    ) {
+        // #299: scope the edits to THIS day before folding. A userEdited row / hand-logged nap belongs
+        // to exactly ONE day — the day its night ENDS on, matching the daily's end-day bucket
+        // (AnalyticsEngine's `matched` filters sleep sessions by end-day). endTs is stable under a
+        // bedtime edit (only the onset/startTsAdjusted moves), so end-day is the right key. Filtering
+        // here keeps a single-night edit overriding only its OWN night instead of every night. The
+        // #547 effective-onset detail is preserved: editOnsetByStart still carries the user-CORRECTED
+        // bedtime (startTsAdjusted ?: startTs) for this day's edited/manual blocks.
+        val dayEditedRows = editedRowsForDay(editedRows, res.daily.day, tzOffsetSeconds)
+        // Substitute an edited block's (reshaped) stages for its detected twin before the daily
+        // sleep aggregate feeds Rest + recovery. No edit touching this night → `daily` is unchanged.
+        val editedDaily = editedCycleDaily(
+            res, dayEditedRows, tzOffsetSeconds, habitualMidsleepSec,
+            physiologicalSteps, computedId, restRows,
+        )
+        val daily = recomputeRecoveryDaily(editedDaily, res.nightlySkinTempC, baselines2)
+        val recovery = daily.recovery
+        val skinTempDevC = daily.skinTempDevC
+        // Charge term-breakdown trace (Test Centre Group G): only when the Recovery test mode is on
+        // (recoveryTraceSink non-null). Emits which term moved Charge and which was nil and forced the
+        // renorm, tagged .recovery. The trace's score is RecoveryScorer.recovery verbatim, so the
+        // `recovery` written above is unchanged. Zero cost when off (the sink stays null, this branch
+        // is skipped, recoveryTraceLines is never built). Mirrors the Swift recoveryTraceActive wiring.
+        if (recoveryTraceSink != null) {
+            for (line in recoveryTraceLines(daily, baselines2)) recoveryTraceSink(line)
+        }
+        RestScorer.restFromDaily(daily)?.let { rest ->
+            restRows.add(MetricSeriesRow(deviceId = computedId, day = daily.day, key = "sleep_performance", value = rest))
+        }
+        // #103: persist the SpO₂ candidate @82 nightly mean to metricSeries as "spo2_candidate" so the
+        // Blood Oxygen tile can surface it as a "strap estimate (unverified)" fallback when the toggle
+        // is ON. Written under the "-noop" computed device ID, never to `spo2Pct`.
+        spo2CandidateByDay[daily.day]?.let { cand ->
+            restRows.add(MetricSeriesRow(deviceId = computedId, day = daily.day, key = "spo2_candidate", value = cand.toDouble()))
+        }
+        // #1118: persist the HRV over-count flag (1/0) so the HRV card can mark an over-counted 4.0
+        // night's reading "unverified" until the two-channel de-dup lands. 0 written on a clean night
+        // (not just absent) so a night that flips clean on re-score clears its prior flag.
+        hrvOverCountByDay[daily.day]?.let { oc ->
+            restRows.add(MetricSeriesRow(deviceId = computedId, day = daily.day, key = "hrv_rr_overcount", value = if (oc) 1.0 else 0.0))
+        }
+        // #1169 shadow metric: the primary-session mean RHR, stored beside the shipped floor
+        // (daily.restingHr) under the "-noop" computed ID. Instrumentation only — never shown, never
+        // scored — for later mean-vs-floor evaluation from exports.
+        primarySessionRHRByDay[daily.day]?.let { v ->
+            restRows.add(MetricSeriesRow(deviceId = computedId, day = daily.day, key = "rhr_primary_session", value = v))
+        }
+        // #1169: its coverage inputs beside the mean — valid-sample count + primary-session duration (s)
+        // — so a thin-coverage night can be down-weighted in the later holdout. Raw inputs, not a fraction.
+        primarySessionRHRCoverageByDay[daily.day]?.let { cov ->
+            restRows.add(MetricSeriesRow(deviceId = computedId, day = daily.day, key = "rhr_primary_session_valid_samples", value = cov.validSamples.toDouble()))
+            restRows.add(MetricSeriesRow(deviceId = computedId, day = daily.day, key = "rhr_primary_session_duration_s", value = cov.durationSec))
+        }
+
+        out.add(
+            Computed(
+                day = daily.day,
+                recovery = recovery,
+                strain = daily.strain,
+                sleepMin = daily.totalSleepMin,
+                hrv = daily.avgHrv,
+                rhr = daily.restingHr,
+            ),
+        )
+        // ── Per-day scoring diagnostic (Sleep overhaul §2.5) ──────────────────────────────────────
+        // ONE concise, privacy-safe line per scored day into the shareable strap log: the day key, the
+        // FINAL computed total-sleep minutes (after any edit substitution), how many sleep blocks the
+        // detector matched on the day, and the provenance of the dashboard headline. Counts + a rounded
+        // minute only , no HR/HRV/timestamps , so the next report ships PROOF of what was computed per
+        // day (the project's log-failures-not-successes blind spot) and lets us settle the "Rest repeats
+        // across days" question with data. Gated by the existing strap-log export. Mirrors the Swift line.
+        val tsmLog = daily.totalSleepMin?.let { Math.round(it).toString() } ?: "nil"
+        // #386: the banked stage split + efficiency ride beside the rollup, so a "homepage disagrees
+        // with the Sleep tab" report is self-diagnosing from the export alone — totalSleepMin vs the
+        // deep+rem+light sum is the identity both screens must agree on, now verifiable per pass, per
+        // day, without screenshots. Rounded minutes only (same privacy class as the rest of the line);
+        // stages=nil when the day has no banked stage split (an unstaged or imported-total-only day).
+        val effLog = daily.efficiency?.let { String.format(java.util.Locale.US, "%.2f", it) } ?: "nil"
+        diag(
+            "sleep day=${daily.day} totalSleepMin=$tsmLog " +
+                "stages=${sleepStagesLogToken(daily.deepMin, daily.remMin, daily.lightMin)} " +
+                "eff=$effLog " +
+                "matched=${res.sleepSessions.size} " +
+                "source=${daySourceToken(daily.day, importedWhoopDays, appleHealthDays)}",
+        )
+        // #674/#1244: flag a COMPUTED day carrying a sleep total with NO matched session — the folded
+        // edited/hand-logged block on a day the detector staged nothing (see sleepDivergenceLogLine).
+        // Scoped to computed days: an imported-total-only day legitimately has a total without our
+        // sessions, so it is NOT a divergence.
+        val imported = daily.day in importedWhoopDays || daily.day in appleHealthDays
+        val finalSleepMin = daily.totalSleepMin
+        if (!imported && finalSleepMin != null && res.sleepSessions.isEmpty()) {
+            diag(sleepDivergenceLogLine(daily.day, Math.round(finalSleepMin).toInt(), dayEditedRows.size))
+        }
+        // #195: one always-on line per scored night with the computed HRV value + the window it used,
+        // so an "HRV reads high / deep-sleep window not changing" report is self-diagnosing straight
+        // from the strap log — the whole-night vs deep-sleep value, and `avgHrv=nil window=deep` when a
+        // deep-window night has no detected deep sleep — without needing the HRV & Autonomic test mode.
+        // Counts-only (a rounded ms + the window), PII-free; byte-identical to the Swift line.
+        val hrvLog = daily.avgHrv?.let { String.format(java.util.Locale.US, "%.1f", it) } ?: "nil"
+        diag("hrv day=${daily.day} window=${if (deepHrvWindow) "deep" else "whole"} avgHrv=$hrvLog")
+        // ── CAPTURE-B: universal dayOwner self-diagnostic (#814/#799) ────────────────────────────────
+        // ONE line per SCORED day, tagged .universal so it rides EVERY Test Centre export regardless of
+        // which mode is on. It pins the read/write split #814 is about: readId is the owner this day was
+        // read+scored from (captured in pass 1), writeActiveId is the registry's active id; a divergence
+        // on a day with HR rows is the symptom. provenance says what backed the day. Verbatim format so
+        // the export parser reads it; byte-identical to the iOS emit (same scored-days loop, same shape).
+        // Only when the universal sink is on (the gate is the sink's nullness, set by the caller).
+        if (universalSink != null) {
+            val read = readOwnerByDay[daily.day]
+            universalSink(
+                dayOwnerLine(
+                    day = daily.day,
+                    readId = read?.owner ?: activeWriteId,
+                    writeActiveId = activeWriteId,
+                    hrRows = read?.hrRows ?: 0,
+                    importedWhoopDays = importedWhoopDays,
+                    appleHealthDays = appleHealthDays,
+                ),
+            )
+        }
+        // Stamp the computed source id + the re-scored recovery & skin-temp deviation onto the row.
+        dailies.add(scoredDailyRow(daily, computedId, recovery, skinTempDevC, res.nightlySkinTempC))
+        // Map the rich DetectedSleep sessions → Room SleepSession cache rows.
+        for (s in res.sleepSessions) {
+            sleepRows.add(
+                SleepSession(
+                    deviceId = computedId,
+                    startTs = s.start,
+                    endTs = s.end,
+                    efficiency = s.efficiency,
+                    restingHr = s.restingHR,
+                    avgHrv = s.avgHRV,
+                    stagesJSON = AnalyticsEngine.encodeStages(s.stages),
+                    // #345 follow-up: stamp the day's motion-coverage verdict so the Sleep tab can
+                    // caption a sparse (likely under-detected) night. Twin of Swift analyzeDay.
+                    stagingSparse = res.gravitySparse,
+                ),
+            )
+        }
+        // The daily analytics detector still computes bouts for daily analytics and can enrich
+        // missing fields on an overlapping real imported/manual workout. It does NOT publish a new
+        // generic workout: the opt-in Today card remains the only creation path, and requires Save.
+        // #1545: where the detector lost every candidate workout on this day, emitted BEFORE the
+        // per-bout loop so it is present even when that loop runs zero times — which is exactly the
+        // report it exists for. The `effort bout` line below explains a bout that exists; a strap log
+        // showing 37 days and no workouts at all previously carried nothing to explain the absence.
+        res.detectionFunnel?.let { diag(WorkoutDetector.detectionFunnelLine(daily.day, it)) }
+        for (s in res.workouts) {
+            val durMin = maxOf(0L, (s.end - s.start) / 60L).toInt()
+            val avgBpm = s.avgHR.toInt()
+            // #1545: always-on, one line per detected bout naming what this Effort was SCORED AGAINST.
+            // A user reporting "my hard session scored 1.7" cannot currently see the HRmax that set the
+            // zone boundaries, where it came from, or whether the strap even saw most of the bout — and
+            // those three answers separate the three different causes ("the floor is doing its job",
+            // "your HRmax is wrong", "the sensor dropped out"). Reversing the arithmetic out of the
+            // displayed score is what diagnosing #1545 actually took. Same privacy class as the sibling
+            // `sleep day=` line: a day key, a duration, bpm and percentages. Mirrors the Swift line.
+            diag(
+                WorkoutDetector.boutCalibrationLine(
+                    day = daily.day, durMin = durMin, hrmax = s.hrmax, hrmaxSource = s.hrmaxSource,
+                    avgHRRPct = s.avgHRRPct, hrCoveragePct = s.hrCoveragePct, strain = s.strain,
+                ),
+            )
+            // Bare time overlap (any source), so a detected bout collapses against a manual session even
+            // though their sports differ , the #975 "two workouts, one vanished" seam. Name the collider.
+            val collider = realWorkouts.firstOrNull { w -> s.start < w.endTs && w.startTs < s.end }
+            if (collider != null) {
+                // #510: the detected bout's own avgHR/calories/maxHR/strain come from the SAME
+                // motion+HR trace the detector used to find this activity's actual boundaries —
+                // often a tighter match than the colliding row's own [startTs,endTs] (e.g. a manual
+                // entry typed in afterward, whose guessed boundaries can clip most of the real
+                // HR-rich period and leave WhoopRepository.fillWorkoutHrFromStrap's raw window read
+                // too thin, silently showing no HR/calories). Same natural key (deviceId, startTs,
+                // sport), so the upsert below updates the existing row in place rather than
+                // duplicating it.
+                val backfilled = backfillWorkoutFromDetectedBout(
+                    collider, avgBpm = avgBpm, peakHR = s.peakHR, caloriesKcal = s.caloriesKcal, strain = s.strain,
+                )
+                val didBackfill = backfilled != collider
+                if (didBackfill) workoutBackfills.add(backfilled)
+                workoutsTraceSink?.invoke(
+                    WorkoutsTrace.detectedBoutLine(
+                        verdict = if (didBackfill) "droppedOverlapBackfilled" else "droppedOverlap",
+                        durMin = durMin, avgBpm = avgBpm,
+                        overlapSource = colliderSourceLabel(collider.source),
+                    ),
+                )
+                continue
+            }
+            workoutsTraceSink?.invoke(
+                WorkoutsTrace.detectedBoutLine(verdict = "analyticsOnly", durMin = durMin, avgBpm = avgBpm),
+            )
+        }
     }
 
     private suspend fun persistScoredWindow(
