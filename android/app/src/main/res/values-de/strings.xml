@@ -1811,6 +1811,13 @@
     <string name="timeline_resp_not_on_whoop5">Dieses Band sendet keinen Rohdaten-Atemstrom. Deine geschätzte Atemfrequenz erscheint im Health-Bildschirm.</string>
     <string name="settings_disclosure_expanded">Erweitert</string>
     <string name="settings_disclosure_collapsed">Reduziert</string>
+    <string name="settings_tab_you">Du</string>
+    <string name="settings_tab_strap">Band</string>
+    <string name="settings_tab_health">Gesundheit</string>
+    <string name="settings_tab_look">Aussehen</string>
+    <string name="settings_tab_data">Daten</string>
+    <string name="settings_tab_about">Info</string>
+    <string name="settings_tabs_label">Einstellungsbereiche</string>
     <string name="l10n_data_sources_screen_last_shared_6bf8389c">"Zuletzt geteilt "%1$s</string>
     <string name="l10n_data_sources_screen_sharing_paused_health_connect_permission_was_e8950315">Teilen pausiert – die Health-Connect-Berechtigung wurde entzogen. Zum erneuten Erteilen tippen.</string>
     <string name="l10n_data_sources_screen_last_share_didn_t_finish_noop_0d6c27f0">Letztes Teilen unvollständig – NOOP versucht es automatisch erneut.</string>

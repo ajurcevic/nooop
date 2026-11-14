@@ -1759,6 +1759,13 @@
     <string name="timeline_resp_not_on_whoop5">Этот браслет не передаёт сырой поток дыхания. Ваша расчётная частота дыхания показана на экране «Здоровье».</string>
     <string name="settings_disclosure_expanded">Развёрнуто</string>
     <string name="settings_disclosure_collapsed">Свёрнуто</string>
+    <string name="settings_tab_you">Вы</string>
+    <string name="settings_tab_strap">Браслет</string>
+    <string name="settings_tab_health">Здоровье</string>
+    <string name="settings_tab_look">Вид</string>
+    <string name="settings_tab_data">Данные</string>
+    <string name="settings_tab_about">О приложении</string>
+    <string name="settings_tabs_label">Разделы настроек</string>
     <string name="l10n_data_sources_screen_last_shared_6bf8389c">"Последняя отправка "%1$s</string>
     <string name="l10n_data_sources_screen_sharing_paused_health_connect_permission_was_e8950315">Выгрузка приостановлена — разрешение Health Connect отозвано. Нажмите, чтобы выдать снова.</string>
     <string name="l10n_data_sources_screen_last_share_didn_t_finish_noop_0d6c27f0">Последняя отправка не завершилась — NOOP повторит автоматически.</string>
