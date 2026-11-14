@@ -7,7 +7,6 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.noop.R
 import com.noop.ui.appLaunchIntent
@@ -124,7 +123,6 @@ object WindDownScheduler {
     }
 
     private fun ensureChannel(context: Context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         runCatching {
             val mgr = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             if (mgr.getNotificationChannel(CHANNEL_ID) != null) return

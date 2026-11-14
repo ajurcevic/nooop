@@ -33,16 +33,7 @@
         android:name="android.permission.BLUETOOTH_ADVERTISE"
         tools:targetApi="s" />
 
-    <!-- Android 8-11 (API 26-30): legacy Bluetooth perms are install-time. -->
-    <uses-permission
-        android:name="android.permission.BLUETOOTH"
-        android:maxSdkVersion="30" />
-    <uses-permission
-        android:name="android.permission.BLUETOOTH_ADMIN"
-        android:maxSdkVersion="30" />
-
-    <!-- Fine location is needed on ALL API levels: pre-12 (API <=30) for BLE scans, and on every
-         version for GPS-tracked workouts (route/distance/pace). It is requested at runtime right
+    <!-- Fine location is needed for GPS-tracked workouts (route/distance/pace). It is requested at runtime right
          before a GPS workout starts (see rememberRequestLocation, #101) — NOT for BLE, which stays
          opted out of location via neverForLocation above. Capping this at API 30 made GPS workouts
          crash on Android 12+ because the permission could never be held. -->
