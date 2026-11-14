@@ -84,7 +84,7 @@ object UpdateCheck {
 
     /**
      * The download URL of the release's APK, or null if it has none. The first asset whose name ends in
-     * `.apk` wins (the release workflow uploads exactly one, `NOOP-android-v<VERSION>.apk`). Only an
+     * `.apk` wins (the release workflow uploads exactly one, `Zoop-android-v<VERSION>.apk`). Only an
      * `https://` URL is accepted, so a malformed asset can never turn into a cleartext download.
      */
     fun pickApkUrl(assets: List<Asset>): String? =

@@ -187,7 +187,7 @@ android/
             └── ui/              # NoopTheme, MainActivity, AppViewModel, Compose screens, NavHost
 ```
 
-Root package: `com.noop` · application id: `com.noop.whoop`. Debug builds append `.debug`;
+Root package: `com.noop` · application id: `com.zoop.app`. Debug builds append `.debug`;
 the `demo` flavor appends `.demo`; the fork staging release appends `.staging` — so all
 install side-by-side.
 

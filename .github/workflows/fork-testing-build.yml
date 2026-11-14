@@ -1,7 +1,7 @@
 # Fork-only: ONE on-demand Android testing build published into ONE rolling prerelease.
 #
-# A `meta` job creates a single dated prerelease, then the android job attaches NOOP-android +
-# NOOP-android-debug to that SAME tag, each stamped with the base app version.
+# A `meta` job creates a single dated prerelease, then the android job attaches Zoop-android +
+# Zoop-android-debug to that SAME tag, each stamped with the base app version.
 # Unsigned/debug-keyed, no secrets. Trigger from the Actions tab. (Built from noop-staging via --ref.)
 name: Testing build (fork)
 
@@ -86,11 +86,11 @@ jobs:
             fi
           fi
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --prerelease --target "${{ github.sha }}" \
-            --title "NOOP Staging — base ${VER} · ${DATE} · ${SHA}" \
-            --notes "Rolling **latest** testing build — refreshed in place, so this tag is always the newest. Built with the **NOOP Staging** identity. The release APK installs **beside** the official app. Filenames carry the base app version (\`v${VER}\`).
+            --title "Zoop Staging — base ${VER} · ${DATE} · ${SHA}" \
+            --notes "Rolling **latest** testing build — refreshed in place, so this tag is always the newest. Built with the **Zoop Staging** identity. The release APK installs **beside** the official app. Filenames carry the base app version (\`v${VER}\`).
 
-          - **Android (release)** — \`NOOP-android-v${VER}.apk\` — optimized, non-debuggable build; installs beside the official app. \`com.noop.whoop.staging\`.
-          - **Android (debug)** — \`NOOP-android-debug-v${VER}.apk\` — debuggable build. \`com.noop.whoop.debug\`.
+          - **Android (release)** — \`Zoop-android-v${VER}.apk\` — optimized, non-debuggable build; installs beside the official app. \`com.zoop.app.staging\`.
+          - **Android (debug)** — \`Zoop-android-debug-v${VER}.apk\` — debuggable build. \`com.zoop.app.debug\`.
 
           Base app version ${VER} · built ${DATE} · \`${SHA}\`."
           # Belt-and-braces: a rolling tag is deleted with --cleanup-tag and recreated seconds later, and
@@ -129,10 +129,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VER: ${{ needs.meta.outputs.ver }}
         run: |
-          cp app/build/outputs/apk/full/debug/*.apk "NOOP-android-debug-v${VER}.apk"
-          cp app/build/outputs/apk/full/release/*.apk "NOOP-android-v${VER}.apk"
+          cp app/build/outputs/apk/full/debug/*.apk "Zoop-android-debug-v${VER}.apk"
+          cp app/build/outputs/apk/full/release/*.apk "Zoop-android-v${VER}.apk"
           gh release upload "${{ needs.meta.outputs.tag }}" \
-            "NOOP-android-v${VER}.apk" "NOOP-android-debug-v${VER}.apk" \
+            "Zoop-android-v${VER}.apk" "Zoop-android-debug-v${VER}.apk" \
             --repo "$GITHUB_REPOSITORY" --clobber
 
   # Fork-only housekeeping: the disposable `noop-staging` branch exists ONLY to feed this build. Once every
