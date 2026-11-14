@@ -1422,7 +1422,6 @@
     <string name="l10n_settings_screen_check_for_updates_736b9062">检查更新</string>
     <string name="l10n_settings_screen_checking_820d6004">正在检查…</string>
     <string name="l10n_settings_screen_checks_github_for_the_latest_version_c10a81e2">点击后仅会向 GitHub 查询最新版本号。不会发送任何其他信息。</string>
-    <string name="l10n_settings_screen_contact_support_at_support_email_f0c4adce">联系支持团队: %1$s</string>
     <string name="l10n_settings_screen_continuous_hrv_capture_1f0805d8">全天候 HRV 捕获</string>
     <string name="l10n_settings_screen_couldn_t_check_try_again_b3c885d9">检查更新失败。请重试。</string>
     <string name="l10n_settings_screen_counter_ticks_per_step_leave_at_3ce8c1d5">每一步对应的传感器计数(Tick)比例。除非您的计步数据偏高，否则请保持默认值 1.0。在 WHOOP 5/MG 上，传感器数据可能会非常高（是实际步数的 10 倍甚至更多），所以这里的上限可调至 30。您可以走一段已知的 1000 步，用 NOOP 统计出的数字除以 1000，就能得出您专属的比例值了。</string>
@@ -1476,7 +1475,6 @@
     <string name="l10n_settings_screen_profile_photo_33f385bb">头像照片</string>
     <string name="l10n_settings_screen_project_home_and_source_on_github_a067ed35">项目主页及 GitHub 源码</string>
     <string name="l10n_settings_screen_project_home_source_994627c1">项目主页与源码</string>
-    <string name="l10n_settings_screen_questions_feedback_bugs_support_email_ed10662a">疑问、反馈、Bug 提交: %1$s</string>
     <string name="l10n_settings_screen_recalibrate_aaa989ea">重新校准</string>
     <string name="l10n_settings_screen_recalibrate_charge_baseline_52a05a26">重新校准充能(Charge)基线</string>
     <string name="l10n_settings_screen_recalibrate_your_charge_baseline_018e3846">要重新校准您的充能(Charge)基线吗？</string>
@@ -1510,7 +1508,6 @@
     <string name="l10n_settings_screen_strap_02b88eeb">手环设备</string>
     <string name="l10n_settings_screen_strap_name_350de547">手环名称</string>
     <string name="l10n_settings_screen_stress_check_ins_haptic_bf2746ba">压力签到提醒 (震动)</string>
-    <string name="l10n_settings_screen_support_contact_f4c31b01">支持与联系</string>
     <string name="l10n_settings_screen_temperature_0a9062a9">温度</string>
     <string name="l10n_settings_screen_test_centre_37b36828">测试中心</string>
     <string name="l10n_settings_screen_theme_a797e309">主题</string>

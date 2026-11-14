@@ -1460,7 +1460,6 @@
     <string name="l10n_settings_screen_check_for_updates_736b9062">Проверить обновления</string>
     <string name="l10n_settings_screen_checking_820d6004">Проверка…</string>
     <string name="l10n_settings_screen_checks_github_for_the_latest_version_c10a81e2">Проверяет последнюю версию на GitHub по нажатию. Больше ничего не отправляется.</string>
-    <string name="l10n_settings_screen_contact_support_at_support_email_f0c4adce">Связаться с поддержкой: %1$s</string>
     <string name="l10n_settings_screen_continuous_hrv_capture_1f0805d8">Непрерывный захват ВСР</string>
     <string name="l10n_settings_screen_couldn_t_check_try_again_b3c885d9">Не удалось проверить. Попробуйте снова.</string>
     <string name="l10n_settings_screen_counter_ticks_per_step_leave_at_3ce8c1d5">Тиков счётчика на шаг. Оставьте 1.0, если только шаги не завышены. На WHOOP 5/MG они могут быть очень завышены (в 10 раз и более), поэтому предел здесь до 30. Пройдите известные 1000 шагов и разделите счёт NOOP на реальное число, чтобы получить своё значение.</string>
@@ -1514,7 +1513,6 @@
     <string name="l10n_settings_screen_profile_photo_33f385bb">Фото профиля</string>
     <string name="l10n_settings_screen_project_home_and_source_on_github_a067ed35">Страница проекта и исходный код на GitHub</string>
     <string name="l10n_settings_screen_project_home_source_994627c1">Домашняя страница и исходный код проекта</string>
-    <string name="l10n_settings_screen_questions_feedback_bugs_support_email_ed10662a">Вопросы, отзывы, ошибки: %1$s</string>
     <string name="l10n_settings_screen_recalibrate_aaa989ea">Перекалибровать</string>
     <string name="l10n_settings_screen_recalibrate_charge_baseline_52a05a26">Перекалибровать норму Заряда</string>
     <string name="l10n_settings_screen_recalibrate_your_charge_baseline_018e3846">Перекалибровать норму Заряда?</string>
@@ -1548,7 +1546,6 @@
     <string name="l10n_settings_screen_strap_02b88eeb">Браслет</string>
     <string name="l10n_settings_screen_strap_name_350de547">Название браслета</string>
     <string name="l10n_settings_screen_stress_check_ins_haptic_bf2746ba">Отметки стресса (вибрация)</string>
-    <string name="l10n_settings_screen_support_contact_f4c31b01">Поддержка и контакты</string>
     <string name="l10n_settings_screen_temperature_0a9062a9">Температура</string>
     <string name="l10n_settings_screen_test_centre_37b36828">Тестовый центр</string>
     <string name="l10n_settings_screen_theme_a797e309">Тема</string>
