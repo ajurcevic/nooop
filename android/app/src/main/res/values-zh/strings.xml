@@ -1746,6 +1746,13 @@
     <string name="l10n_data_sources_screen_last_share_didn_t_finish_noop_0d6c27f0">上次分享未完成——NOOP 将自动重试。</string>
     <string name="settings_disclosure_expanded">已展开</string>
     <string name="settings_disclosure_collapsed">已收起</string>
+    <string name="settings_tab_you">个人</string>
+    <string name="settings_tab_strap">手环</string>
+    <string name="settings_tab_health">健康</string>
+    <string name="settings_tab_look">外观</string>
+    <string name="settings_tab_data">数据</string>
+    <string name="settings_tab_about">关于</string>
+    <string name="settings_tabs_label">设置分区</string>
 
     <!-- 升级电量提醒（临界电量 + 睡前守护）。 -->
     <string name="battery_critical_title">请立即为 WHOOP 充电</string>

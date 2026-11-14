@@ -1808,6 +1808,13 @@
     <string name="l10n_data_sources_screen_last_share_didn_t_finish_noop_0d6c27f0">A última partilha não foi concluída – o NOOP tentará novamente automaticamente.</string>
     <string name="settings_disclosure_expanded">Expandido</string>
     <string name="settings_disclosure_collapsed">Recolhido</string>
+    <string name="settings_tab_you">Você</string>
+    <string name="settings_tab_strap">Pulseira</string>
+    <string name="settings_tab_health">Saúde</string>
+    <string name="settings_tab_look">Aspeto</string>
+    <string name="settings_tab_data">Dados</string>
+    <string name="settings_tab_about">Sobre</string>
+    <string name="settings_tabs_label">Secções das definições</string>
     <string name="settings_streak_title">Sequência</string>
     <plurals name="settings_streak_run">
         <item quantity="one">%1$d dia seguido</item>

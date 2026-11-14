@@ -1813,6 +1813,13 @@
     <string name="timeline_resp_not_on_whoop5">Ten pasek nie wysyła surowego strumienia oddechowego. Szacowana częstość oddechów pojawi się na ekranie Zdrowie.</string>
     <string name="settings_disclosure_expanded">Rozszerzony</string>
     <string name="settings_disclosure_collapsed">Zwinięty</string>
+    <string name="settings_tab_you">Ty</string>
+    <string name="settings_tab_strap">Opaska</string>
+    <string name="settings_tab_health">Zdrowie</string>
+    <string name="settings_tab_look">Wygląd</string>
+    <string name="settings_tab_data">Dane</string>
+    <string name="settings_tab_about">O aplikacji</string>
+    <string name="settings_tabs_label">Sekcje ustawień</string>
     <string name="l10n_data_sources_screen_last_shared_6bf8389c">„Ostatnio udostępniony”%1$s</string>
     <string name="l10n_data_sources_screen_sharing_paused_health_connect_permission_was_e8950315">Udostępnianie wstrzymane — zezwolenie Health Connect zostało cofnięte. Kliknij, aby ponownie przyznać.</string>
     <string name="l10n_data_sources_screen_last_share_didn_t_finish_noop_0d6c27f0">Ostatnie udostępnienie nie zostało zakończone — NOOP spróbuje automatycznie.</string>
