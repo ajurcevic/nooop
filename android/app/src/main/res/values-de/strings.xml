@@ -2803,4 +2803,8 @@
     <string name="home_hr_not_streaming">Kein Live-Signal</string>
     <string name="home_vs_7day_avg">%1$s ggü. 7-Tage-Schnitt</string>
     <string name="home_no_7day_avg">Noch kein 7-Tage-Schnitt</string>
+    <string name="l10n_settings_screen_downloading_c177e4b0">Wird heruntergeladen…</string>
+    <string name="l10n_settings_screen_install_fd6c3ebf">Installieren</string>
+    <string name="l10n_settings_screen_download_failed_try_again_6dda10a9">Download fehlgeschlagen. Versuch es noch einmal.</string>
+    <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Erlaube NOOP, Apps zu installieren, und tippe dann auf Installieren.</string>
 </resources>

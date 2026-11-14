@@ -72,6 +72,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -3163,11 +3164,11 @@ fun SettingsScreen(
                             interactionSource = projectHomeInteraction,
                             indication = null,
                         ) {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/ryanbr/noop"))
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/${com.noop.update.UpdateCheck.REPO}"))
                             try {
                                 context.startActivity(intent)
                             } catch (_: ActivityNotFoundException) {
-                                Toast.makeText(context, "github.com/ryanbr/noop", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, "github.com/${com.noop.update.UpdateCheck.REPO}", Toast.LENGTH_LONG).show()
                             }
                         }
                         .padding(horizontal = 14.dp, vertical = 12.dp)
@@ -3183,11 +3184,30 @@ fun SettingsScreen(
                     }
                 }
 
-                // Check for updates — a single, user-initiated call to the project's public releases API (GitHub)
-                // when the button is tapped. No background polling, no auto-update; nothing about you
-                // is sent. Android already holds INTERNET for other opt-ins, so this adds nothing.
+                // Check for updates — a single, user-initiated call to this fork's public releases API
+                // (GitHub, UpdateCheck.REPO) when the button is tapped; nothing about you is sent. When a
+                // newer release carries an APK, Download fetches it and hands it to Android's installer
+                // (ApkUpdate), which asks the user to confirm. Nothing installs without that tap and that
+                // confirmation.
                 var updChecking by remember { mutableStateOf(false) }
                 var updResult by remember { mutableStateOf<UpdateCheck.Result?>(null) }
+                // Download state for the Available card: null idle; downloading with a 0..1 fraction (or null
+                // while the size is unknown); the finished file; and whether to show the failure or the
+                // "allow NOOP to install apps" hint.
+                var apkDownloading by remember { mutableStateOf(false) }
+                var apkProgress by remember { mutableStateOf<Float?>(null) }
+                var apkFile by remember { mutableStateOf<java.io.File?>(null) }
+                var apkFailed by remember { mutableStateOf(false) }
+                var apkNeedsPermission by remember { mutableStateOf(false) }
+                val installApk: (java.io.File) -> Unit = { file ->
+                    if (com.noop.update.ApkUpdate.canInstall(context)) {
+                        apkNeedsPermission = false
+                        apkFailed = !com.noop.update.ApkUpdate.install(context, file)
+                    } else {
+                        apkNeedsPermission = true
+                        com.noop.update.ApkUpdate.openInstallPermissionSettings(context)
+                    }
+                }
                 // #1659: the automatic half. A sideloaded build has no store to update it, so noticing a
                 // release and saying so in the Updates inbox is the whole of what is possible. ON by
                 // default, because a setting nobody finds is the feature not existing; switching it off
@@ -3205,6 +3225,9 @@ fun SettingsScreen(
                                 if (!updChecking) {
                                     updChecking = true
                                     updResult = null
+                                    apkFile = null
+                                    apkFailed = false
+                                    apkNeedsPermission = false
                                     scope.launch {
                                         updResult = UpdateCheck.check(BuildConfig.VERSION_NAME)
                                         updChecking = false
@@ -3292,13 +3315,75 @@ fun SettingsScreen(
                                     style = NoopType.subhead, color = Palette.textPrimary,
                                     modifier = Modifier.weight(1f),
                                 )
+                                val readyFile = apkFile
                                 NoopButton(
-                                    text = uiString(R.string.l10n_settings_screen_download_a479c9c3),
+                                    text = when {
+                                        apkDownloading -> uiString(R.string.l10n_settings_screen_downloading_c177e4b0)
+                                        readyFile != null -> uiString(R.string.l10n_settings_screen_install_fd6c3ebf)
+                                        else -> uiString(R.string.l10n_settings_screen_download_a479c9c3)
+                                    },
                                     leadingIcon = Icons.Filled.Download,
                                     kind = NoopButtonKind.Primary,
+                                    enabled = !apkDownloading,
                                     onClick = {
-                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(avail.url)))
+                                        val apkUrl = avail.apkUrl
+                                        when {
+                                            readyFile != null -> installApk(readyFile)
+                                            // No APK on the release yet (it uploads a few minutes after the
+                                            // release is created): fall back to the release page.
+                                            apkUrl == null -> try {
+                                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(avail.url)))
+                                            } catch (_: ActivityNotFoundException) {
+                                                Toast.makeText(context, avail.url, Toast.LENGTH_LONG).show()
+                                            }
+                                            else -> {
+                                                apkDownloading = true
+                                                apkProgress = null
+                                                apkFailed = false
+                                                scope.launch {
+                                                    val d = com.noop.update.ApkUpdate.download(
+                                                        context, apkUrl, avail.version,
+                                                    ) { apkProgress = it }
+                                                    apkDownloading = false
+                                                    when (d) {
+                                                        is com.noop.update.ApkUpdate.Download.Done -> {
+                                                            apkFile = d.file
+                                                            installApk(d.file)
+                                                        }
+                                                        com.noop.update.ApkUpdate.Download.Failed -> apkFailed = true
+                                                    }
+                                                }
+                                            }
+                                        }
                                     },
+                                )
+                            }
+                            if (apkDownloading) {
+                                val fraction = apkProgress
+                                if (fraction != null) {
+                                    LinearProgressIndicator(
+                                        progress = { fraction },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = Palette.accent,
+                                        trackColor = Palette.hairline,
+                                    )
+                                } else {
+                                    LinearProgressIndicator(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = Palette.accent,
+                                        trackColor = Palette.hairline,
+                                    )
+                                }
+                            }
+                            if (apkFailed) {
+                                Text(
+                                    uiString(R.string.l10n_settings_screen_download_failed_try_again_6dda10a9),
+                                    style = NoopType.footnote, color = Palette.statusWarning,
+                                )
+                            } else if (apkNeedsPermission && apkFile != null) {
+                                Text(
+                                    uiString(R.string.l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a),
+                                    style = NoopType.footnote, color = Palette.textSecondary,
                                 )
                             }
                             if (avail.notes.isNotEmpty()) {

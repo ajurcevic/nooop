@@ -2789,4 +2789,8 @@
     <string name="home_hr_not_streaming">Pas de flux en direct</string>
     <string name="home_vs_7day_avg">%1$s vs moy. 7 jours</string>
     <string name="home_no_7day_avg">Pas encore de moy. 7 jours</string>
+    <string name="l10n_settings_screen_downloading_c177e4b0">Téléchargement…</string>
+    <string name="l10n_settings_screen_install_fd6c3ebf">Installer</string>
+    <string name="l10n_settings_screen_download_failed_try_again_6dda10a9">Échec du téléchargement. Réessaie.</string>
+    <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Autorise NOOP à installer des applis, puis touche Installer.</string>
 </resources>

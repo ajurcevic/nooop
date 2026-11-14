@@ -2816,4 +2816,8 @@
     <string name="home_hr_not_streaming">Not streaming</string>
     <string name="home_vs_7day_avg">%1$s vs 7-day avg</string>
     <string name="home_no_7day_avg">No 7-day avg yet</string>
+    <string name="l10n_settings_screen_downloading_c177e4b0">Downloading…</string>
+    <string name="l10n_settings_screen_install_fd6c3ebf">Install</string>
+    <string name="l10n_settings_screen_download_failed_try_again_6dda10a9">Download failed. Try again.</string>
+    <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Allow NOOP to install apps, then tap Install.</string>
 </resources>
