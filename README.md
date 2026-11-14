@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/logo-v3.png" alt="Zoop" width="72">
+  <img src="docs/assets/logo-zoop.png" alt="Zoop" width="72">
 </p>
 
 <h1 align="center">Zoop for Android</h1>
