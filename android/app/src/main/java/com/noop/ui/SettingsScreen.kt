@@ -868,11 +868,10 @@ fun SettingsScreen(
             }
             backupBusy = false
             when (result) {
-                is DataBackup.ImportResult.NeedsRestart -> Toast.makeText(
-                    context,
-                    "Backup imported. Fully close and reopen Zoop for it to take effect.",
-                    Toast.LENGTH_LONG,
-                ).show()
+                is DataBackup.ImportResult.NeedsRestart -> {
+                    Toast.makeText(context, "Backup restored — restarting Zoop…", Toast.LENGTH_LONG).show()
+                    relaunchAfterRestore(context)
+                }
                 is DataBackup.ImportResult.Failed -> backupFailure = result.message
                 // #1807: refused ONLY for size, which is recoverable — offer to go ahead rather than
                 // ending on a Toast the user can do nothing about. The cap is a decompression guard
@@ -2900,11 +2899,10 @@ fun SettingsScreen(
                             }
                             backupBusy = false
                             when (again) {
-                                is DataBackup.ImportResult.NeedsRestart -> Toast.makeText(
-                                    context,
-                                    "Backup imported. Fully close and reopen Zoop for it to take effect.",
-                                    Toast.LENGTH_LONG,
-                                ).show()
+                                is DataBackup.ImportResult.NeedsRestart -> {
+                                    Toast.makeText(context, "Backup restored — restarting Zoop…", Toast.LENGTH_LONG).show()
+                                    relaunchAfterRestore(context)
+                                }
                                 // Same reason as the first attempt: these carry a next step, and a Toast
                                 // is where a next step goes to be truncated.
                                 is DataBackup.ImportResult.Failed -> backupFailure = again.message

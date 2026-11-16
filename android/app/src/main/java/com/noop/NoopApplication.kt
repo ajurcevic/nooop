@@ -47,6 +47,9 @@ class NoopApplication : Application() {
         // Install before any app-owned startup work so even an early failure is preserved for the
         // recovery screen on the next launch.
         CrashCapture.install(this)
+        // A restore parks the verified backup beside the live database and asks for a restart; it is moved
+        // into place here, before anything in this process can open Room (renames only, so cheap).
+        com.noop.data.DataBackup.applyPendingRestore(this)
         // #1008: pin the pre-change Overnight-only default for existing installs before anything
         // reads it. Idempotent; a no-op on fresh installs and on every launch after the first.
         com.noop.ui.NoopPrefs.migrateContinuousHrvOvernightDefault(this)

@@ -93,8 +93,8 @@ abstract class WhoopDatabase : RoomDatabase() {
 
         /**
          * Close and forget the singleton so all file handles on [DB_NAME] are released.
-         * The next [get] call rebuilds against whatever file is on disk, used by
-         * [DataBackup.importFrom] to swap the database file underneath the app.
+         * The next [get] call rebuilds against whatever file is on disk. A restore no longer uses this:
+         * [DataBackup.applyPendingRestore] swaps the file at startup, before the singleton exists.
          */
         fun close() {
             synchronized(this) {

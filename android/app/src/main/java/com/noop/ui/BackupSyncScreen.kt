@@ -43,8 +43,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.noop.data.DataBackup
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -102,25 +100,11 @@ fun BackupSyncScreen() {
                 val r = withContext(Dispatchers.IO) { DataBackup.importFrom(context, uri) }
                 when (r) {
                     is DataBackup.ImportResult.NeedsRestart -> {
-                        // #57: the restore CLOSED and swapped the database file. The long-lived WhoopRepository +
-                        // BLE client still hold a DAO on the OLD (now-closed) connection, so any strap sync would
-                        // fail with "connection pool has been closed" — and, worse, empty/metadata history ENDs
-                        // would still ack and trim the strap PAST records we can't store, discarding real history.
-                        // Relaunching the process re-opens Room against the restored file. Do it automatically
-                        // rather than trust the user to read a toast (which is exactly how #57 happened).
+                        // #57: the restore only takes effect on a fresh process (the backup is moved into
+                        // place at startup), and until then strap sync would ack history into the store that
+                        // is about to be replaced. Restart automatically; see [relaunchAfterRestore].
                         Toast.makeText(context, "Backup restored — restarting Zoop…", Toast.LENGTH_LONG).show()
-                        // NonCancellable: this coroutine runs in the screen's scope, which is cancelled the
-                        // instant the user navigates away. The restart is a data-safety guarantee (the DB is
-                        // already swapped), so it must complete even if the composition leaves — otherwise the
-                        // user could keep syncing into the closed DB, the very bug we're fixing.
-                        withContext(NonCancellable) {
-                            delay(800)   // let the toast render before the process dies
-                            val ctx = context.applicationContext
-                            ctx.packageManager.getLaunchIntentForPackage(ctx.packageName)
-                                ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                                ?.let { ctx.startActivity(it) }
-                            Runtime.getRuntime().exit(0)
-                        }
+                        relaunchAfterRestore(context)
                     }
                     is DataBackup.ImportResult.Failed -> backupFailure = r.message
                     // #1807: recoverable, but not from here — this screen restores a folder snapshot
