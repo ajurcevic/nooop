@@ -3,6 +3,7 @@ package com.noop.ui
 import com.noop.data.DailyMetric
 import java.time.LocalDate
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /** Calendar days the Home tab averages over when it compares a day with its own recent past. */
@@ -47,4 +48,42 @@ internal fun signedDelta(delta: Double, decimals: Int = 0, locale: Locale = Loca
         delta > 0 -> "+$rounded"
         else -> rounded
     }
+}
+
+/** How a Home figure reads at a glance, mapped to the status colours (positive, warning, critical). */
+internal enum class HomeTone { GOOD, FAIR, POOR }
+
+/** Share of the 7-day average inside which a vital counts as unchanged rather than better or worse. */
+internal const val HOME_TREND_TOLERANCE = 0.05
+
+/** Rest score at or above which Rest reads as good. */
+internal const val HOME_REST_GOOD = 70.0
+
+/** Rest score at or above which Rest reads as fair; below it, poor. */
+internal const val HOME_REST_FAIR = 50.0
+
+/** Rest band: good from [HOME_REST_GOOD], fair from [HOME_REST_FAIR], poor below. */
+internal fun restTone(score: Double): HomeTone = when {
+    score >= HOME_REST_GOOD -> HomeTone.GOOD
+    score >= HOME_REST_FAIR -> HomeTone.FAIR
+    else -> HomeTone.POOR
+}
+
+/**
+ * A vital set against its own trailing average. Within [tolerance] of the average (as a share of it) the
+ * day reads as fair; otherwise good when it moved in the healthy direction ([higherIsBetter] for HRV,
+ * lower for resting heart rate and breathing rate) and poor when it did not. Null when either side is
+ * missing or the average is not positive, so the figure keeps its neutral colour.
+ */
+internal fun vitalTrendTone(
+    value: Double?,
+    average: Double?,
+    higherIsBetter: Boolean,
+    tolerance: Double = HOME_TREND_TOLERANCE,
+): HomeTone? {
+    if (value == null || average == null || average <= 0.0) return null
+    val change = (value - average) / average
+    if (abs(change) <= tolerance) return HomeTone.FAIR
+    val improved = if (higherIsBetter) change > 0 else change < 0
+    return if (improved) HomeTone.GOOD else HomeTone.POOR
 }

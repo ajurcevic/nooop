@@ -56,3 +56,40 @@ class HomeSummaryLogicTest {
         assertEquals("+0,6", signedDelta(0.58, decimals = 1, locale = Locale.GERMANY))
     }
 }
+
+class HomeToneTest {
+
+    @Test
+    fun restBandsSplitAtFiftyAndSeventy() {
+        assertEquals(HomeTone.GOOD, restTone(70.0))
+        assertEquals(HomeTone.FAIR, restTone(69.9))
+        assertEquals(HomeTone.FAIR, restTone(50.0))
+        assertEquals(HomeTone.POOR, restTone(49.9))
+    }
+
+    @Test
+    fun higherHrvIsGoodAndLowerIsPoor() {
+        assertEquals(HomeTone.GOOD, vitalTrendTone(60.0, 50.0, higherIsBetter = true))
+        assertEquals(HomeTone.POOR, vitalTrendTone(40.0, 50.0, higherIsBetter = true))
+    }
+
+    @Test
+    fun lowerRestingHrIsGoodAndHigherIsPoor() {
+        assertEquals(HomeTone.GOOD, vitalTrendTone(52.0, 58.0, higherIsBetter = false))
+        assertEquals(HomeTone.POOR, vitalTrendTone(64.0, 58.0, higherIsBetter = false))
+    }
+
+    @Test
+    fun withinFivePercentReadsAsFairEitherWay() {
+        assertEquals(HomeTone.FAIR, vitalTrendTone(52.4, 50.0, higherIsBetter = true))
+        assertEquals(HomeTone.FAIR, vitalTrendTone(47.6, 50.0, higherIsBetter = false))
+        assertEquals(HomeTone.GOOD, vitalTrendTone(47.0, 50.0, higherIsBetter = false))
+    }
+
+    @Test
+    fun missingSidesOrZeroAverageGiveNoTone() {
+        assertNull(vitalTrendTone(null, 50.0, higherIsBetter = true))
+        assertNull(vitalTrendTone(50.0, null, higherIsBetter = true))
+        assertNull(vitalTrendTone(50.0, 0.0, higherIsBetter = true))
+    }
+}
