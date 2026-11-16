@@ -3937,7 +3937,8 @@ private fun HeroVitalRow(
 //
 // The one-screen Home: a heart-rate card led by the live bpm, then the three daily scores and the three
 // recovery vitals as plain numbers, each set against its own trailing 7-day average. Neutral surfaces;
-// the only colour is the heart-rate line, the zone label and the live dot.
+// colour sits on the numbers only: the live bpm takes its heart-rate zone colour, Charge and Effort their
+// own score ramps, Rest a good/fair/poor band, and each vital whether it beat its 7-day average.
 
 /** Placeholder for a number Home has no value for. */
 private const val HOME_EMPTY_VALUE = "—"
@@ -3981,7 +3982,12 @@ private fun HomeHeartCard(
                 Text(
                     shown?.toString() ?: HOME_EMPTY_VALUE,
                     style = NoopType.number(48f, FontWeight.Medium),
-                    color = if (shown != null) Palette.textPrimary else Palette.textTertiary,
+                    // Only a streaming bpm inside a zone is tinted; the stored average stays neutral.
+                    color = when {
+                        shown == null -> Palette.textTertiary
+                        liveBpm != null && zone >= 1 -> Palette.hrZoneColor(zone)
+                        else -> Palette.textPrimary
+                    },
                 )
                 Text(
                     uiString(R.string.today_unit_bpm),
@@ -4058,6 +4064,7 @@ private fun HomeScoreCard(
                 label = uiString(R.string.today_metric_charge),
                 value = charge?.roundToInt()?.toString(),
                 comparison = homeComparison(charge, chargeAvg, decimals = 0),
+                valueColor = charge?.let { Palette.recoveryColor(it) },
                 onClick = onChargeTap,
                 modifier = Modifier.weight(1f),
             )
@@ -4073,6 +4080,7 @@ private fun HomeScoreCard(
                     effortAvg?.let { UnitFormatter.effortValue(it, effortScale) },
                     decimals = effortDecimals,
                 ),
+                valueColor = effortForDay?.let { Palette.strainColor(it) },
                 onClick = { onOpenMetric(HERO_EFFORT_METRIC_KEY) },
                 modifier = Modifier.weight(1f),
             )
@@ -4081,6 +4089,7 @@ private fun HomeScoreCard(
                 label = uiString(R.string.today_metric_rest),
                 value = restScore?.roundToInt()?.toString(),
                 comparison = homeComparison(restScore, restAvg, decimals = 0),
+                valueColor = restScore?.let { homeToneColor(restTone(it)) },
                 onClick = { onOpenMetric(HERO_REST_METRIC_KEY) },
                 modifier = Modifier.weight(1f),
             )
@@ -4114,6 +4123,7 @@ private fun HomeVitalsCard(
                 value = hrv?.roundToInt()?.toString(),
                 unit = DashboardCard.HRV.unit,
                 comparison = homeComparison(hrv, hrvAvg, decimals = 0),
+                valueColor = vitalTrendTone(hrv, hrvAvg, higherIsBetter = true)?.let { homeToneColor(it) },
                 onClick = open(DashboardCard.HRV),
                 compact = true,
                 modifier = Modifier.weight(1f),
@@ -4124,6 +4134,7 @@ private fun HomeVitalsCard(
                 value = rhr?.roundToInt()?.toString(),
                 unit = DashboardCard.RESTING_HR.unit,
                 comparison = homeComparison(rhr, rhrAvg, decimals = 0),
+                valueColor = vitalTrendTone(rhr, rhrAvg, higherIsBetter = false)?.let { homeToneColor(it) },
                 onClick = open(DashboardCard.RESTING_HR),
                 compact = true,
                 modifier = Modifier.weight(1f),
@@ -4134,12 +4145,20 @@ private fun HomeVitalsCard(
                 value = resp?.let { String.format(Locale.getDefault(), "%.1f", it) },
                 unit = DashboardCard.RESPIRATORY.unit,
                 comparison = homeComparison(resp, respAvg, decimals = 1),
+                valueColor = vitalTrendTone(resp, respAvg, higherIsBetter = false)?.let { homeToneColor(it) },
                 onClick = open(DashboardCard.RESPIRATORY),
                 compact = true,
                 modifier = Modifier.weight(1f),
             )
         }
     }
+}
+
+/** The status colour for a Home tone: positive, warning or critical. */
+private fun homeToneColor(tone: HomeTone): Color = when (tone) {
+    HomeTone.GOOD -> Palette.statusPositive
+    HomeTone.FAIR -> Palette.statusWarning
+    HomeTone.POOR -> Palette.statusCritical
 }
 
 /** "+4 vs 7-day avg", or the no-average line when either side of the comparison is missing. */
@@ -4151,13 +4170,17 @@ private fun homeComparison(value: Double?, average: Double?, decimals: Int): Str
         uiString(R.string.home_no_7day_avg)
     }
 
-/** One figure in a Home card: label, number with an optional unit, and its comparison line. */
+/**
+ * One figure in a Home card: label, number with an optional unit, and its comparison line. [valueColor]
+ * tints the number; null keeps it neutral.
+ */
 @Composable
 private fun HomeStat(
     label: String,
     value: String?,
     comparison: String,
     onClick: (() -> Unit)?,
+    valueColor: Color? = null,
     modifier: Modifier = Modifier,
     unit: String? = null,
     compact: Boolean = false,
@@ -4177,7 +4200,7 @@ private fun HomeStat(
             Text(
                 value ?: HOME_EMPTY_VALUE,
                 style = NoopType.number(if (compact) 22f else 30f, FontWeight.Medium),
-                color = if (value != null) Palette.textPrimary else Palette.textTertiary,
+                color = if (value != null) valueColor ?: Palette.textPrimary else Palette.textTertiary,
                 maxLines = 1,
             )
             if (unit != null && value != null) {
