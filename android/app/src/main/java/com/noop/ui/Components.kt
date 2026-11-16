@@ -1136,7 +1136,7 @@ fun RecoveryRing(
         startDeg = -90f,
         spanDeg = 288f,
         coreDot = Palette.gold,
-        wordmark = "NOOP",
+        wordmark = "Zoop",
         modifier = modifier,
     )
 }
@@ -1610,7 +1610,7 @@ fun BackupFailureDialog(message: String, onDismiss: () -> Unit) {
         dismissButton = {
             TextButton(onClick = {
                 val clip = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                clip?.setPrimaryClip(ClipData.newPlainText("NOOP backup error", message))
+                clip?.setPrimaryClip(ClipData.newPlainText("Zoop backup error", message))
                 // Dismiss on copy. Android 13+ shows its own clipboard confirmation, but minSdk here is
                 // 26, and on everything below that a Copy that left the dialog sitting there gave no
                 // sign it had done anything. Dialog buttons conventionally dismiss anyway.

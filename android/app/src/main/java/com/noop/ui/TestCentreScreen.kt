@@ -292,7 +292,7 @@ fun TestCentreScreen(vm: AppViewModel, onOpenGroundTruthCollector: () -> Unit = 
                     DeveloperToggleRow(
                         title = stringResource(R.string.raw_diag_clear_stale_bond),
                         detail = "When a bonded fast-path connect keeps dropping before it reaches a " +
-                            "session, the phone is holding a pairing the strap no longer honours. NOOP " +
+                            "session, the phone is holding a pairing the strap no longer honours. Zoop " +
                             "already shows the forget-and-re-pair guide at two failures; with this on it " +
                             "does that step for you at five, once, and only until the strap bonds again. " +
                             "It cannot make a strap that refuses pairing pair. Leave it off unless you " +
@@ -959,7 +959,7 @@ private fun ExportCard(vm: AppViewModel, onReport: () -> Unit) {
     SettingsSectionTC(
         icon = Icons.Filled.Upload,
         title = uiString(R.string.l10n_test_centre_screen_export_f3e4fadb),
-        blurb = "Report a bug with your log, or have NOOP drop a daily copy into its export folder.",
+        blurb = "Report a bug with your log, or have Zoop drop a daily copy into its export folder.",
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             NoopButton(
@@ -1113,7 +1113,7 @@ private fun ExperimentalAlgorithmsCard(vm: AppViewModel) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             ToggleRowTC(
                 title = uiString(R.string.l10n_test_centre_screen_hr_from_ppg_sub_lag_interpolation_a3ed1536),
-                description = "When NOOP reconstructs heart rate from the WHOOP 5/MG v26 optical waveform (the " +
+                description = "When Zoop reconstructs heart rate from the WHOOP 5/MG v26 optical waveform (the " +
                     "seconds the strap stored no HR), refine the autocorrelation peak with a parabolic sub-lag " +
                     "fit so the estimate is not quantized to roughly 16 bpm steps near a high HR. It only fills " +
                     "seconds the strap never reported; it never overrides a stored HR. 5/MG only, off by default.",

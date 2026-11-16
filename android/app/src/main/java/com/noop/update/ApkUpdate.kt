@@ -42,7 +42,7 @@ object ApkUpdate {
      *  name cannot steer the path. Pure + unit-tested. */
     fun fileNameFor(version: String): String {
         val safe = version.filter { it.isLetterOrDigit() || it == '.' || it == '-' }.ifEmpty { "latest" }
-        return "NOOP-$safe.apk"
+        return "Zoop-$safe.apk"
     }
 
     /**

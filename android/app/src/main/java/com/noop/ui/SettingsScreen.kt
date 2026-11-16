@@ -870,7 +870,7 @@ fun SettingsScreen(
             when (result) {
                 is DataBackup.ImportResult.NeedsRestart -> Toast.makeText(
                     context,
-                    "Backup imported. Fully close and reopen NOOP for it to take effect.",
+                    "Backup imported. Fully close and reopen Zoop for it to take effect.",
                     Toast.LENGTH_LONG,
                 ).show()
                 is DataBackup.ImportResult.Failed -> backupFailure = result.message
@@ -921,7 +921,7 @@ fun SettingsScreen(
 
     ScreenScaffold(
         title = uiString(R.string.l10n_settings_screen_settings_c7f73bb5),
-        subtitle = "Your numbers, your strap, and how NOOP works. All on this phone.",
+        subtitle = "Your numbers, your strap, and how Zoop works. All on this phone.",
         // LIQUID SKY BACKDROP (the pilot pattern — LiquidScreenSky.kt): the static time-of-day sky settles
         // into the theme canvas behind the top of the list, exactly like the liquid Today. This is a long,
         // scroll-heavy list with NO hero gauge, so the liquid finish here is just the sky + liquidPress on
@@ -974,7 +974,7 @@ fun SettingsScreen(
         SettingsCard(
             icon = Icons.Outlined.AccountCircle,
             title = uiString(R.string.l10n_settings_screen_profile_photo_33f385bb),
-            blurb = "Optional. Add a photo for the avatar in the top-left. Stored only on this phone. NOOP is offline, so it's never uploaded.",
+            blurb = "Optional. Add a photo for the avatar in the top-left. Stored only on this phone. Zoop is offline, so it's never uploaded.",
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -2085,7 +2085,7 @@ fun SettingsScreen(
         SettingsCard(
             icon = Icons.Filled.Palette,
             title = uiString(R.string.l10n_settings_screen_app_icon_abde7a74),
-            blurb = "Choose how NOOP looks on your home screen. The launcher may take a moment to refresh the icon after you change it.",
+            blurb = "Choose how Zoop looks on your home screen. The launcher may take a moment to refresh the icon after you change it.",
         ) {
             SettingsFormRow(label = uiString(R.string.l10n_settings_screen_icon_716f63b9)) {
                 SegmentedPillControl(
@@ -2106,7 +2106,7 @@ fun SettingsScreen(
         SettingsCard(
             icon = Icons.Filled.Sensors,
             title = uiString(R.string.l10n_settings_screen_strap_02b88eeb),
-            blurb = "NOOP pairs directly with your WHOOP over Bluetooth: no WHOOP app, no cloud.",
+            blurb = "Zoop pairs directly with your WHOOP over Bluetooth: no WHOOP app, no cloud.",
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(
@@ -2740,7 +2740,7 @@ fun SettingsScreen(
                 SettingsRowDivider()
                 SettingsToggleRow(
                     title = uiString(R.string.l10n_settings_screen_auto_detect_workouts_bed4cf2a),
-                    detail = "After a sync, NOOP looks over your recent heart rate for a sustained, raised stretch that looks like exercise and offers to save it. It only ever suggests. Nothing is saved until you tap Save, and you can dismiss any suggestion. Turning this off stops future suggestions; workouts already in your history remain. Deliberately conservative, so the odd workout may be missed. On this phone only.",
+                    detail = "After a sync, Zoop looks over your recent heart rate for a sustained, raised stretch that looks like exercise and offers to save it. It only ever suggests. Nothing is saved until you tap Save, and you can dismiss any suggestion. Turning this off stops future suggestions; workouts already in your history remain. Deliberately conservative, so the odd workout may be missed. On this phone only.",
                     checked = autoDetectWorkouts,
                     onCheckedChange = {
                         autoDetectWorkouts = it
@@ -2782,7 +2782,7 @@ fun SettingsScreen(
                 SettingsRowDivider()
                 SettingsToggleRow(
                     title = uiString(R.string.l10n_settings_screen_stress_check_ins_haptic_bf2746ba),
-                    detail = "Lets NOOP notice a fresh HRV dip while you're still and offer a minute to breathe. \"Stress\" here is an autonomic proxy from your own baseline, never a diagnosis. The strap gives one light confirming buzz; no push notification.",
+                    detail = "Lets Zoop notice a fresh HRV dip while you're still and offer a minute to breathe. \"Stress\" here is an autonomic proxy from your own baseline, never a diagnosis. The strap gives one light confirming buzz; no push notification.",
                     checked = stressCheckIn,
                     onCheckedChange = {
                         stressCheckIn = it
@@ -2854,7 +2854,7 @@ fun SettingsScreen(
         SettingsCard(
             icon = Icons.Filled.Favorite,
             title = uiString(R.string.l10n_settings_screen_charge_d4e1aee4),
-            blurb = "Charge is NOOP's daily readiness score, learned from your own HRV, resting heart rate and more over time. Your history stays.",
+            blurb = "Charge is Zoop's daily readiness score, learned from your own HRV, resting heart rate and more over time. Your history stays.",
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -2902,7 +2902,7 @@ fun SettingsScreen(
                             when (again) {
                                 is DataBackup.ImportResult.NeedsRestart -> Toast.makeText(
                                     context,
-                                    "Backup imported. Fully close and reopen NOOP for it to take effect.",
+                                    "Backup imported. Fully close and reopen Zoop for it to take effect.",
                                     Toast.LENGTH_LONG,
                                 ).show()
                                 // Same reason as the first attempt: these carry a next step, and a Toast
@@ -3004,7 +3004,7 @@ fun SettingsScreen(
                             vm.syncNow()
                             Toast.makeText(
                                 context,
-                                "Charge baseline reset. NOOP will re-learn it from tonight. Your history stays, and it takes a few nights to settle.",
+                                "Charge baseline reset. Zoop will re-learn it from tonight. Your history stays, and it takes a few nights to settle.",
                                 Toast.LENGTH_LONG,
                             ).show()
                         },
@@ -3022,7 +3022,7 @@ fun SettingsScreen(
         SettingsCard(
             icon = Icons.Filled.Storage,
             title = uiString(R.string.l10n_settings_screen_backup_restore_a1616284),
-            blurb = "Move all your NOOP data to another phone. Export saves everything (history, sleeps, workouts, settings) to a single file you can copy across; import replaces this phone's data with a backup.",
+            blurb = "Move all your Zoop data to another phone. Export saves everything (history, sleeps, workouts, settings) to a single file you can copy across; import replaces this phone's data with a backup.",
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 // Three equal-width buttons share the row (each takes a third via weight) — mirrors the
@@ -3108,7 +3108,7 @@ fun SettingsScreen(
         SettingsCard(
             icon = Icons.Filled.CloudSync,
             title = uiString(R.string.l10n_settings_screen_automatic_backups_8a772f3c),
-            blurb = "Have NOOP save a dated backup to a folder every day (around 1am) and keep the last several - so if data ever corrupts, restore the newest. Point the folder at Drive/Dropbox for off-device copies. Off until you switch it on.",
+            blurb = "Have Zoop save a dated backup to a folder every day (around 1am) and keep the last several - so if data ever corrupts, restore the newest. Point the folder at Drive/Dropbox for off-device copies. Off until you switch it on.",
         ) {
             NoopButton(
                 text = uiString(R.string.l10n_settings_screen_set_up_automatic_backups_00b4780c),
@@ -3140,14 +3140,14 @@ fun SettingsScreen(
         SettingsCard(
             icon = Icons.Filled.Info,
             title = uiString(R.string.l10n_settings_screen_about_6b21fb79),
-            blurb = "NOOP: all your data, none of the cloud.",
+            blurb = "Zoop: all your data, none of the cloud.",
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text("NOOP", style = NoopType.title2, color = Palette.textPrimary)
+                    Text("Zoop", style = NoopType.title2, color = Palette.textPrimary)
                     StatePill("v${BuildConfig.VERSION_NAME}", tone = StrandTone.Neutral, showsDot = false)
                 }
 
@@ -3885,7 +3885,7 @@ fun SettingsScreen(
                         onClick = { vm.ble.enableWhoop5DeepData() },
                     )
                     Text(
-                        if (!live.encryptedBond) "Needs the full encrypted bond: close the official WHOOP app and pair the strap to NOOP first (a live-HR-only link can't carry the unlock)."
+                        if (!live.encryptedBond) "Needs the full encrypted bond: close the official WHOOP app and pair the strap to Zoop first (a live-HR-only link can't carry the unlock)."
                         else if (!live.worn) "Put the strap on first. The deep stream is on-wrist only."
                         else "Wear the strap, tap once, then let it sync and share your strap log.",
                         style = NoopType.caption,
@@ -3983,7 +3983,7 @@ fun SettingsScreen(
         SettingsCard(
             icon = Icons.Filled.Science,
             title = uiString(R.string.l10n_settings_screen_diagnostics_3af2279f),
-            blurb = "A read-only export of the decoded sensor streams NOOP already stores. Works on any strap. Nothing is written to your device, and nothing is uploaded.",
+            blurb = "A read-only export of the decoded sensor streams Zoop already stores. Works on any strap. Nothing is written to your device, and nothing is uploaded.",
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // --- Sleep staging (V2) — the DEFAULT engine after the 44-subject benchmark; toggle off to

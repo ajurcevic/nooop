@@ -88,7 +88,7 @@ android/
 ├── gradlew / gradlew.bat        # committed wrapper scripts
 ├── gradle/wrapper/              # gradle-wrapper.{jar,properties} (committed)
 └── app/
-    ├── build.gradle.kts         # namespace com.noop, applicationId com.noop.whoop, Compose + Room
+    ├── build.gradle.kts         # namespace com.noop, applicationId com.zoop.app, Compose + Room
     ├── proguard-rules.pro       # R8 release rules
     └── src/
         ├── main/
@@ -122,7 +122,7 @@ bump forces a matching Compose-compiler plugin bump:
 | `compileSdk` / `targetSdk` | `35` / `34` | |
 | `minSdk` | `34` | Android 14 |
 | `sourceCompatibility` / `jvmTarget` | `17` | JDK 17 |
-| `applicationId` | `com.noop.whoop` | `.debug` suffix on debug builds |
+| `applicationId` | `com.zoop.app` | `.debug` suffix on debug builds |
 
 The app declares `INTERNET` for its documented network features (see
 [Permissions](#permissions-and-offline-collection)) and sets `android:allowBackup="false"`.
@@ -205,11 +205,11 @@ cd android
 
 # Assemble a debug APK.
 ./gradlew assembleDebug
-# → app/build/outputs/apk/debug/app-debug.apk  (applicationId com.noop.whoop.debug)
+# → app/build/outputs/apk/debug/app-debug.apk  (applicationId com.zoop.app.debug)
 
 # Install onto a connected device and launch.
 ./gradlew installDebug
-adb shell am start -n com.noop.whoop.debug/com.noop.ui.MainActivity
+adb shell am start -n com.zoop.app.debug/com.noop.ui.MainActivity
 
 # Release builds — the two shipped flavours (R8 full mode + resource shrink are enabled).
 ./gradlew assembleFullRelease    # → NOOP-full.apk

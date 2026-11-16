@@ -125,7 +125,7 @@ jobs:
               awk 'NR==1 && $0=="---"{fm=1; next} fm && $0=="---"{fm=0; next} !fm{print}' "$NOTES_MD" > "$BODY"
             else
               echo "::warning::No ${NOTES_MD} — write the release notes there first. Using a placeholder."
-              printf 'NOOP **%s** — release build.\n' "$NEW" > "$BODY"
+              printf 'Zoop **%s** — release build.\n' "$NEW" > "$BODY"
             fi
             # Auto "What's Changed" breakdown: GitHub's generate-notes API lists every merged PR since the
             # previous RELEASE (non-prerelease, so testing-latest snapshots are ignored), + contributors +
@@ -152,10 +152,10 @@ jobs:
             fi
             {
               printf '\n---\n\n**Downloads:**\n'
-              printf -- '- **Android** — `NOOP-android-v%s.apk` (`com.noop.whoop.staging`) — installs **beside** the official app, with its own data.\n' "$NEW"
+              printf -- '- **Android** — `Zoop-android-v%s.apk` (`com.zoop.app.staging`) — installs **beside** the official app, with its own data.\n' "$NEW"
             } >> "$BODY"
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$(git rev-parse HEAD)" \
-              --title "NOOP ${NEW}" --notes-file "$BODY"
+              --title "Zoop ${NEW}" --notes-file "$BODY"
           fi
 
   android:
@@ -187,7 +187,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VER: ${{ needs.bump.outputs.ver }}
         run: |
-          cp app/build/outputs/apk/full/release/*.apk "NOOP-android-v${VER}.apk"
-          gh release upload "${{ needs.bump.outputs.tag }}" "NOOP-android-v${VER}.apk" \
+          cp app/build/outputs/apk/full/release/*.apk "Zoop-android-v${VER}.apk"
+          gh release upload "${{ needs.bump.outputs.tag }}" "Zoop-android-v${VER}.apk" \
             --repo "$GITHUB_REPOSITORY" --clobber
 

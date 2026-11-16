@@ -53,9 +53,9 @@ class UpdateCheckTest {
 
     @Test
     fun apkFileNameIgnoresHostileVersionText() {
-        assertEquals("NOOP-12.2.3.apk", ApkUpdate.fileNameFor("12.2.3"))
-        assertEquals("NOOP-12.2.3-staging.apk", ApkUpdate.fileNameFor("12.2.3-staging"))
-        assertEquals("NOOP-....x.apk", ApkUpdate.fileNameFor("../../x")) // no path separators survive
-        assertEquals("NOOP-latest.apk", ApkUpdate.fileNameFor("/"))
+        assertEquals("Zoop-12.2.3.apk", ApkUpdate.fileNameFor("12.2.3"))
+        assertEquals("Zoop-12.2.3-staging.apk", ApkUpdate.fileNameFor("12.2.3-staging"))
+        assertEquals("Zoop-....x.apk", ApkUpdate.fileNameFor("../../x")) // no path separators survive
+        assertEquals("Zoop-latest.apk", ApkUpdate.fileNameFor("/"))
     }
 }
