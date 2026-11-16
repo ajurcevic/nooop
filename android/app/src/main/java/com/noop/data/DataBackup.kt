@@ -367,8 +367,9 @@ object DataBackup {
      * Accepts both the new `.noopbak` (ZIP) format and legacy plain `.sqlite`/`.noopdb`
      * files so older backups keep working after the format upgrade.
      *
-     * On any error the current database is left exactly as it was. On success the caller
-     * MUST instruct the user to fully restart the app.
+     * On any error the current database is left exactly as it was. On success the verified backup is
+     * parked beside the live database and [applyPendingRestore] moves it into place on the next cold
+     * start, so the caller MUST restart the app process.
      */
     fun importFrom(context: Context, uri: Uri, allowOversize: Boolean = false): ImportResult {
         val appContext = context.applicationContext
@@ -479,94 +480,152 @@ object DataBackup {
             )
         }
 
+        // 4. Park the verified file next to the live database. The live file is NOT touched here: the
+        //    swap happens at the next cold start ([applyPendingRestore], first thing in
+        //    `NoopApplication.onCreate`), before anything in the process has opened Room.
+        //
+        //    The old in-process swap closed Room, copied the staged file over the live one, and re-checked
+        //    the copy. Two things made that fragile for large libraries. Long-lived holders (the BLE
+        //    client, the push worker, a lazily built repository) could still reach the live path while a
+        //    multi-GB copy was in flight, so the check could meet a file that was being written. And the
+        //    copy needed a third full-size file on disk (staged + snapshot + live). A field report on an
+        //    860 MB archive failed the post-copy check with SQLITE_IOERR_SHORT_READ and rolled back.
+        //    Moving the already-verified file instead of copying it removes both: the bytes that passed
+        //    quick_check in 3c are the bytes that become the live store, and nothing else is written.
         val dbFile = appContext.getDatabasePath(WhoopDatabase.DB_NAME)
-        val walFile = File(dbFile.path + "-wal")
-        val shmFile = File(dbFile.path + "-shm")
-        val rollbackFile = File(dbFile.path + ".import-bak")
-
-        // 4. Close the live Room singleton so the file handles are released.
-        WhoopDatabase.close()
-
-        // 5. Snapshot the current db so a failed copy can be rolled back.
-        try {
-            rollbackFile.delete()
-            if (dbFile.exists()) dbFile.copyTo(rollbackFile, overwrite = true)
-        } catch (e: IOException) {
-            tempSqlite.delete()
-            tempSettings.delete()
-            return ImportResult.Failed("Could not back up the current data: ${e.message}")
-        }
-
-        // 6. Overwrite the db file with the extracted backup, then drop the stale sidecars.
+        val pending = pendingRestoreFile(dbFile)
+        val pendingSettings = pendingRestoreSettingsFile(dbFile)
         try {
             dbFile.parentFile?.mkdirs()
-            tempSqlite.copyTo(dbFile, overwrite = true)
-            walFile.delete()
-            shmFile.delete()
+            pending.delete()
+            pendingSettings.delete()
+            moveFile(tempSqlite, pending)
+            if (tempSettings.exists()) moveFile(tempSettings, pendingSettings)
         } catch (e: IOException) {
-            runCatching { if (rollbackFile.exists()) rollbackFile.copyTo(dbFile, overwrite = true) }
-            rollbackFile.delete()
+            pending.delete()
+            pendingSettings.delete()
             tempSqlite.delete()
             tempSettings.delete()
             return ImportResult.Failed("Import failed, your data is unchanged: ${e.message}")
         }
-
-        // 6b. #1014 defence-in-depth, post-swap: re-verify the file that actually LANDED at the live
-        //     path with a second read-only quick_check. The staged file was verified in 3c, but the
-        //     copy itself can tear — disk-full mid-copy, a dying flash chip, the process killed at
-        //     the wrong instant — and the next launch would meet a corrupt store (which, before the
-        //     CorruptionPreservingOpenHelperFactory below, the platform would then silently DELETE).
-        //     On failure, roll back to the `.import-bak` snapshot automatically and say so.
-        sqliteQuickCheckFailure(dbFile)?.let { complaint ->
-            tempSqlite.delete()
-            tempSettings.delete()
-            walFile.delete()
-            shmFile.delete()
-            val message: String
-            if (rollbackFile.exists()) {
-                if (runCatching { rollbackFile.copyTo(dbFile, overwrite = true) }.isSuccess) {
-                    rollbackFile.delete()
-                    message = "The backup failed its integrity check after the copy. Your previous " +
-                        "data was rolled back automatically and is unchanged. " +
-                        "(SQLite: ${readableComplaint(complaint)})"
-                } else {
-                    // The roll-back copy itself failed: KEEP the snapshot on disk — it is now the
-                    // only good copy of the user's data — and tell the user exactly where it is.
-                    message = "The backup failed its integrity check after the copy, and rolling " +
-                        "back also failed. Your previous data is preserved at ${rollbackFile.name} " +
-                        "next to the app's database. (SQLite: ${readableComplaint(complaint)})"
-                }
-            } else {
-                // Fresh install: nothing existed before the import, so removing the damaged file
-                // returns to the exact pre-import (empty) state.
-                dbFile.delete()
-                message = "The backup failed its integrity check after the copy. There was no " +
-                    "previous data to roll back. (SQLite: ${readableComplaint(complaint)})"
-            }
-            return ImportResult.Failed(message)
-        }
-
-        // 7. #1000: re-apply the backup's whitelisted profile/display settings (weight, height, age,
-        //    sex, HR-max override, unit prefs) — but only NOW, after the DB swap landed. Every failure
-        //    path above returns without touching settings. Legacy single-entry backups staged no
-        //    settings file and restore exactly as before; a malformed settings entry degrades to
-        //    "fewer keys applied" inside the codec and can never fail the restore.
-        if (tempSettings.exists()) {
-            runCatching {
-                BackupSettingsBridge.apply(appContext, tempSettings.readText(Charsets.UTF_8))
-            }
-            tempSettings.delete()
-        }
-
-        rollbackFile.delete()
-        tempSqlite.delete()
-        // #57 debug: record when a restore swapped the DB, so the export can correlate a restore with a
-        // subsequent write stall (a restore that wasn't followed by a restart is exactly the #57 failure).
-        runCatching {
-            com.noop.ui.NoopPrefs.of(appContext).edit()
-                .putLong("backup.lastRestoreAt", System.currentTimeMillis() / 1000L).apply()
-        }
         return ImportResult.NeedsRestart
+    }
+
+    // ── Deferred restore swap (runs at cold start, before Room opens) ──────
+
+    /** Suffix of the verified backup parked beside the live database until the next cold start. */
+    internal const val PENDING_RESTORE_SUFFIX = ".restore-pending"
+
+    /** Suffix of the backup's staged `settings.json`, applied once the parked database is in place. */
+    internal const val PENDING_RESTORE_SETTINGS_SUFFIX = ".restore-pending-settings.json"
+
+    /**
+     * Suffix the live database is moved to while the parked backup takes its place. Deliberately NOT the
+     * old `.import-bak` name: an older build could leave `.import-bak` behind as the only good copy of a
+     * user's data after a failed roll-back, and this path deletes its own snapshot on success.
+     */
+    internal const val RESTORE_PREVIOUS_SUFFIX = ".restore-previous"
+
+    /** SQLite sidecar files that belong to a database file and must move or go with it. */
+    private val SQLITE_SIDECARS = listOf("-wal", "-journal", "-shm")
+
+    internal fun pendingRestoreFile(dbFile: File): File = File(dbFile.path + PENDING_RESTORE_SUFFIX)
+
+    internal fun pendingRestoreSettingsFile(dbFile: File): File =
+        File(dbFile.path + PENDING_RESTORE_SETTINGS_SUFFIX)
+
+    /** Outcome of [swapInPendingRestore]. */
+    enum class PendingSwap { NONE, APPLIED, FAILED }
+
+    /**
+     * Apply a restore parked by [importFrom], if there is one. MUST run before anything in the process
+     * opens [WhoopDatabase]; `NoopApplication.onCreate` calls it first. Only renames files, so it is
+     * cheap enough for the main thread even for a multi-GB library.
+     */
+    fun applyPendingRestore(context: Context) {
+        val appContext = context.applicationContext
+        val dbFile = appContext.getDatabasePath(WhoopDatabase.DB_NAME)
+        val settings = pendingRestoreSettingsFile(dbFile)
+        when (swapInPendingRestore(dbFile)) {
+            PendingSwap.NONE -> Unit
+            PendingSwap.APPLIED -> {
+                // #1000: the backup's whitelisted settings are applied only once its database is live.
+                // A malformed entry degrades to "fewer keys applied" inside the codec.
+                if (settings.exists()) {
+                    runCatching { BackupSettingsBridge.apply(appContext, settings.readText(Charsets.UTF_8)) }
+                    settings.delete()
+                }
+                runCatching {
+                    com.noop.ui.NoopPrefs.of(appContext).edit()
+                        .putLong("backup.lastRestoreAt", System.currentTimeMillis() / 1000L).apply()
+                }
+                Log.i("DataBackup", "Restore applied at startup")
+            }
+            // The parked file stays, so the next start tries again; the current data is in place.
+            PendingSwap.FAILED -> Log.w("DataBackup", "Restore could not be moved into place; current data kept")
+        }
+    }
+
+    /**
+     * Move the parked backup over [dbFile]. Pure file operations, so the JVM tests drive it on real files.
+     *
+     * Order matters for a process killed part-way:
+     * 1. the live database and its sidecars move to [RESTORE_PREVIOUS_SUFFIX] names (rename, so `-wal`
+     *    and `-journal` stay paired with their database and the snapshot remains openable);
+     * 2. the parked file is renamed onto the live path;
+     * 3. the snapshot is deleted.
+     * Killed after 1, the next start finds no live file but a snapshot, and goes straight to 2 without
+     * touching the snapshot. Killed after 2, no parked file remains and the restore is complete; the
+     * leftover snapshot is removed on the next restore. If 2 fails, 1 is undone.
+     */
+    internal fun swapInPendingRestore(dbFile: File): PendingSwap {
+        val pending = pendingRestoreFile(dbFile)
+        if (!pending.isFile) return PendingSwap.NONE
+        val previous = File(dbFile.path + RESTORE_PREVIOUS_SUFFIX)
+
+        // Step 1, skipped when an interrupted earlier attempt already moved the live file aside.
+        val movedAside = dbFile.exists()
+        if (movedAside) {
+            deleteWithSidecars(previous)
+            if (!dbFile.renameTo(previous)) return PendingSwap.FAILED
+            for (suffix in SQLITE_SIDECARS) {
+                val side = File(dbFile.path + suffix)
+                if (!side.exists()) continue
+                // -shm is a rebuildable index; the others carry data and travel with their database.
+                if (suffix == "-shm") side.delete() else side.renameTo(File(previous.path + suffix))
+            }
+        }
+        // A sidecar here can only belong to a database that is no longer at this path.
+        for (suffix in SQLITE_SIDECARS) File(dbFile.path + suffix).delete()
+
+        // Step 2.
+        if (!pending.renameTo(dbFile)) {
+            if (movedAside && previous.exists()) {
+                previous.renameTo(dbFile)
+                for (suffix in SQLITE_SIDECARS) {
+                    val side = File(previous.path + suffix)
+                    if (side.exists()) side.renameTo(File(dbFile.path + suffix))
+                }
+            }
+            return PendingSwap.FAILED
+        }
+
+        // Step 3.
+        deleteWithSidecars(previous)
+        return PendingSwap.APPLIED
+    }
+
+    private fun deleteWithSidecars(file: File) {
+        file.delete()
+        for (suffix in SQLITE_SIDECARS) File(file.path + suffix).delete()
+    }
+
+    /** Rename [from] to [to], falling back to copy-and-delete when they sit on different filesystems. */
+    @Throws(IOException::class)
+    private fun moveFile(from: File, to: File) {
+        if (from.renameTo(to)) return
+        from.copyTo(to, overwrite = true)
+        from.delete()
     }
 
     // ── Container staging (pure file/stream layer, unit-tested under real file I/O) ──────
