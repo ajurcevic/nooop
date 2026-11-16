@@ -391,8 +391,20 @@ object DataBackup {
         //    function) so it can be exercised under real file I/O in unit tests without Room/Context.
         //    A `settings.json` entry (#1000) is staged alongside when present; the stale-delete first
         //    matters, or a leftover from an earlier import could masquerade as THIS backup's settings.
-        val tempSqlite = File(appContext.cacheDir, "import-extract.sqlite")
-        val tempSettings = File(appContext.cacheDir, "import-settings.json")
+        //
+        //    Staged beside the live database, NOT in cacheDir: Android may delete cache files whenever
+        //    the device runs low on storage, and a multi-GB staged library is the first thing it takes.
+        //    A field report on an 860 MB archive lost `cache/import-extract.sqlite` between the integrity
+        //    check and the move ("The source file doesn't exist"). The databases directory is never
+        //    cleared by the system, and sharing it with the live file keeps step 4 a plain rename.
+        val liveDb = appContext.getDatabasePath(WhoopDatabase.DB_NAME)
+        liveDb.parentFile?.mkdirs()
+        val tempSqlite = File(liveDb.path + RESTORE_STAGING_SUFFIX)
+        val tempSettings = File(liveDb.path + RESTORE_STAGING_SETTINGS_SUFFIX)
+        // Older builds staged in cacheDir; free that space before staging a new multi-GB copy.
+        File(appContext.cacheDir, "import-extract.sqlite").delete()
+        File(appContext.cacheDir, "import-settings.json").delete()
+        deleteWithSidecars(tempSqlite)
         tempSettings.delete()
         try {
             when (stageBackupSqlite(resolver.openInputStream(uri), header, tempSqlite, tempSettings,
@@ -404,7 +416,7 @@ object DataBackup {
                     return ImportResult.Failed("The backup archive doesn't contain a database file.")
                 }
                 StageResult.ENTRY_TOO_LARGE -> {
-                    tempSqlite.delete()
+                    deleteWithSidecars(tempSqlite)
                     tempSettings.delete()
                     // #1807: recoverable, so the caller gets a case it can offer to override rather than
                     // a dead-end message.
@@ -420,14 +432,14 @@ object DataBackup {
                 )
             }
         } catch (e: IOException) {
-            tempSqlite.delete()
+            deleteWithSidecars(tempSqlite)
             tempSettings.delete()
             return ImportResult.Failed("Could not read the chosen file: ${e.message}")
         }
 
         // 3. Validate the extracted file is a real SQLite database (magic-byte check).
         if (!isValidSqliteHeader(tempSqlite)) {
-            tempSqlite.delete()
+            deleteWithSidecars(tempSqlite)
             tempSettings.delete()
             return ImportResult.Failed("The backup archive doesn't contain a valid Zoop database.")
         }
@@ -472,7 +484,7 @@ object DataBackup {
         //     library while still catching truncation and malformed pages. Twin of the Apple side's
         //     DatabaseIntegrity gate.
         sqliteQuickCheckFailure(tempSqlite)?.let { complaint ->
-            tempSqlite.delete()
+            deleteWithSidecars(tempSqlite)
             tempSettings.delete()
             return ImportResult.Failed(
                 "This backup file is damaged, so nothing was restored. Your current data is " +
@@ -492,11 +504,13 @@ object DataBackup {
         //    860 MB archive failed the post-copy check with SQLITE_IOERR_SHORT_READ and rolled back.
         //    Moving the already-verified file instead of copying it removes both: the bytes that passed
         //    quick_check in 3c are the bytes that become the live store, and nothing else is written.
-        val dbFile = appContext.getDatabasePath(WhoopDatabase.DB_NAME)
+        val dbFile = liveDb
         val pending = pendingRestoreFile(dbFile)
         val pendingSettings = pendingRestoreSettingsFile(dbFile)
         try {
-            dbFile.parentFile?.mkdirs()
+            // The probes above may have left `-journal`/`-wal`/`-shm` beside the staged file; they
+            // must not survive under a name a later database could pair with.
+            for (suffix in SQLITE_SIDECARS) File(tempSqlite.path + suffix).delete()
             pending.delete()
             pendingSettings.delete()
             moveFile(tempSqlite, pending)
@@ -504,7 +518,7 @@ object DataBackup {
         } catch (e: IOException) {
             pending.delete()
             pendingSettings.delete()
-            tempSqlite.delete()
+            deleteWithSidecars(tempSqlite)
             tempSettings.delete()
             return ImportResult.Failed("Import failed, your data is unchanged: ${e.message}")
         }
@@ -512,6 +526,12 @@ object DataBackup {
     }
 
     // ── Deferred restore swap (runs at cold start, before Room opens) ──────
+
+    /** Suffix of the backup being unpacked and checked, beside the live database (never in cacheDir). */
+    internal const val RESTORE_STAGING_SUFFIX = ".restore-staging"
+
+    /** Suffix of the backup's `settings.json` while it is being unpacked, beside the staged database. */
+    internal const val RESTORE_STAGING_SETTINGS_SUFFIX = ".restore-staging-settings.json"
 
     /** Suffix of the verified backup parked beside the live database until the next cold start. */
     internal const val PENDING_RESTORE_SUFFIX = ".restore-pending"
@@ -546,6 +566,9 @@ object DataBackup {
         val appContext = context.applicationContext
         val dbFile = appContext.getDatabasePath(WhoopDatabase.DB_NAME)
         val settings = pendingRestoreSettingsFile(dbFile)
+        // No import can be running at process start, so a staged file here is from one that died.
+        deleteWithSidecars(File(dbFile.path + RESTORE_STAGING_SUFFIX))
+        File(dbFile.path + RESTORE_STAGING_SETTINGS_SUFFIX).delete()
         when (swapInPendingRestore(dbFile)) {
             PendingSwap.NONE -> Unit
             PendingSwap.APPLIED -> {
@@ -847,7 +870,7 @@ object DataBackup {
 
     /** Delete the staged temp files and return a Failed result, keeping the live DB untouched. */
     private fun rejectForeign(tempSqlite: File, tempSettings: File, message: String): ImportResult {
-        tempSqlite.delete()
+        deleteWithSidecars(tempSqlite)
         tempSettings.delete()
         return ImportResult.Failed(message)
     }
