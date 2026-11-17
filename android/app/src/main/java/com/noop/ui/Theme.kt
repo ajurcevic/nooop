@@ -23,10 +23,12 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.noop.R
 
 // MARK: - Palette — the "Titanium & Gold" re-skin (mirrors StrandDesign/Palette.swift)
 //
@@ -405,12 +407,12 @@ object Metrics {
     val space18 = 18.dp
     val space24 = 24.dp
     val sourceBadgeHeight = 18.dp
-    val cardRadius = 18.dp   // Bevel continuous radius (18–22dp)
+    val cardRadius = 24.dp   // Calm card radius (design-system.md: cards radius 24)
     val cornerXs = 2.dp
     val cornerSm = 12.dp
     val cornerBadge = 6.dp
     val cornerPill = 50.dp
-    val cardPadding = 16.dp
+    val cardPadding = 20.dp   // Calm card padding (design-system.md: padding 20)
     val gap = 12.dp           // gap between cards
     val sectionGap = 28.dp    // gap between sections
     // #765: the ONE inter-card vertical spacing for a screen's top-level scroll rows. Both ScreenScaffold
@@ -419,6 +421,21 @@ object Metrics {
     // Spacer rows that broke that rhythm). One token = uniform, consistent gaps across the screens.
     val screenRowSpacing = 20.dp
     val screenPadding = 24.dp
+    // The side gutter of a scrolling screen (ScreenScaffold / LazyScreenScaffold). Calm keeps content
+    // 20dp from the screen edge so a two-column tile grid inside a card still has room to breathe.
+    val screenGutter = 20.dp
+    // Calm card edge: a 1px inner highlight along the top of a dark card instead of a full outline.
+    val cardHighlight = 1.dp
+    // Calm score ring (Home): 64dp across with a 6dp arc.
+    val scoreRing = 64.dp
+    val scoreRingStroke = 6.dp
+    // Calm bottom bar: 20dp tab icons over a 4dp dot under the active tab's label.
+    val barIcon = 20.dp
+    val barActiveDot = 4.dp
+    // Calm number glow: the blur radius of the soft shadow behind the live bpm and the score numbers.
+    val glowBlur = 12.dp
+    // Calm header glow: the height of the band the soft mint glow behind a screen's header sits in.
+    val headerGlowHeight = 320.dp
     val tileHeight = 108.dp   // every metric tile is this tall
     val chartHeight = 220.dp
     val dialogScrollableMaxHeight = 560.dp
@@ -455,19 +472,24 @@ object Metrics {
     val editorListMaxHeight = 390.dp
 }
 
-// MARK: - Typography (ported from StrandDesign/Typography.swift §9.2)
+// MARK: - Typography (Zoop "Calm", design-system.md)
 //
-// Helvetica Neue on Apple; on Android we use a Helvetica-Neue FontFamily where one
-// is bundled in res/font, else FontFamily.SansSerif as the documented substitute
-// (no Helvetica asset is bundled, so the platform grotesque stands in) with the same
-// sizes/weights. Numeric/live styles stay in the house sans and request TABULAR
-// figures via fontFeatureSettings = "tnum" (mirroring iOS .monospacedDigit()) so live
-// values don't reflow; Monospace is reserved for the `mono` raw/log style only.
+// Manrope is the one house face, bundled in res/font at the four weights the app uses (Regular,
+// Medium, SemiBold, Bold) under the SIL Open Font License (docs/licenses/Manrope-OFL.txt). A
+// script Manrope does not cover, such as Chinese, falls back to the platform font glyph by glyph.
+// Numeric/live styles request TABULAR figures via fontFeatureSettings = "tnum" (Manrope ships the
+// feature) so live values don't reflow; Monospace is reserved for the `mono` raw/log style only.
 
 object NoopType {
-    // Helvetica Neue family — falls back to the platform grotesque (SansSerif) when
-    // no res/font/helvetica_neue asset is bundled, per the v3 type spec.
-    private val sans = FontFamily.SansSerif
+    /** The house face: Manrope at the weights the app uses. Compose picks the nearest bundled
+     *  weight for any other request. */
+    val family: FontFamily = FontFamily(
+        Font(R.font.manrope_regular, FontWeight.Normal),
+        Font(R.font.manrope_medium, FontWeight.Medium),
+        Font(R.font.manrope_semibold, FontWeight.SemiBold),
+        Font(R.font.manrope_bold, FontWeight.Bold),
+    )
+    private val sans = family
     private val monoFamily = FontFamily.Monospace
 
     /** Display 64–80 / Bold — the recovery ring number. Tight tracking (≈ -0.04em),
@@ -481,13 +503,14 @@ object NoopType {
      *  display(); exposed to mirror StrandFont.displayTracking. */
     fun displayTracking(size: Float = 72f): Float = -size * 0.04f
 
-    val title1 = TextStyle(fontFamily = sans, fontWeight = FontWeight.Bold, fontSize = 28.sp)
-    val title2 = TextStyle(fontFamily = sans, fontWeight = FontWeight.SemiBold, fontSize = 22.sp)
-    val headline = TextStyle(fontFamily = sans, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
+    // Calm: page title 30/700, section titles 17/700, card labels 13/500, footnotes /500.
+    val title1 = TextStyle(fontFamily = sans, fontWeight = FontWeight.Bold, fontSize = 30.sp)
+    val title2 = TextStyle(fontFamily = sans, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+    val headline = TextStyle(fontFamily = sans, fontWeight = FontWeight.Bold, fontSize = 17.sp)
     val body = TextStyle(fontFamily = sans, fontWeight = FontWeight.Normal, fontSize = 15.sp)
-    val subhead = TextStyle(fontFamily = sans, fontWeight = FontWeight.Normal, fontSize = 13.sp)
-    val caption = TextStyle(fontFamily = sans, fontWeight = FontWeight.Normal, fontSize = 12.sp)
-    val footnote = TextStyle(fontFamily = sans, fontWeight = FontWeight.Normal, fontSize = 11.sp)
+    val subhead = TextStyle(fontFamily = sans, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+    val caption = TextStyle(fontFamily = sans, fontWeight = FontWeight.Medium, fontSize = 12.sp)
+    val footnote = TextStyle(fontFamily = sans, fontWeight = FontWeight.Medium, fontSize = 11.sp)
 
     /** Overline 12 / Medium, sentence case, no extra tracking: a quiet label, not a shouted one. */
     val overline = TextStyle(

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Zoop wordmark, letters layer: the "z" and "p" of the Loop logo (Manrope ExtraBold outlines).
+     Drawn white and tinted at the call site (ZoopWordmark), so it follows the theme's text colour.
+     Shares its viewport with zoop_wordmark_loop so the two layers overlay exactly. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="278.9dp" android:height="89.5dp"
+    android:viewportWidth="278.9" android:viewportHeight="89.5">
+    <group android:translateX="-478.05" android:translateY="-670.5">
+        <path android:fillColor="#FFFFFFFF"
+            android:pathData="M528.55 732L482.05 732L482.05 730.30L508.55 689.80L485.05 689.80L485.05 678L529.55 678L529.55 679.70L503.15 720.20L528.55 720.20L528.55 732Z"/>
+        <path android:fillColor="#FFFFFFFF"
+            android:pathData="M728.05 733.50L728.05 733.50Q720.40 733.50 715.15 730.10L715.15 730.10L715.15 756L701.45 756L701.45 678L713.45 678L713.45 680.95Q713.90 680.60 714.40 680.25L714.40 680.25Q719.65 676.50 727.35 676.50L727.35 676.50Q735.10 676.50 740.85 680.20Q746.60 683.90 749.77 690.33Q752.95 696.75 752.95 705L752.95 705Q752.95 713.10 749.82 719.55Q746.70 726 741.10 729.75Q735.50 733.50 728.05 733.50ZM725.85 721.40L725.85 721.40Q730.25 721.40 733.05 719.20Q735.85 717 737.20 713.27Q738.55 709.55 738.55 705L738.55 705Q738.55 700.50 737.15 696.77Q735.75 693.05 732.82 690.83Q729.90 688.60 725.35 688.60L725.35 688.60Q721.10 688.60 718.47 690.65Q715.85 692.70 714.65 696.40Q713.45 700.10 713.45 705Q713.45 709.90 714.65 713.60Q715.85 717.30 718.57 719.35Q721.30 721.40 725.85 721.40Z"/>
+    </group>
+</vector>

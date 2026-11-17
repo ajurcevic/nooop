@@ -7,6 +7,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -53,14 +57,37 @@ import androidx.compose.ui.unit.dp
 // two helpers is what keeps the image seamless across tabs including More.
 
 /** The scaffold `topBackground` slot honouring the image > sky > canvas precedence. `isActive` is
- *  snapshot-backed, so toggling/removing the image in Settings re-picks the backdrop live. */
+ *  snapshot-backed, so toggling/removing the image in Settings re-picks the backdrop live. The plain
+ *  dark canvas carries the Calm header glow; the light canvas stays flat. */
 fun screenBackdropSlot(
     showDayCycleBackground: Boolean,
     skyBehindCards: Boolean,
 ): (@Composable () -> Unit)? = when {
     BackgroundImageStore.isActive -> { { BackgroundImageBackdrop() } }
     showDayCycleBackground -> { { LiquidScreenSky(fillHeight = skyBehindCards) } }
+    !Palette.isLight -> { { CalmHeaderGlow() } }
     else -> null
+}
+
+/** The Calm canvas accent: one very soft mint radial glow behind the header, fading out well before the
+ *  first cards. Pure decoration, hidden from accessibility. */
+@Composable
+fun CalmHeaderGlow() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(Metrics.headerGlowHeight)
+            .drawBehind {
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(brandMint.copy(alpha = 0.06f), Color.Transparent),
+                        center = Offset(size.width / 2f, size.height * 0.2f),
+                        radius = size.width * 0.6f,
+                    ),
+                )
+            }
+            .clearAndSetSemantics {},
+    )
 }
 
 /** `fullBleedBackground` for the same precedence: a custom image always bleeds behind the whole scroll;

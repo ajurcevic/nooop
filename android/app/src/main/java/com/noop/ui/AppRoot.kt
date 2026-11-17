@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -57,6 +59,15 @@ import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import androidx.compose.material.icons.outlined.Bedtime
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -1044,21 +1055,31 @@ private fun MoreRow(dest: Destination, onClick: () -> Unit) {
 // active = gold accent, inactive = textSecondary. All routing is unchanged: the four tabs switch the
 // same destinations.
 
-/** A single bottom-bar nav slot: the destination it switches to, plus the bar-specific icon/label. */
-internal data class BarTab(val dest: Destination, val icon: ImageVector, @StringRes val labelRes: Int)
+/** A single bottom-bar nav slot: the destination it switches to, plus the bar-specific label and its
+ *  two icons. Calm draws the inactive tab with the outline [icon] and the active one with the filled
+ *  [activeIcon]. */
+internal data class BarTab(
+    val dest: Destination,
+    val icon: ImageVector,
+    @StringRes val labelRes: Int,
+    val activeIcon: ImageVector = icon,
+)
 
 /** The nav slots: Today · Metrics · Trends · Sleep · More.
  *  More is special-cased (it opens the sheet rather than a route), so it is appended at the call site. */
 internal val barLeadingTabs = listOf(
-    BarTab(Destination.Today, Icons.Filled.Home, R.string.nav_today),
-    BarTab(Destination.Metrics, Icons.Outlined.GridView, R.string.nav_metrics),
+    BarTab(Destination.Today, Icons.Outlined.Home, R.string.nav_today, Icons.Rounded.Home),
+    BarTab(Destination.Metrics, Icons.Outlined.GridView, R.string.nav_metrics, Icons.Rounded.GridView),
     // chart.line.uptrend.xyaxis on iOS — the rising-trend glyph, not a flat bar chart.
-    BarTab(Destination.Trends, Icons.AutoMirrored.Filled.TrendingUp, R.string.nav_trends),
+    BarTab(
+        Destination.Trends, Icons.AutoMirrored.Outlined.TrendingUp, R.string.nav_trends,
+        Icons.AutoMirrored.Rounded.TrendingUp,
+    ),
 )
 
 /** The tabs drawn after the leading set and before More. */
 internal val barTrailingTabs = listOf(
-    BarTab(Destination.Sleep, Icons.Filled.Bedtime, R.string.nav_sleep),
+    BarTab(Destination.Sleep, Icons.Outlined.Bedtime, R.string.nav_sleep, Icons.Rounded.Bedtime),
 )
 
 @Composable
@@ -1110,6 +1131,7 @@ private fun GlassBottomBar(
                 barLeadingTabs.forEach { tab ->
                     BarSlot(
                         icon = tab.icon,
+                        activeIcon = tab.activeIcon,
                         label = stringResource(tab.labelRes),
                         active = current == tab.dest,
                         modifier = Modifier.weight(1f),
@@ -1119,6 +1141,7 @@ private fun GlassBottomBar(
                 barTrailingTabs.forEach { tab ->
                     BarSlot(
                         icon = tab.icon,
+                        activeIcon = tab.activeIcon,
                         label = stringResource(tab.labelRes),
                         active = current == tab.dest,
                         modifier = Modifier.weight(1f),
@@ -1126,7 +1149,8 @@ private fun GlassBottomBar(
                     )
                 }
                 BarSlot(
-                    icon = Icons.Filled.MoreHoriz,
+                    icon = Icons.Outlined.MoreHoriz,
+                    activeIcon = Icons.Rounded.MoreHoriz,
                     label = stringResource(R.string.nav_more),
                     // Selected on the More page itself, and also kept lit whenever the current screen is
                     // one reached THROUGH More (i.e. not one of the bar's own tabs) — so drilling into
@@ -1144,17 +1168,19 @@ private fun GlassBottomBar(
     }
 }
 
-/** One nav slot: an icon over a small label. Active = gold accent (semibold), inactive = textSecondary.
- *  No selection pill, no glow — just the colour swap, matching the iOS bar. */
+/** One nav slot: an icon over a small label over a dot. Calm: the active tab is the mint accent with a
+ *  filled icon, a semibold label and a small mint dot under it; inactive tabs are tertiary grey with
+ *  outline icons. No selection pill, no glow. */
 @Composable
 private fun BarSlot(
     icon: ImageVector,
     label: String,
     active: Boolean,
     modifier: Modifier = Modifier,
+    activeIcon: ImageVector = icon,
     onClick: () -> Unit,
 ) {
-    val tint = if (active) Palette.accent else Palette.textSecondary
+    val tint = if (active) Palette.accent else Palette.textTertiary
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
@@ -1170,8 +1196,8 @@ private fun BarSlot(
     ) {
         // Icon and label scale together with the padding above, so the slot grows as one piece rather
         // than a bigger box around the same small glyph.
-        Icon(icon, contentDescription = null, tint = tint,
-             modifier = Modifier.size(Metrics.iconSmall * BottomBarStyleStore.scale))
+        Icon(if (active) activeIcon else icon, contentDescription = null, tint = tint,
+             modifier = Modifier.size(Metrics.barIcon * BottomBarStyleStore.scale))
         Text(
             label,
             style = NoopType.footnote.copy(
@@ -1186,6 +1212,14 @@ private fun BarSlot(
             // at the next is the kind of thing nobody reports and everybody notices.
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+        )
+        // The active marker. Every slot reserves the dot's room, so the bar keeps one height whichever
+        // tab is selected.
+        Box(
+            modifier = Modifier
+                .size(Metrics.barActiveDot * BottomBarStyleStore.scale)
+                .clip(CircleShape)
+                .background(if (active) Palette.accent else Color.Transparent),
         )
     }
 }
@@ -1213,45 +1247,6 @@ private val NavEasing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
 
 /** ~240ms crossfade on the calm easing — the README "Tab crossfade" between roots. */
 private val navFadeSpec = tween<Float>(durationMillis = 240, easing = NavEasing)
-
-/**
- * BrandMark — the NOOP logo glyph at a small in-app size: an OPEN recovery ring (≈80%
- * arc, round caps, starting at −90° / 12 o'clock, clockwise) in the gold gradient with a
- * solid gold core dot at the centre. This is the same brand glyph the RecoveryRing hero
- * carries (the "O" of NOOP), shrunk for the top bar / drawer header so the logo reads in
- * app. CLEAN/flat per the v3 restraint brief — no bloom, no halo, just the gradient ring.
- * Token-only (gold gradient + hairline track); decorative, so it carries no content label.
- */
-@Composable
-internal fun BrandMark(size: Dp = 22.dp) {
-    Canvas(modifier = Modifier.size(size)) {
-        val stroke = this.size.minDimension * 0.13f          // ~2px-equivalent at 22dp
-        val radius = (this.size.minDimension - stroke) / 2f
-        val topLeft = Offset(center.x - radius, center.y - radius)
-        val arcSize = Size(radius * 2f, radius * 2f)
-        val capStroke = Stroke(width = stroke, cap = StrokeCap.Round)
-
-        // Faint full-ring track (navy hairline) behind the open arc.
-        drawCircle(
-            color = Palette.hairline.copy(alpha = 0.5f),
-            radius = radius,
-            center = center,
-            style = capStroke,
-        )
-        // Open recovery-ring arc: ~80% (288°), −90° start (12 o'clock), clockwise.
-        drawArc(
-            color = Palette.chargeColor,
-            startAngle = -90f,
-            sweepAngle = 288f,
-            useCenter = false,
-            topLeft = topLeft,
-            size = arcSize,
-            style = capStroke,
-        )
-        // Solid WHITE "on-device core" dot at the centre (green ring + white core — iOS parity, no gold).
-        drawCircle(color = Color.White, radius = stroke * 0.62f, center = center)
-    }
-}
 
 /** Navigate to a top-level destination with single-top + state save/restore. */
 private fun NavHostController.navigateTopLevel(route: String) {

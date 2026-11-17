@@ -2407,8 +2407,8 @@ private fun RescanDisc(scanning: Boolean, onClick: () -> Unit) {
             .size(HeaderClusterControl)
             .liquidPress(interaction)
             .clip(CircleShape)
-            // The same translucent-white disc its siblings use: part of the header, not a call to action.
-            .background(Color.White.copy(alpha = if (scanning) 0.08f else 0.16f))
+            // The same inset disc its siblings use: part of the header, not a call to action.
+            .background(Palette.surfaceInset.copy(alpha = if (scanning) 0.5f else 1f))
             .clickable(
                 interactionSource = interaction,
                 indication = null,
@@ -2426,7 +2426,7 @@ private fun RescanDisc(scanning: Boolean, onClick: () -> Unit) {
             // so the same action now looks the same everywhere it appears.
             if (scanning) Icons.Filled.BluetoothSearching else Icons.Filled.Bluetooth,
             contentDescription = null,
-            tint = Color.White.copy(alpha = if (scanning) 0.45f else 1f),
+            tint = Palette.textPrimary.copy(alpha = if (scanning) 0.45f else 1f),
             modifier = Modifier.size(16.dp),
         )
     }
@@ -2456,9 +2456,9 @@ private fun CustomizeDisc(onClick: () -> Unit) {
             .size(HeaderClusterControl)
             .liquidPress(interaction)
             .clip(CircleShape)
-            // The same translucent-white disc the + uses, rather than the frosted card surface #2010
-            // reached for: the point is to look like its siblings, not like a call to action.
-            .background(Color.White.copy(alpha = 0.16f))
+            // The same inset disc the + uses, rather than the frosted card surface #2010 reached for:
+            // the point is to look like its siblings, not like a call to action.
+            .background(Palette.surfaceInset)
             .clickable(
                 interactionSource = interaction,
                 indication = null,
@@ -2470,7 +2470,7 @@ private fun CustomizeDisc(onClick: () -> Unit) {
         Icon(
             Icons.Filled.Tune,
             contentDescription = null,
-            tint = Color.White,
+            tint = Palette.textPrimary,
             modifier = Modifier.size(16.dp),
         )
     }
@@ -2485,9 +2485,9 @@ private fun QuickActionDisc(onClick: () -> Unit) {
             .size(HeaderClusterControl)
             .liquidPress(interaction)
             .clip(CircleShape)
-            // A translucent-white disc so the + reads on the day-of-sky like the rest of the liquid cluster,
-            // with a crisp white glyph. Mirrors iOS LiquidAddButton (a "plus" on Circle().fill(.white@0.16)).
-            .background(Color.White.copy(alpha = 0.16f))
+            // Calm: an inset disc (the chip and input tone) with a crisp primary glyph, like the rest of
+            // the header cluster.
+            .background(Palette.surfaceInset)
             .clickable(
                 interactionSource = interaction,
                 indication = null,
@@ -2499,7 +2499,7 @@ private fun QuickActionDisc(onClick: () -> Unit) {
         Icon(
             Icons.Filled.Add,
             contentDescription = null,
-            tint = Color.White,
+            tint = Palette.textPrimary,
             modifier = Modifier.size(16.dp),
         )
     }
@@ -2675,18 +2675,16 @@ private fun LiquidTodayHeader(
         ) {
             Text(
                 dayTitle,
-                // ~28sp Bold rounded, matching iOS `StrandFont.rounded(28)`. A soft shadow so it reads on the
-                // day-of-sky. NoopType.number is the house tabular sans; Bold at 28 is the display day title.
-                style = NoopType.number(28f, weight = FontWeight.Bold)
-                    .copy(shadow = Shadow(color = Color.Black.copy(alpha = 0.4f), offset = Offset(0f, 1f), blurRadius = 10f)),
-                color = Color.White,
+                // Calm page title, 30/700 in the primary text colour on the flat canvas.
+                style = NoopType.title1,
+                color = Palette.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 humanDate,
-                style = NoopType.caption.copy(shadow = Shadow(color = Color.Black.copy(alpha = 0.35f), offset = Offset(0f, 1f), blurRadius = 8f)),
-                color = Color.White.copy(alpha = 0.78f),
+                style = NoopType.caption,
+                color = Palette.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -2891,9 +2889,8 @@ private fun LiquidBatteryRing(batteryPct: Double?, isRing: Boolean, onClick: () 
             .size(HeaderClusterControl)
             .liquidPress(interaction)
             .clip(CircleShape)
-            // A translucent near-black disc + faint white rim, matching iOS (rgba(10,11,16,.5) + white@.15).
-            .background(Color(red = 10f / 255f, green = 11f / 255f, blue = 16f / 255f, alpha = 0.5f))
-            .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
+            // Calm: the same inset disc as the rest of the header cluster, no rim.
+            .background(Palette.surfaceInset)
             .clickable(
                 interactionSource = interaction,
                 indication = null,
@@ -2937,25 +2934,24 @@ private fun LiquidBatteryRing(batteryPct: Double?, isRing: Boolean, onClick: () 
             Text(
                 uiString(R.string.l10n_today_screen_pct_roundtoint_05ba4549, pct.roundToInt()),
                 style = NoopType.number(9f, weight = FontWeight.Bold),
-                color = Color.White.copy(alpha = 0.9f),
+                color = Palette.textPrimary,
             )
         } else {
             Icon(
                 Icons.AutoMirrored.Filled.BatteryUnknown,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.5f),
+                tint = Palette.textTertiary,
                 modifier = Modifier.size(15.dp),
             )
         }
     }
 }
 
-// MARK: - NOOP wordmark (iOS LiquidWordmark parity — centred, with a tap easter egg)
+// MARK: - Zoop wordmark (centred, with a tap easter egg)
 //
-// The subtle "N O O P" wordmark that sits on the sky between the header and the hero. Built as a row of
-// letters (not one tracked string, which adds a trailing gap after the last glyph and pushes the word
-// off-centre), so it sits DEAD centre, white @ ~50% opacity. A tap plays one of several random one-shot
-// animations — wiggle / shake / flip / spin / bounce / jelly squash. Mirrors iOS LiquidWordmark.
+// The Loop wordmark ("zoop" with the two o's as one mint infinity loop) that sits between the header and
+// the first card on the Metrics tab, about 22dp tall and dead centre. A tap plays one of several random
+// one-shot animations — wiggle / shake / flip / spin / bounce / jelly squash.
 
 @Composable
 private fun LiquidWordmark() {
@@ -2986,7 +2982,7 @@ private fun LiquidWordmark() {
         }
     }
 
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(
@@ -3003,17 +2999,9 @@ private fun LiquidWordmark() {
                 translationX = animDx
             }
             .clearAndSetSemantics {}, // decorative wordmark — invisible to TalkBack
-        horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
+        contentAlignment = Alignment.Center,
     ) {
-        "ZOOP".forEach { ch ->
-            Text(
-                ch.toString(),
-                style = NoopType.number(16f, weight = FontWeight.Bold)
-                    .copy(shadow = Shadow(color = Color.Black.copy(alpha = 0.25f), offset = Offset(0f, 1f), blurRadius = 6f)),
-                color = Color.White.copy(alpha = 0.5f),
-            )
-        }
+        ZoopWordmark(height = 22.dp)
     }
 }
 
@@ -3935,10 +3923,11 @@ private fun HeroVitalRow(
 
 // MARK: - Home tab cards
 //
-// The one-screen Home: a heart-rate card led by the live bpm, then the three daily scores and the three
-// recovery vitals as plain numbers, each set against its own trailing 7-day average. Neutral surfaces;
-// colour sits on the numbers only: the live bpm takes its heart-rate zone colour, Charge and Effort their
-// own score ramps, Rest a good/fair/poor band, and each vital whether it beat its 7-day average.
+// The one-screen Home: a heart-rate card led by the live bpm, then the three daily scores in thin score
+// rings and the three recovery vitals as plain numbers, each set against its own trailing 7-day average.
+// Neutral surfaces; colour sits on the numbers and rings only: the live bpm takes its heart-rate zone
+// colour, Charge and Effort their own score ramps, Rest a good/fair/poor band, and each vital whether it
+// beat its 7-day average. The live bpm and the three score numbers carry a faint glow in their colour.
 
 /** Placeholder for a number Home has no value for. */
 private const val HOME_EMPTY_VALUE = "—"
@@ -3958,7 +3947,7 @@ private fun HomeHeartCard(
     val zoneSet = remember { ProfileStore.from(context.applicationContext).hrZoneSet }
     val zone = liveBpm?.let { zoneSet.zoneNumber(it.toDouble()) } ?: 0
     val shown = liveBpm ?: latestAvg
-    NoopCard(padding = Metrics.space16) {
+    NoopCard {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space8)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -3972,22 +3961,25 @@ private fun HomeHeartCard(
                 )
                 if (liveBpm != null) {
                     LivePulseDot()
-                    Text(uiString(R.string.home_hr_live), style = NoopType.caption, color = Palette.textSecondary)
+                    Text(uiString(R.string.home_hr_live), style = NoopType.caption, color = Palette.accent)
                 }
             }
             Row(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space6),
             ) {
+                // Only a streaming bpm inside a zone is tinted (and glows); the stored average stays neutral.
+                val bpmColor = when {
+                    shown == null -> Palette.textTertiary
+                    liveBpm != null && zone >= 1 -> Palette.hrZoneColor(zone)
+                    else -> Palette.textPrimary
+                }
                 Text(
                     shown?.toString() ?: HOME_EMPTY_VALUE,
-                    style = NoopType.number(48f, FontWeight.Medium),
-                    // Only a streaming bpm inside a zone is tinted; the stored average stays neutral.
-                    color = when {
-                        shown == null -> Palette.textTertiary
-                        liveBpm != null && zone >= 1 -> Palette.hrZoneColor(zone)
-                        else -> Palette.textPrimary
-                    },
+                    style = NoopType.number(48f).withCalmGlow(
+                        if (liveBpm != null && zone >= 1) bpmColor else null,
+                    ),
+                    color = bpmColor,
                 )
                 Text(
                     uiString(R.string.today_unit_bpm),
@@ -4063,23 +4055,26 @@ private fun HomeScoreCard(
     val effortAvg = remember(days, selectedDayKey) { trailingAverage(days.seriesOf { it.strain }, selectedDayKey) }
     val restAvg = remember(restHistory, selectedDayKey) { trailingAverage(restHistory, selectedDayKey) }
     val effortDecimals = if (effortScale == EffortScale.WHOOP) 1 else 0
-    NoopCard(padding = Metrics.space16) {
-        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-            HomeStat(
+    NoopCard {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            HomeScoreRing(
                 label = uiString(R.string.today_metric_charge),
                 value = charge?.roundToInt()?.toString(),
+                // Charge and Rest are 0-100 scores; Effort is stored on the 0-100 scale whatever the
+                // display scale, so all three rings fill by value / 100.
+                fraction = ((charge ?: 0.0) / 100.0).toFloat(),
                 comparison = homeComparison(charge, chargeAvg, decimals = 0),
                 valueColor = charge?.let { Palette.recoveryColor(it) },
                 onClick = onChargeTap,
                 modifier = Modifier.weight(1f),
             )
-            HomeStatDivider()
-            HomeStat(
+            HomeScoreRing(
                 label = uiString(R.string.today_metric_effort),
                 value = effortForDay?.let {
                     if (effortDecimals == 0) UnitFormatter.effortValue(it, effortScale).roundToInt().toString()
                     else UnitFormatter.effortDisplay(it, effortScale)
                 },
+                fraction = ((effortForDay ?: 0.0) / 100.0).toFloat(),
                 comparison = homeComparison(
                     effortForDay?.let { UnitFormatter.effortValue(it, effortScale) },
                     effortAvg?.let { UnitFormatter.effortValue(it, effortScale) },
@@ -4089,16 +4084,67 @@ private fun HomeScoreCard(
                 onClick = { onOpenMetric(HERO_EFFORT_METRIC_KEY) },
                 modifier = Modifier.weight(1f),
             )
-            HomeStatDivider()
-            HomeStat(
+            HomeScoreRing(
                 label = uiString(R.string.today_metric_rest),
                 value = restScore?.roundToInt()?.toString(),
+                fraction = ((restScore ?: 0.0) / 100.0).toFloat(),
                 comparison = homeComparison(restScore, restAvg, decimals = 0),
                 valueColor = restScore?.let { homeToneColor(restTone(it)) },
                 onClick = { onOpenMetric(HERO_REST_METRIC_KEY) },
                 modifier = Modifier.weight(1f),
             )
         }
+    }
+}
+
+/**
+ * One daily score on Home: its label over a thin score ring with the number inside, then the comparison
+ * line, all centred. The ring fills by [fraction] (0..1) in [valueColor]; with no value it shows only the
+ * empty track and a dash.
+ */
+@Composable
+private fun HomeScoreRing(
+    label: String,
+    value: String?,
+    fraction: Float,
+    comparison: String,
+    valueColor: Color?,
+    onClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val numberColor = if (value != null) valueColor ?: Palette.textPrimary else Palette.textTertiary
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(Metrics.space12))
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .padding(vertical = Metrics.space4),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Metrics.space8),
+    ) {
+        Text(label, style = NoopType.subhead, color = Palette.textSecondary, maxLines = 1)
+        Box(modifier = Modifier.size(Metrics.scoreRing), contentAlignment = Alignment.Center) {
+            GlowRing(
+                fraction = if (value != null) fraction.coerceIn(0f, 1f) else 0f,
+                value = 0.0,
+                color = valueColor ?: Palette.textTertiary,
+                diameter = Metrics.scoreRing,
+                lineWidth = Metrics.scoreRingStroke,
+                showsLabel = false,
+            )
+            Text(
+                value ?: HOME_EMPTY_VALUE,
+                style = NoopType.number(22f).withCalmGlow(if (value != null) valueColor else null),
+                color = numberColor,
+                maxLines = 1,
+            )
+        }
+        Text(
+            comparison,
+            style = NoopType.caption,
+            color = Palette.textTertiary,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+        )
     }
 }
 
@@ -4121,8 +4167,11 @@ private fun HomeVitalsCard(
     }
     val respAvg = remember(days, selectedDayKey) { trailingAverage(days.seriesOf { it.respRateBpm }, selectedDayKey) }
     fun open(card: DashboardCard): (() -> Unit)? = dashboardCardMetricKey(card)?.let { key -> { onOpenMetric(key) } }
-    NoopCard(padding = Metrics.space16) {
-        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+    NoopCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space8),
+        ) {
             HomeStat(
                 label = uiString(R.string.today_card_hrv),
                 value = hrv?.roundToInt()?.toString(),
@@ -4133,7 +4182,6 @@ private fun HomeVitalsCard(
                 compact = true,
                 modifier = Modifier.weight(1f),
             )
-            HomeStatDivider()
             HomeStat(
                 label = uiString(R.string.today_card_resting_hr),
                 value = rhr?.roundToInt()?.toString(),
@@ -4144,7 +4192,6 @@ private fun HomeVitalsCard(
                 compact = true,
                 modifier = Modifier.weight(1f),
             )
-            HomeStatDivider()
             HomeStat(
                 label = uiString(R.string.today_card_respiratory),
                 value = resp?.let { String.format(Locale.getDefault(), "%.1f", it) },
@@ -4194,17 +4241,17 @@ private fun HomeStat(
         modifier = modifier
             .clip(RoundedCornerShape(Metrics.space8))
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
-            .padding(horizontal = Metrics.space8, vertical = Metrics.space4),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+            .padding(vertical = Metrics.space4),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space4),
     ) {
-        Text(label, style = NoopType.caption, color = Palette.textSecondary, maxLines = 1)
+        Text(label, style = NoopType.subhead, color = Palette.textSecondary, maxLines = 1)
         Row(
             verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
             Text(
                 value ?: HOME_EMPTY_VALUE,
-                style = NoopType.number(if (compact) 22f else 30f, FontWeight.Medium),
+                style = NoopType.number(if (compact) 24f else 30f),
                 color = if (value != null) valueColor ?: Palette.textPrimary else Palette.textTertiary,
                 maxLines = 1,
             )
@@ -4217,20 +4264,8 @@ private fun HomeStat(
                 )
             }
         }
-        Text(comparison, style = NoopType.footnote, color = Palette.textTertiary, maxLines = 2)
+        Text(comparison, style = NoopType.caption, color = Palette.textTertiary, maxLines = 2)
     }
-}
-
-/** The hairline between figures in a Home card. */
-@Composable
-private fun HomeStatDivider() {
-    Box(
-        modifier = Modifier
-            .fillMaxHeight()
-            .padding(vertical = Metrics.space4)
-            .width(Metrics.divider)
-            .background(Palette.hairline),
-    )
 }
 
 // MARK: - "Your cards" dashboard (WHOOP "My Dashboard"), iOS yourCardsSection parity
