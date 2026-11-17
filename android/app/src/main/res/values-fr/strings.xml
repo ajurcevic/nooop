@@ -1851,7 +1851,6 @@
     <!-- The remaining notifier titles/bodies, surfaced by extending i18n_audit.py to the
          notification builders. Same defect as the block above: user-visible, never localised. -->
     <string name="illness_alert_title">Alerte précoce : allez-y doucement</string>
-    <string name="illness_alert_window">Nuits : %1$s, %2$s</string>
     <string name="inactivity_title">Rappel de mouvement</string>
     <string name="smart_alarm_title">Bonjour</string>
     <string name="smart_alarm_body">Votre alarme intelligente vient de sonner.</string>

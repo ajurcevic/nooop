@@ -3996,17 +3996,22 @@ private fun HomeHeartCard(
                     modifier = Modifier.padding(bottom = Metrics.space8),
                 )
                 Spacer(modifier = Modifier.weight(1f))
+                // With nothing streaming the number is the latest stored average, so the label says so;
+                // with no number at all there is nothing to label.
                 val status = when {
                     liveBpm != null && zone >= 1 -> uiString(R.string.home_hr_zone, zone)
                     liveBpm != null -> uiString(R.string.home_hr_below_zones)
-                    else -> uiString(R.string.home_hr_not_streaming)
+                    shown != null -> uiString(R.string.home_hr_not_streaming)
+                    else -> null
                 }
-                Text(
-                    status,
-                    style = NoopType.caption,
-                    color = if (liveBpm != null && zone >= 1) Palette.hrZoneColor(zone) else Palette.textTertiary,
-                    modifier = Modifier.padding(bottom = Metrics.space10),
-                )
+                if (status != null) {
+                    Text(
+                        status,
+                        style = NoopType.caption,
+                        color = if (liveBpm != null && zone >= 1) Palette.hrZoneColor(zone) else Palette.textTertiary,
+                        modifier = Modifier.padding(bottom = Metrics.space10),
+                    )
+                }
             }
             chart?.invoke()
             note?.let { Text(it, style = NoopType.footnote, color = Palette.textTertiary) }

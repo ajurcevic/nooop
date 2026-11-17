@@ -1755,7 +1755,6 @@
     <!-- The remaining notifier titles/bodies, surfaced by extending i18n_audit.py to the
          notification builders. Same defect as the block above: user-visible, never localised. -->
     <string name="illness_alert_title">早期预警：放轻松</string>
-    <string name="illness_alert_window">夜晚：%1$s、%2$s</string>
     <string name="inactivity_title">活动提醒</string>
     <string name="smart_alarm_title">早上好</string>
     <string name="smart_alarm_body">你的智能闹钟刚刚响了。</string>

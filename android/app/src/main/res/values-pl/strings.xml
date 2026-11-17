@@ -1823,7 +1823,6 @@
     <string name="fgs_channel_name">Połączenie paska</string>
     <string name="fgs_channel_desc">Wyświetlany, gdy Zoop utrzymuje połączenie WHOOP w tle.</string>
     <string name="illness_alert_title">Wczesne ostrzeżenie: uspokój się</string>
-    <string name="illness_alert_window">Noce: %1$s, %2$s</string>
     <string name="inactivity_title">Przenieś przypomnienie</string>
     <string name="smart_alarm_title">Dzień dobry</string>
     <string name="smart_alarm_body">Twój inteligentny alarm właśnie się włączył.</string>

@@ -164,13 +164,14 @@ object IllnessWatch {
                 plausible(r) && plausible(b) && plausible(current) &&
                 r >= b + 2.5 && current >= b + 2.5
             ) {
-                flags.add("respiration up")
+                flags.add("breathing rate up")
             }
         }
 
         return if (flags.size >= 2) {
-            "Your body looks strained - " + flags.joinToString(", ") +
-                ". Consider taking it easy."
+            "Your body might be fighting something off. " +
+                flags.joinToString(", ").replaceFirstChar { it.uppercaseChar() } +
+                " over the last two nights. Go easy today if you can."
         } else {
             null
         }

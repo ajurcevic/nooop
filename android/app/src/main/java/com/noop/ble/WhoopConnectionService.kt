@@ -389,10 +389,7 @@ class WhoopConnectionService : Service() {
                 // for an alert that never transitioned. Reporting the clear ones is what lets the next
                 // genuine transition be recognised.
                 if (dayState.days.size >= 14) {
-                    IllnessAlertNotifier.onEvaluated(this@WhoopConnectionService,
-                        dayState.illness?.let {
-                            IllnessAlertNotifier.withWindow(this@WhoopConnectionService, it, dayState.days)
-                        })
+                    IllnessAlertNotifier.onEvaluated(this@WhoopConnectionService, dayState.illness)
                 }
                 // Evaluated only when (SoC, charging) actually MOVES — see [lastBatteryAlertKey]. Both policies
                 // are once-per-crossing and persisted, so re-running them on an unchanged pair can only repeat

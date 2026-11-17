@@ -1922,7 +1922,6 @@
     <string name="fgs_channel_name">Connessione della fascia</string>
     <string name="fgs_channel_desc">Visualizzata mentre Zoop mantiene il tuo WHOOP collegato in background.</string>
     <string name="illness_alert_title">Avviso precoce: vacci piano</string>
-    <string name="illness_alert_window">Notti: %1$s, %2$s</string>
     <string name="inactivity_title">Promemoria movimento</string>
     <string name="smart_alarm_title">Buongiorno</string>
     <string name="smart_alarm_body">La tua sveglia smart è appena suonata.</string>
