@@ -171,7 +171,7 @@ class AnalyticsTest {
         val days = baseline + recent
         val msg = IllnessWatch.evaluate(days)
         assertNotNull(msg)
-        assertTrue(msg!!.contains("resting HR"))
+        assertTrue(msg!!.contains("Resting HR"))
         assertTrue(msg.contains("HRV"))
         assertTrue(msg.contains("skin temp"))
     }
@@ -241,7 +241,7 @@ class AnalyticsTest {
         )
         val msg = IllnessWatch.evaluate(baseline + recent)
         assertNotNull(msg)
-        assertTrue(msg!!.contains("respiration"))
+        assertTrue(msg!!.contains("breathing rate"))
     }
 
     @Test
