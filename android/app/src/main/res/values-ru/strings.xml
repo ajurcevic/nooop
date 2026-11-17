@@ -1790,7 +1790,6 @@
     <string name="fgs_channel_name">Подключение браслета</string>
     <string name="fgs_channel_desc">Показывается, пока Zoop поддерживает подключение вашего WHOOP в фоне.</string>
     <string name="illness_alert_title">Раннее предупреждение: не перенапрягайтесь</string>
-    <string name="illness_alert_window">Ночи: %1$s, %2$s</string>
     <string name="inactivity_title">Напоминание о движении</string>
     <string name="smart_alarm_title">Доброе утро</string>
     <string name="smart_alarm_body">Ваш умный будильник только что сработал.</string>

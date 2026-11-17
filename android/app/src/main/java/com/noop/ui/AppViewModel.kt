@@ -912,7 +912,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     ) {
                         IllnessWatch.evaluate(days)
                     } else null)
-                        ?.let { IllnessAlertNotifier.withWindow(appContext, it, days) }
                 // EVERY evaluation is reported, raised or clear. The clear-to-raised edge now lives in
                 // the notifier's PERSISTED state (#2586): `_healthAlert` starts null on every ViewModel
                 // build, so gating here made a cold start look like a transition, and the day gate then
@@ -2730,7 +2729,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         ) {
             IllnessWatch.evaluate(days)
         } else null)
-            ?.let { IllnessAlertNotifier.withWindow(appContext, it, days) }
         // Reported like any other evaluation, because the persisted edge (#2586) is only correct if
         // EVERY change of state reaches it. Switching the watch off while an alert was raised used to
         // clear the banner here and leave the stored flag raised, so the next genuine transition —

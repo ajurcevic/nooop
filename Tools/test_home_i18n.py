@@ -246,7 +246,7 @@ class HomeLocalizationTest(unittest.TestCase):
         expected = {
             "today_card_hrv": "HRV", "today_card_hrv_subtitle": "Heart-rate variability",
             "today_card_resting_hr": "Resting HR", "today_card_resting_hr_subtitle": "Resting heart rate",
-            "today_card_respiratory": "Respiratory", "today_card_respiratory_subtitle": "Breaths per minute",
+            "today_card_respiratory": "Breathing", "today_card_respiratory_subtitle": "Breaths per minute",
             "today_card_steps": "Steps", "today_card_steps_subtitle": "Today",
             "today_card_stress": "Stress", "today_card_stress_subtitle": "Autonomic load",
             "today_card_fitness_age": "Fitness Age", "today_card_fitness_age_subtitle": "Updated weekly",

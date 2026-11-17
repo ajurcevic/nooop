@@ -8,7 +8,6 @@ import android.content.Context
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.noop.R
-import com.noop.data.DailyMetric
 import com.noop.ui.NoopPrefs
 import com.noop.ui.appLaunchIntent
 
@@ -40,13 +39,6 @@ internal object IllnessAlertPolicy {
 object IllnessAlertNotifier {
     private const val CHANNEL_ID = "noop_illness_watch"
     private const val NOTIF_ID = 4202   // 4201 is the ongoing connection notification
-
-    /** The watch averages the last two stored wake-days, so name both while either can keep it raised. */
-    fun withWindow(context: Context, alert: String, days: List<DailyMetric>): String {
-        val recent = days.takeLast(2)
-        if (recent.size < 2) return alert
-        return "$alert\n${context.getString(R.string.illness_alert_window, recent[0].day, recent[1].day)}"
-    }
 
     @SuppressLint("MissingPermission") // guarded by areNotificationsEnabled() + runCatching
     fun onEvaluated(context: Context, alert: String?) {
