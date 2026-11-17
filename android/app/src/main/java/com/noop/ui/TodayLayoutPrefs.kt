@@ -49,8 +49,12 @@ enum class TodaySection(val raw: String, @StringRes val titleRes: Int) {
             MENSTRUAL_CYCLE, JOURNAL, ADDED_CARDS,
         )
 
-        /** Sections whose content the Home tab draws itself, so the Metrics tab does not repeat them. */
-        val homeOwned: Set<TodaySection> = setOf(HERO, HEART_RATE)
+        /**
+         * Sections whose content the Home tab draws itself, so the Metrics tab does not repeat them. The
+         * recovery vitals (HRV, resting heart rate, breathing) are on Home's vitals card, and Metrics shows
+         * them again only as tiles on its Recovery card, set against their 30-day baselines.
+         */
+        val homeOwned: Set<TodaySection> = setOf(HERO, HEART_RATE, RECOVERY_VITALS)
     }
 }
 

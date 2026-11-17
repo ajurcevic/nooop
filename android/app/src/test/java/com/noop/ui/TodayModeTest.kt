@@ -4,12 +4,18 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Home draws the score hero and the heart-rate chart itself; Metrics must offer every other section. */
+/**
+ * Home draws the score hero, the heart-rate chart and the recovery vitals itself; Metrics must offer every
+ * other section.
+ */
 class TodayModeTest {
 
     @Test
-    fun homeOwnsOnlyTheHeroAndTheHeartRateChart() {
-        assertEquals(setOf(TodaySection.HERO, TodaySection.HEART_RATE), TodaySection.homeOwned)
+    fun homeOwnsTheHeroTheHeartRateChartAndTheRecoveryVitals() {
+        assertEquals(
+            setOf(TodaySection.HERO, TodaySection.HEART_RATE, TodaySection.RECOVERY_VITALS),
+            TodaySection.homeOwned,
+        )
     }
 
     @Test

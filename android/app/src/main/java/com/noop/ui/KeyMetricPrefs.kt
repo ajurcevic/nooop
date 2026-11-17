@@ -27,7 +27,8 @@ enum class KeyMetric(val raw: String, @StringRes val titleRes: Int) {
     HRV("hrv", R.string.today_metric_hrv),
     RESTING_HR("restingHr", R.string.today_metric_resting_hr),
     BLOOD_OXYGEN("bloodOxygen", R.string.today_metric_blood_oxygen),
-    RESPIRATORY("respiratory", R.string.today_metric_respiratory),
+    // Titled "Breathing", the word the Home tab and the Metrics Recovery card use for the same number.
+    RESPIRATORY("respiratory", R.string.today_card_respiratory),
     STEPS("steps", R.string.today_metric_steps),
     WEIGHT("weight", R.string.today_metric_weight),
     CALORIES("calories", R.string.today_metric_calories),
@@ -36,14 +37,20 @@ enum class KeyMetric(val raw: String, @StringRes val titleRes: Int) {
     // DashboardCard.SKIN_TEMP's own title resource rather than adding a new one. New case, NOT added
     // to defaultOrder below, so an existing user's saved layout (and a fresh install's default) is
     // byte-identical to before; only opts in via the layout editor.
-    SKIN_TEMP("skinTemp", R.string.today_card_skin_temp);
+    SKIN_TEMP("skinTemp", R.string.today_card_skin_temp),
+    // Added with the Metrics redesign: last night's time asleep, the Sleep card's second tile beside Rest.
+    // Android-only (the Apple apps left with the fork), so there is no Swift raw value to match.
+    ASLEEP("asleep", R.string.l10n_sleep_screen_asleep_b9692bbe);
 
     companion object {
         fun fromRaw(raw: String?): KeyMetric? = entries.firstOrNull { it.raw == raw }
 
-        /** The original, hard-coded grid order — the default when the layout isn't customised. */
+        /**
+         * The default when the layout isn't customised: the original grid order with Asleep after Rest. A
+         * saved layout is kept as saved, so Asleep (like Skin Temp) joins it only from the editor.
+         */
         val defaultOrder: List<KeyMetric> = listOf(
-            CHARGE, EFFORT, REST, HRV, RESTING_HR,
+            CHARGE, EFFORT, REST, ASLEEP, HRV, RESTING_HR,
             BLOOD_OXYGEN, RESPIRATORY, STEPS, WEIGHT, CALORIES,
         )
     }

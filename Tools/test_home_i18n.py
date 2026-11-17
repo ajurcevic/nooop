@@ -35,6 +35,9 @@ ANDROID_HOME_FILES = {
     "android/app/src/main/java/com/noop/ui/CycleTrackerDialog.kt",
     "android/app/src/main/java/com/noop/ui/KeyMetricPrefs.kt",
     "android/app/src/main/java/com/noop/ui/DashboardCards.kt",
+    "android/app/src/main/java/com/noop/ui/MetricsCategoryCards.kt",
+    "android/app/src/main/java/com/noop/ui/MetricsInsight.kt",
+    "android/app/src/main/java/com/noop/ui/MetricsTiles.kt",
     "android/app/src/main/java/com/noop/analytics/ReadinessEngine.kt",
     "android/app/src/main/java/com/noop/analytics/StepsEstimateEngine.kt",
     "android/app/src/main/java/com/noop/analytics/RecoveryDrivers.kt",
@@ -69,7 +72,7 @@ ANDROID_INDIRECT_NON_UI_LITERALS = {
     "my-whoop", "Workout", "apple-health", "health-connect", "lifting", "autoDetect",
     # Stable KeyMetric raw values + preferences.
     "charge", "effort", "rest", "restingHr", "bloodOxygen", "respiratory", "steps",
-    "weight", "calories", "today.keyMetrics", "today.keyMetricsDetailed",
+    "weight", "calories", "asleep", "today.keyMetrics", "today.keyMetricsDetailed",
     "today.keyMetricsWindowDays", ",",
     # Stable DashboardCard raw values + preference; units remain measurement metadata.
     "stress", "fitnessAge", "vo2max", "vitality", "skinTemp", "sleep", "hydration", "coupled",

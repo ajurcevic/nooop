@@ -100,6 +100,32 @@ internal fun stepsForDay(apple: List<AppleDaily>, healthConnect: List<AppleDaily
         .maxOrNull()
 
 /**
+ * [stepsForDay] for every day at once: each day's imported step total, the larger one when both sources
+ * report the day. The Metrics Steps tile's history for days the strap did not count.
+ */
+internal fun importedStepsHistory(apple: List<AppleDaily>, healthConnect: List<AppleDaily>): Map<String, Double> =
+    (apple + healthConnect)
+        .mapNotNull { row -> row.steps?.let { row.day to it } }
+        .groupBy({ it.first }, { it.second })
+        .mapValues { (_, totals) -> totals.max().toDouble() }
+
+/**
+ * Every measured body weight by day in kilograms, from the same rows and with the same Health Connect rule
+ * as [latestWeightKg]. When both sources weigh in on one day the Apple Health reading is kept, the one
+ * [latestWeightKg] picks for that day, so the newest entry here is the weight the tile shows.
+ */
+internal fun weightHistoryKg(
+    apple: List<AppleDaily>,
+    healthConnect: List<AppleDaily>,
+    healthConnectOnly: Boolean = false,
+): Map<String, Double> {
+    val rows = if (healthConnectOnly) healthConnect else apple + healthConnect
+    return HealthConnectWeightSync.weightReadings(rows)
+        .groupBy { it.day }
+        .mapValues { (_, readings) -> readings.first().kg }
+}
+
+/**
  * Resolve the Weight tile text: prefer the latest Apple/Health-Connect weight, else fall back to the
  * SI profile weight with a "from profile" caption so the source stays honest. Both are formatted
  * through the shared [UnitFormatter] so the Imperial/Metric toggle reaches this tile too. (#107)
