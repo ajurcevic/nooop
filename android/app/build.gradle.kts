@@ -26,8 +26,8 @@ android {
         applicationId = "com.zoop.app"
         minSdk = 34 // Android 14
         targetSdk = 34
-        versionCode = 572
-        versionName = "12.2.13"
+        versionCode = 573
+        versionName = "12.2.14"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
