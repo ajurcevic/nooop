@@ -143,8 +143,8 @@ internal data class MetricDriver(
     val formatDelta: (Double) -> String,
 )
 
-/** The category card's title. */
-private fun categoryTitle(category: MetricCategory): String = when (category) {
+/** The category card's title, shared with the Trends section cards. */
+internal fun categoryTitle(category: MetricCategory): String = when (category) {
     MetricCategory.RECOVERY -> uiString(R.string.l10n_today_screen_recovery_ea924f72)
     MetricCategory.SLEEP -> uiString(R.string.l10n_today_screen_sleep_3cac34e6)
     MetricCategory.TRAINING -> uiString(R.string.metrics_category_training)
@@ -152,7 +152,7 @@ private fun categoryTitle(category: MetricCategory): String = when (category) {
 }
 
 /** The small rounded icon beside a category title. */
-private fun categoryIcon(category: MetricCategory): ImageVector = when (category) {
+internal fun categoryIcon(category: MetricCategory): ImageVector = when (category) {
     MetricCategory.RECOVERY -> Icons.Rounded.Bolt
     MetricCategory.SLEEP -> Icons.Rounded.Bedtime
     MetricCategory.TRAINING -> Icons.AutoMirrored.Rounded.DirectionsRun
@@ -248,26 +248,7 @@ private fun MetricCategoryCard(
 ) {
     NoopCard {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space12)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space12),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(Palette.accent.copy(alpha = 0.14f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        categoryIcon(category),
-                        contentDescription = null,
-                        tint = Palette.accent,
-                        modifier = Modifier.size(Metrics.iconSmall),
-                    )
-                }
-                Text(categoryTitle(category), style = NoopType.headline, color = Palette.textPrimary)
-            }
+            CategoryHeading(category)
             if (line != null) {
                 Text(line, style = NoopType.body, color = Palette.textSecondary)
             }
@@ -300,6 +281,31 @@ private fun MetricCategoryCard(
                 }
             }
         }
+    }
+}
+
+/** A category's mint icon in its soft circle beside the title, shared by the Metrics and Trends cards. */
+@Composable
+internal fun CategoryHeading(category: MetricCategory) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space12),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(Palette.accent.copy(alpha = 0.14f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                categoryIcon(category),
+                contentDescription = null,
+                tint = Palette.accent,
+                modifier = Modifier.size(Metrics.iconSmall),
+            )
+        }
+        Text(categoryTitle(category), style = NoopType.headline, color = Palette.textPrimary)
     }
 }
 
@@ -847,7 +853,7 @@ private fun BaselineChart(
 }
 
 /** A smooth curve through [points], easing horizontally between each pair so it never overshoots them. */
-private fun smoothPath(points: List<Offset>): Path = Path().apply {
+internal fun smoothPath(points: List<Offset>): Path = Path().apply {
     if (points.isEmpty()) return@apply
     moveTo(points[0].x, points[0].y)
     for (i in 1 until points.size) {
