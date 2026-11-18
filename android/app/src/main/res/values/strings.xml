@@ -2371,6 +2371,16 @@
     <string name="today_building_moves_with_you">Building, moves as you do</string>
     <string name="today_how_score_named">How %1$s is calculated</string>
     <string name="today_how_score_generic">How this score is calculated</string>
+    <string name="strap_pill_strap">Strap</string>
+    <string name="strap_pill_strap_pct">Strap %1$d%%</string>
+    <string name="strap_pill_ring_pct">Ring %1$d%%</string>
+    <string name="strap_pill_offline">Strap offline</string>
+    <string name="strap_pill_catching_up">catching up</string>
+    <string name="strap_pill_synced_ago">synced %1$s ago</string>
+    <string name="strap_pill_live">live</string>
+    <string name="strap_pill_looking">looking for it…</string>
+    <string name="strap_pill_tap_to_reconnect">tap to reconnect</string>
+    <string name="strap_pill_open_devices">Open devices</string>
     <string name="today_strap_battery">Strap battery</string>
     <string name="today_strap_battery_percent">Strap battery %1$d percent</string>
     <string name="today_ring_battery_percent">Ring battery %1$d percent</string>
