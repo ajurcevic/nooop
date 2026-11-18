@@ -124,6 +124,8 @@ internal data class MetricTileUi(
     val axisEnd: String? = null,
     /** Opens the metric's own trend screen, or does what an empty tile needs (calibration). */
     val onOpen: (() -> Unit)? = null,
+    /** Days (yyyy-MM-dd) whose value is Zoop's estimate; the opened chart marks them with a hollow dot. */
+    val estimatedDays: Set<String> = emptySet(),
 ) {
     /** What the arrow compares with: the 30-day baseline, or zero for a deviation. */
     val reference: Double? get() = if (referenceIsNormal) 0.0 else insight.baseline
@@ -663,12 +665,18 @@ private fun ExpandedMetricTile(tile: MetricTileUi, onToggle: () -> Unit) {
                 dotColor = tile.valueColor,
                 picked = picked,
                 onPick = { picked = it },
+                estimated = estimatedPointIndices(insight.windowStart, insight.points, tile.estimatedDays),
             )
             ChartAxis(
                 start = tile.axisStart,
                 end = tile.axisEnd,
-                middle = picked?.let { insight.points.getOrNull(it) }?.let { point ->
-                    pickedPointLabel(insight.windowStart, point, tile.format, tile.unit)
+                middle = picked?.let { index -> insight.points.getOrNull(index)?.let { index to it } }?.let { (index, point) ->
+                    val label = pickedPointLabel(insight.windowStart, point, tile.format, tile.unit)
+                    if (index in estimatedPointIndices(insight.windowStart, insight.points, tile.estimatedDays)) {
+                        uiString(R.string.metrics_point_estimated, label)
+                    } else {
+                        label
+                    }
                 },
             )
         }
@@ -821,6 +829,7 @@ private fun BaselineChart(
     dotColor: Color,
     picked: Int? = null,
     onPick: (Int) -> Unit = {},
+    estimated: Set<Int> = emptySet(),
 ) {
     val values = points.map { it.second } + listOfNotNull(low, high, reference)
     val minValue = values.min()
@@ -880,6 +889,13 @@ private fun BaselineChart(
             lineColor,
             style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
         )
+        // An estimated day is a hollow dot on the line, so a guessed point never reads as solidly as a measured one.
+        estimated.forEach { index ->
+            offsets.getOrNull(index)?.let { at ->
+                drawCircle(ring, radius = 3.dp.toPx(), center = at)
+                drawCircle(lineColor, radius = 3.dp.toPx(), center = at, style = Stroke(width = 1.5.dp.toPx()))
+            }
+        }
         val end = offsets.last()
         drawCircle(ring, radius = 5.dp.toPx(), center = end)
         drawCircle(dotColor, radius = 3.5.dp.toPx(), center = end)
@@ -899,6 +915,16 @@ internal fun nearestPointIndex(points: List<Pair<Int, Double>>, lastDay: Int, wi
     if (points.isEmpty() || width <= 0f) return 0
     val day = x / width * lastDay.coerceAtLeast(1)
     return points.indices.minByOrNull { abs(points[it].first - day) } ?: 0
+}
+
+/** The indices of [points] whose calendar day (counted from [windowStart]) is in [estimatedDays]. Pure. */
+internal fun estimatedPointIndices(
+    windowStart: LocalDate?,
+    points: List<Pair<Int, Double>>,
+    estimatedDays: Set<String>,
+): Set<Int> {
+    if (windowStart == null || estimatedDays.isEmpty()) return emptySet()
+    return points.indices.filterTo(HashSet()) { windowStart.plusDays(points[it].first.toLong()).toString() in estimatedDays }
 }
 
 /** "12 Nov · 54 ms": the picked point's date and value, or the value alone when the window has no start date. */

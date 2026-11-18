@@ -45,4 +45,14 @@ class MetricsChartPickTest {
             Locale.setDefault(default)
         }
     }
+
+    @Test
+    fun estimatedIndicesFollowTheCalendarDays() {
+        val start = LocalDate.of(2026, 10, 19)
+        // Points on days 0, 10, 20 and 30 are 19 Oct, 29 Oct, 8 Nov and 18 Nov.
+        val estimated = setOf("2026-10-29", "2026-11-18", "2026-11-01")
+        assertEquals(setOf(1, 3), estimatedPointIndices(start, points, estimated))
+        assertEquals(emptySet<Int>(), estimatedPointIndices(null, points, estimated))
+        assertEquals(emptySet<Int>(), estimatedPointIndices(start, points, emptySet()))
+    }
 }

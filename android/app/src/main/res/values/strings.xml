@@ -2931,4 +2931,5 @@
     <string name="metrics_estimate_from_heart_rate">Estimated from heart rate</string>
     <string name="home_still_learning">Still learning</string>
     <string name="sleep_stages_estimated_note">Stages are estimated from heart rate and movement, not measured brain activity.</string>
+    <string name="metrics_point_estimated">%1$s (est.)</string>
 </resources>
