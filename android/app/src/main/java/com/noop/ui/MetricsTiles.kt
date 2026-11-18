@@ -120,6 +120,7 @@ internal fun buildMetricTiles(
         labelSuffix: String? = null,
         valueColor: Color? = null,
         onOpen: (() -> Unit)? = null,
+        estimatedDays: Set<String> = emptySet(),
     ): MetricTileUi {
         val date = reading?.let { runCatching { LocalDate.parse(it.day) }.getOrNull() }
         val insight = reading?.let { metricInsight(history, it.day, dayValue = it.value) } ?: MetricInsight.EMPTY
@@ -148,6 +149,7 @@ internal fun buildMetricTiles(
                 if (isToday && reading.day == dayKey) uiString(R.string.today_day_today) else shortDate(it, 0)
             },
             onOpen = onOpen,
+            estimatedDays = estimatedDays,
         )
     }
 
@@ -196,6 +198,11 @@ internal fun buildMetricTiles(
     val stepsReading = shownSteps?.let { DayReading(it.toDouble(), dayKey) }
     val stepsHistory = (histories.steps.keys + steps.importedByDay.keys + steps.estimatedByDay.keys)
         .associateWith { key -> histories.steps[key] ?: steps.importedByDay[key] ?: steps.estimatedByDay[key] ?: 0.0 }
+    // The days the steps chart plots an estimate for: no counted or imported figure, by the same precedence as
+    // stepsHistory above, plus the day on screen when its number is the estimate.
+    val stepsEstimatedDays = steps.estimatedByDay.keys
+        .filterTo(HashSet()) { it !in histories.steps && it !in steps.importedByDay }
+        .apply { if (realSteps == null && steps.estimatedForDay != null) add(dayKey) else remove(dayKey) }
     val stepsOpenCalibration = stepsTileShouldOpenCalibration(
         realSteps = realSteps,
         estimatedSteps = steps.estimatedForDay,
@@ -346,6 +353,7 @@ internal fun buildMetricTiles(
                 else -> steps.calibrationPrompt
             },
             onOpen = if (stepsOpenCalibration) onOpenStepsCalibration else ({ onOpenMetric("steps_est") }),
+            estimatedDays = stepsEstimatedDays,
         ),
         KeyMetric.WEIGHT to make(
             KeyMetric.WEIGHT,
@@ -368,6 +376,7 @@ internal fun buildMetricTiles(
             rule = TrendRule.NEUTRAL,
             format = ::groupedNumber,
             caption = caloriesEstimateNote(dayKey, calories != null, caloriesEstimatedDays)?.let { uiString(it.labelRes) },
+            estimatedDays = caloriesEstimatedDays,
             onOpen = { onOpenMetric("active_kcal") },
         ),
         KeyMetric.SKIN_TEMP to make(
