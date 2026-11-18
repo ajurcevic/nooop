@@ -331,7 +331,6 @@ fun DataSourcesScreen(vm: AppViewModel) {
         }
         }
 
-
         // --- Health Connect (native Android health data) ---
         item {
         SourceCard(
@@ -643,8 +642,8 @@ fun DataSourcesScreen(vm: AppViewModel) {
 
         // Keep the final control clear of the app and system navigation bars on shorter phones.
         item { Spacer(Modifier.height(96.dp)) }
-
     }
+}
 
 // MARK: - Source card (mirrors the macOS private `card(...)` builder)
 
