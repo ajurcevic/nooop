@@ -202,6 +202,37 @@ fun SleepScreen(
     // #1680: the body-clock phase behind the 24 h dial section. Same snapshot the Health screen reads for
     // BodyClockCard, so the two surfaces cannot disagree about the estimate.
     val v5Signals by vm.v5Signals.collectAsStateWithLifecycle()
+    // "Bed by" line on the Alarms entry: tonight's bedtime from the next phone-alarm wake and the SAME personal
+    // need the sleep tiles read. Only while the phone alarm is on, the one wake time the app actually knows.
+    val phoneAlarmOn by vm.phoneAlarmEnabled.collectAsStateWithLifecycle()
+    val alarmTarget by vm.phoneAlarmTargetMinutes.collectAsStateWithLifecycle()
+    val alarmWindow by vm.phoneAlarmWindowMinutes.collectAsStateWithLifecycle()
+    val alarmWeekdays by vm.phoneAlarmWeekdays.collectAsStateWithLifecycle()
+    val alarmOverrides by vm.phoneAlarmDayOverrides.collectAsStateWithLifecycle()
+    val bedtimeIs24h = ClockPrefs.uses24Hour(LocalContext.current)
+    val bedtimeLine = remember(phoneAlarmOn, alarmTarget, alarmWindow, alarmWeekdays, alarmOverrides, days, bedtimeIs24h) {
+        if (!phoneAlarmOn) {
+            null
+        } else {
+            val wake = com.noop.alarm.SmartAlarmScheduler.nextWindowStartMinutes(
+                now = Calendar.getInstance(),
+                weekdays = alarmWeekdays,
+                windowMinutes = alarmWindow,
+                defaultTarget = alarmTarget,
+            ) { alarmOverrides[it] ?: alarmTarget }
+            val need = com.noop.analytics.RestScorer.personalNeedMinutes(days.map { it.totalSleepMin })
+            val clock = java.time.format.DateTimeFormatter.ofPattern(
+                ClockFormat.hourMinutePattern(bedtimeIs24h), Locale.getDefault(),
+            )
+            fun at(minutes: Int): String = java.time.LocalTime.of(minutes / 60, minutes % 60).format(clock)
+            uiString(
+                R.string.sleep_bedtime_suggestion,
+                at(suggestedBedtimeMinutes(wake, need)),
+                durationText(need),
+                at(wake),
+            )
+        }
+    }
 
     // PERF (#scroll-jank): the BLE live state ticks ~1Hz. This screen reads `live` ONLY for the
     // "syncing history" note (backfilling + the chunk count), so reading the whole `live` object at
@@ -703,7 +734,7 @@ fun SleepScreen(
             item {
                 SleepEmptyState()
             }
-            item { SleepAlarmsEntry(onOpenAlarms) }
+            item { SleepAlarmsEntry(onOpenAlarms, bedtimeLine) }
         } else {
             // REST HERO — a scenic indigo backdrop with the night's sleep-performance score as a
             // layered BevelGauge (Rest gradient), else a big rounded hours-slept headline. Mirrors the
@@ -723,7 +754,7 @@ fun SleepScreen(
                     overline = nightLabel,
                 )
             }
-            item { SleepAlarmsEntry(onOpenAlarms) }
+            item { SleepAlarmsEntry(onOpenAlarms, bedtimeLine) }
             // #sleep-layout: a compact "Arrange" affordance (the same Tune entry Today uses) opens the
             // reorder / show-hide sheet. Pinned just above the arrangeable cards.
             item {
@@ -1007,12 +1038,14 @@ fun SleepScreen(
 
 /** The existing alarm settings, reachable from Sleep with or without recorded nights. */
 @Composable
-private fun SleepAlarmsEntry(onOpenAlarms: () -> Unit) {
+private fun SleepAlarmsEntry(onOpenAlarms: () -> Unit, bedtimeLine: String? = null) {
     NoopCard(modifier = Modifier.clickable(onClick = onOpenAlarms), tint = Palette.restColor) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Metrics.gap)) {
             Icon(Icons.Filled.Alarm, contentDescription = null, tint = Palette.restColor)
-            Text(stringResource(R.string.nav_alarms), style = NoopType.headline, color = Palette.textPrimary,
-                 modifier = Modifier.weight(1f))
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                Text(stringResource(R.string.nav_alarms), style = NoopType.headline, color = Palette.textPrimary)
+                bedtimeLine?.let { Text(it, style = NoopType.footnote, color = Palette.textSecondary) }
+            }
             Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Palette.textTertiary)
         }
     }

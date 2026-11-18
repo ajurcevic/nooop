@@ -2934,4 +2934,5 @@
     <string name="metrics_point_estimated">%1$s (est.)</string>
     <string name="trends_chart_summary">Latest %1$s, lowest %2$s, highest %3$s.</string>
     <string name="trends_chart_no_data">No data for this period.</string>
+    <string name="sleep_bedtime_suggestion">Bed by %1$s for your %2$s of sleep before %3$s</string>
 </resources>
