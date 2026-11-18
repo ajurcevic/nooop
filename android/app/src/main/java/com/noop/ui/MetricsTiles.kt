@@ -140,7 +140,7 @@ internal fun buildMetricTiles(
             labelSuffix = labelSuffix,
             axisStart = date?.let { shortDate(it, METRICS_BASELINE_DAYS) },
             axisEnd = date?.let {
-                if (isToday && reading?.day == dayKey) uiString(R.string.today_day_today) else shortDate(it, 0)
+                if (isToday && reading.day == dayKey) uiString(R.string.today_day_today) else shortDate(it, 0)
             },
             onOpen = onOpen,
         )
@@ -182,7 +182,7 @@ internal fun buildMetricTiles(
     val candidateToday = candidateKey?.let { spo2CandidateByDay[it] }
     val spo2OnCandidate = spo2UsingCandidate(calibratedSpo2?.value, candidateToday)
     val spo2Reading = calibratedSpo2
-        ?: candidateToday?.let { value -> candidateKey?.let { DayReading(value, it) } }
+        ?: candidateToday?.let { value -> DayReading(value, candidateKey) }
 
     // Steps: the counted figure, then imported, then the estimate (#107/#150), with the history merged in
     // the same order so the chart and the baseline describe the same kind of number as the tile.

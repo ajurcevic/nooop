@@ -68,7 +68,7 @@ class TrendsInsightTest {
         val stats = trendPeriodStats(tenDayPeriod, end, 10)
         assertEquals(1.9, stats.bandLow!!, 1e-9)
         assertEquals(9.1, stats.bandHigh!!, 1e-9)
-        assertEquals(stats.bandLow!! to stats.bandHigh!!, stats.band)
+        assertEquals(stats.bandLow to stats.bandHigh, stats.band)
     }
 
     @Test
