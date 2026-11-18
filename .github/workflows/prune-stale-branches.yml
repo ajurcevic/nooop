@@ -15,7 +15,7 @@
 # decision behind the `prune_orphans` dispatch input. Manual runs default to a dry run.
 #
 # Pure Python + the REST API: no checkout of the work tree is needed beyond Tools/, and it runs in
-# seconds on ubuntu-latest, independent of the disabled-by-default compile workflows.
+# seconds on Ubuntu, independent of the disabled-by-default compile workflows.
 name: Prune stale branches
 
 on:
@@ -49,7 +49,7 @@ concurrency:
 
 jobs:
   prune:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -58,7 +58,7 @@ jobs:
           sparse-checkout-cone-mode: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
@@ -94,7 +94,7 @@ jobs:
         # so a SHA from this file can still be fetched for a while after its ref is gone — which
         # makes the artifact the difference between "recoverable" and "gone".
         if: always() && hashFiles('deleted-branches.txt') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: deleted-branches-${{ github.run_number }}
           path: deleted-branches.txt

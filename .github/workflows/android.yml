@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     defaults:
       run:
         working-directory: android
@@ -55,7 +55,7 @@ jobs:
       # schema export from this build, which a schema-format change has to be compared against.
       - name: Upload test reports and Room schema export
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: unit-test-reports
           path: |
