@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Zoop wordmark, loop layer: the two o's drawn as one continuous infinity loop. Drawn white and
+     tinted mint at the call site (ZoopWordmark). Shares its viewport with zoop_wordmark_letters. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="278.9dp" android:height="89.5dp"
+    android:viewportWidth="278.9" android:viewportHeight="89.5">
+    <group android:translateX="-478.05" android:translateY="-670.5">
+        <group android:translateX="536.55" android:translateY="664.5"
+            android:scaleX="0.625" android:scaleY="0.625">
+            <path android:fillColor="#00000000"
+                android:strokeColor="#FFFFFFFF"
+                android:strokeWidth="28"
+                android:strokeLineCap="round"
+                android:strokeLineJoin="round"
+                android:pathData="M 60,30 C 90,30 110,60 120,60 C 130,60 150,30 180,30 C 205,30 220,50 220,70 C 220,90 205,110 180,110 C 150,110 130,80 120,80 C 110,80 90,110 60,110 C 35,110 20,90 20,70 C 20,50 35,30 60,30 Z"/>
+        </group>
+    </group>
+</vector>

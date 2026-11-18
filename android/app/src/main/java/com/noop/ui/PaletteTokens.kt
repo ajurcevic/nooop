@@ -98,17 +98,19 @@ data class PaletteTokens(
     val heroBorder: Color,
 )
 
-// WHOOP-reset dark palette (gold killed 2026-06-22). Values match StrandPalette.swift's DARK
-// Titanium column byte-for-byte: blue-grey canvas, WHOOP red→yellow→green recovery, green Charge,
-// blue Effort, slate Rest, amber Stress. NO gold anywhere — accent/gold tokens point to WHOOP blue.
+// Zoop "Calm" dark palette (2026-11-17). A deep-ink canvas, soft slate cards with no outline, quiet
+// grey text and one mint accent. The recovery ramp, Charge green and amber Stress carry over from the
+// WHOOP-reset palette; Effort now uses the amber strain ramp everywhere (it was blue). The tertiary
+// text grey is a touch lighter than the design mockups' #6E7787 so 11-12sp text keeps AA contrast
+// (4.5:1) on the card fill. Source: .superdesign/design-system.md.
 val DarkTokens = PaletteTokens(
-    surfaceBase = Color(0xFF121518), surfaceRaised = Color(0xFF25292C), surfaceOverlay = Color(0xFF1C1F26),
-    surfaceInset = Color(0xFF1F2229), hairline = Color(0xFF21304A), hairlineStrong = Color(0xFF2E3C57),
-    textPrimary = Color(0xFFF4F6F8), textSecondary = Color(0xFFC8CFD8), textTertiary = Color(0xFF8A94A4),
+    surfaceBase = Color(0xFF0B0D12), surfaceRaised = Color(0xFF14171F), surfaceOverlay = Color(0xFF181C25),
+    surfaceInset = Color(0xFF1B1F29), hairline = Color(0xFF20242E), hairlineStrong = Color(0xFF2C3240),
+    textPrimary = Color(0xFFF2F4F7), textSecondary = Color(0xFFA9B1BE), textTertiary = Color(0xFF7D8696),
     glowAmbient = Color(0xFF3A2D0A),
     // Brand accent → mint, parity with iOS #1068 (NoopVisualStyle.mint/mintGlow). accentMuted is a dark
     // teal muted surface (green-shifted analog of the old navy 0xFF16233A). Gold stays in the recovery world.
-    accent = Color(0xFF69DDB8), accentHover = Color(0xFF54E6BD), accentMuted = Color(0xFF163329), focusRing = Color(0xFF69DDB8),
+    accent = Color(0xFF69DDB8), accentHover = Color(0xFF54E6BD), accentMuted = Color(0xFF1F3433), focusRing = Color(0xFF69DDB8),
     recovery000 = Color(0xFFE0463C), recovery030 = Color(0xFFE8743C), recovery055 = Color(0xFFF9DF4A),
     recovery078 = Color(0xFF8FD86A), recovery100 = Color(0xFF03E095),
     strain000 = Color(0xFF9C5A14), strain033 = Color(0xFFC2762A), strain066 = Color(0xFFD98A3D), strain100 = Color(0xFFF0A85A),
@@ -117,16 +119,16 @@ val DarkTokens = PaletteTokens(
     statusPositive = Color(0xFF03E095), statusWarning = Color(0xFFF0A020), statusCritical = Color(0xFFE0662F),
     metricCyan = Color(0xFF3FA9C9), metricPurple = Color(0xFF4A90E2), metricAmber = Color(0xFFD98A3D), metricRose = Color(0xFFE0662F),
     chargeColor = Color(0xFF03E095), chargeDeep = Color(0xFF0B9D62), chargeBright = Color(0xFF6BF0B4), chargeGlow = Color(0xFF03E095),
-    effortColor = Color(0xFF4090E0), effortDeep = Color(0xFF2A6FB0), effortBright = Color(0xFF74B6F0), effortGlow = Color(0xFF4090E0),
+    effortColor = Color(0xFFD98A3D), effortDeep = Color(0xFF9C5A14), effortBright = Color(0xFFF0A85A), effortGlow = Color(0xFFD98A3D),
     restColor = Color(0xFF83A0B8), restDeep = Color(0xFF2F6FCB), restBright = Color(0xFF6FA8E8), restGlow = Color(0xFF4A90E2),
     stressColor = Color(0xFFF0A020), stressDeep = Color(0xFF4A90E2), stressBright = Color(0xFFE0662F), stressGlow = Color(0xFFF0A020),
-    scenicCenter = Color(0xFF1C2128), scenicEdge = Color(0xFF121518), scenicStar = Color(0xFFC8CFD8),
-    cardFillTop = Color(0xFF15243C), cardFillBottom = Color(0xFF0B1424),
+    scenicCenter = Color(0xFF12161D), scenicEdge = Color(0xFF0B0D12), scenicStar = Color(0xFFC8CFD8),
+    cardFillTop = Color(0xFF14171F), cardFillBottom = Color(0xFF14171F),
     gold = Color(0xFF60A0E0), goldLight = Color(0xFF9FC8F0), goldDeep = Color(0xFF3A78C8),
     goldDeepText = Color(0xFFFFFFFF), signalYellow = Color(0xFFFFD63D),
     titaniumTop = Color(0xFFF1F3F5), titaniumMid = Color(0xFFC9CFD4), titaniumLow = Color(0xFF969DA4), titaniumDeep = Color(0xFF6B737B),
     tipCore = Color(0xFFFFFFFF),
-    heroFill = Color(0xCC0D0E14), heroBorder = Color(0x1CFFFFFF),
+    heroFill = Color(0xFF14171F), heroBorder = Color(0x0DFFFFFF),
 )
 
 val LightTokens = PaletteTokens(

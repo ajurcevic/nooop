@@ -63,6 +63,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -147,12 +148,38 @@ fun Modifier.frostedCardSurface(
             val corner = androidx.compose.ui.geometry.CornerRadius(radiusPx, radiusPx)
             val fill = Palette.surfaceRaised.copy(alpha = Palette.surfaceRaised.alpha * op)
             val border = Palette.hairline.copy(alpha = Palette.hairline.alpha * op)
+            // Calm edge (dark only): no outline, just a 1px inner highlight along the top that fades out
+            // by the end of the top corners. Light keeps its hairline, which reads on warm paper.
+            val drawEdge: androidx.compose.ui.graphics.drawscope.DrawScope.() -> Unit = {
+                if (Palette.isLight) {
+                    drawRoundRect(color = border, cornerRadius = corner, style = Stroke(width = 1.dp.toPx()))
+                } else {
+                    val highlight = Metrics.cardHighlight.toPx()
+                    drawRoundRect(
+                        brush = Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0.0f to Color.White.copy(alpha = 0.05f * op),
+                                1.0f to Color.Transparent,
+                            ),
+                            startY = 0f,
+                            endY = radiusPx.coerceAtLeast(highlight * 2f),
+                        ),
+                        topLeft = Offset(highlight / 2f, highlight / 2f),
+                        size = androidx.compose.ui.geometry.Size(size.width - highlight, size.height - highlight),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(
+                            (radiusPx - highlight / 2f).coerceAtLeast(0f),
+                            (radiusPx - highlight / 2f).coerceAtLeast(0f),
+                        ),
+                        style = Stroke(width = highlight),
+                    )
+                }
+            }
 
             if (tint == null) {
                 // NEUTRAL card (iOS FrostedCardSurface tint == nil): a FLAT raised surface — no vertical
-                // bevel gradient, no accent wash, and a PLAIN hairline border (no accent bias).
+                // bevel gradient and no accent wash.
                 drawRoundRect(color = fill, cornerRadius = corner)
-                drawRoundRect(color = border, cornerRadius = corner, style = Stroke(width = 1.dp.toPx()))
+                drawEdge()
             } else {
                 // TINTED card (iOS parity, 2026-06-23 "synthesis has the old blue style"): a FLAT raised
                 // surface — the SAME WHOOP grey as the neutral card, NO navy bevel gradient — carrying only
@@ -172,10 +199,23 @@ fun Modifier.frostedCardSurface(
                     ),
                     cornerRadius = corner,
                 )
-                // 3) Plain 1px hairline (no accent bias) — matches the neutral card.
-                drawRoundRect(color = border, cornerRadius = corner, style = Stroke(width = 1.dp.toPx()))
+                // 3) The same edge as the neutral card.
+                drawEdge()
             }
         }
+}
+
+// MARK: - Calm number glow
+//
+// Calm keeps glow for the few numbers a glance is for: the live bpm and the three daily scores. The glow
+// is a soft shadow in the number's own colour, centred under the glyphs, never a halo around a card.
+
+/** This style with the Calm glow in [color] (blur [Metrics.glowBlur] at 25%), or unchanged for null. */
+@Composable
+fun TextStyle.withCalmGlow(color: Color?): TextStyle {
+    if (color == null) return this
+    val blur = with(LocalDensity.current) { Metrics.glowBlur.toPx() }
+    return copy(shadow = Shadow(color = color.copy(alpha = 0.25f), offset = Offset.Zero, blurRadius = blur))
 }
 
 // MARK: - NoopCard — the one card surface (Titanium & Gold frosted card, 16dp radius)
@@ -975,7 +1015,10 @@ fun BevelGauge(
  * "No Data" read with one consistent size + weight. Mirrors iOS `GlowRing.centerFont(diameter:)`.
  */
 fun glowRingCenterTextStyle(diameter: Dp, color: Color = Palette.textPrimary): TextStyle =
-    TextStyle(fontWeight = FontWeight.Bold, fontSize = (diameter.value * 0.36f).sp, color = color)
+    TextStyle(
+        fontFamily = NoopType.family, fontWeight = FontWeight.Bold, fontSize = (diameter.value * 0.36f).sp,
+        color = color, fontFeatureSettings = "tnum",
+    )
 
 @Composable
 fun GlowRing(
@@ -1308,8 +1351,8 @@ fun ScreenScaffold(
                 // backdrop paints behind and around the glass, while the scrolling content still stops
                 // clear of the bar. Zero when the overlay is off, so the slot layout is untouched.
                 .padding(
-                    start = 28.dp,
-                    end = 28.dp,
+                    start = Metrics.screenGutter,
+                    end = Metrics.screenGutter,
                     top = topPadding,
                     bottom = 28.dp + BottomBarStyleStore.barHeightForContent(),
                 ),
@@ -1474,7 +1517,9 @@ fun LazyScreenScaffold(
         LazyColumn(
             modifier = listModifier,
             state = listState,
-            contentPadding = PaddingValues(start = 28.dp, top = topPadding, end = 28.dp, bottom = 28.dp),
+            contentPadding = PaddingValues(
+                start = Metrics.screenGutter, top = topPadding, end = Metrics.screenGutter, bottom = 28.dp,
+            ),
             // #765: the shared inter-card spacing token by default (Today/Explore + the eager screens share
             // one uniform card rhythm); a caller may pass a tighter [rowSpacing] (the liquid Today does, for
             // the iOS-compact section rhythm).

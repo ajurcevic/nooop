@@ -625,10 +625,6 @@
       "Share captured log"
     ],
     [
-      "android/app/src/main/java/com/noop/ui/TrendsScreen.kt",
-      "Share recap"
-    ],
-    [
       "android/app/src/main/java/com/noop/ui/UpdateStore.kt",
       "What's new in Zoop $version"
     ],

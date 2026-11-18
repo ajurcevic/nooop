@@ -20,7 +20,8 @@ import i18n_audit as audit
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# The complete Android Today implementation plus the small Today-only helpers it calls.
+# The complete Android Today implementation plus the small Today-only helpers it calls,
+# and the Metrics and Trends tabs, which were redesigned alongside it and share its copy rules.
 # AppRoot is deliberately handled separately below: most of that file is the unrelated
 # More/navigation UI, while only its Today tab and quick-action resources belong here.
 ANDROID_HOME_FILES = {
@@ -35,6 +36,12 @@ ANDROID_HOME_FILES = {
     "android/app/src/main/java/com/noop/ui/CycleTrackerDialog.kt",
     "android/app/src/main/java/com/noop/ui/KeyMetricPrefs.kt",
     "android/app/src/main/java/com/noop/ui/DashboardCards.kt",
+    "android/app/src/main/java/com/noop/ui/MetricsCategoryCards.kt",
+    "android/app/src/main/java/com/noop/ui/MetricsInsight.kt",
+    "android/app/src/main/java/com/noop/ui/MetricsTiles.kt",
+    "android/app/src/main/java/com/noop/ui/TrendsCalmCards.kt",
+    "android/app/src/main/java/com/noop/ui/TrendsInsight.kt",
+    "android/app/src/main/java/com/noop/ui/TrendsScreen.kt",
     "android/app/src/main/java/com/noop/analytics/ReadinessEngine.kt",
     "android/app/src/main/java/com/noop/analytics/StepsEstimateEngine.kt",
     "android/app/src/main/java/com/noop/analytics/RecoveryDrivers.kt",
@@ -69,7 +76,7 @@ ANDROID_INDIRECT_NON_UI_LITERALS = {
     "my-whoop", "Workout", "apple-health", "health-connect", "lifting", "autoDetect",
     # Stable KeyMetric raw values + preferences.
     "charge", "effort", "rest", "restingHr", "bloodOxygen", "respiratory", "steps",
-    "weight", "calories", "today.keyMetrics", "today.keyMetricsDetailed",
+    "weight", "calories", "asleep", "today.keyMetrics", "today.keyMetricsDetailed",
     "today.keyMetricsWindowDays", ",",
     # Stable DashboardCard raw values + preference; units remain measurement metadata.
     "stress", "fitnessAge", "vo2max", "vitality", "skinTemp", "sleep", "hydration", "coupled",

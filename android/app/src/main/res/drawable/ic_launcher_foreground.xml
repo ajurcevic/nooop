@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Adaptive launcher foreground: the Zoop "pulse Z" mark — a mint Z whose bottom bar becomes a
-     heartbeat blip, centred within the adaptive safe zone (108dp viewport). -->
+<!-- Adaptive launcher foreground: the Zoop "Loop" mark, a mint infinity loop with a small white pulse
+     dot on its upper-right curve, about 52dp wide so it sits well inside the 66dp adaptive safe zone
+     (108dp viewport). Source: .superdesign/brand/zoop-mark.svg. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path
-        android:pathData="M33,32 H73 L35,66 H49 L54,58 L60,76 L65,66 H75"
-        android:strokeColor="#69DDB8"
-        android:strokeWidth="6"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:fillColor="#00000000"/>
+    <group android:translateX="26.143" android:translateY="37.75" android:scaleX="0.23214" android:scaleY="0.23214">
+        <path
+            android:pathData="M 60,30 C 90,30 110,60 120,60 C 130,60 150,30 180,30 C 205,30 220,50 220,70 C 220,90 205,110 180,110 C 150,110 130,80 120,80 C 110,80 90,110 60,110 C 35,110 20,90 20,70 C 20,50 35,30 60,30 Z"
+            android:strokeColor="#69DDB8"
+            android:strokeWidth="24"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:fillColor="#00000000"/>
+        <path
+            android:pathData="M183,38 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z"
+            android:fillColor="#FFFFFF"/>
+    </group>
 </vector>

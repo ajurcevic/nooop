@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Monochrome (themed-icon) layer: the Zoop pulse Z as a single-colour silhouette. -->
+<!-- Monochrome (themed-icon) layer: the Zoop loop as a single-colour silhouette. The pulse dot is left
+     out because it sits on the loop's stroke and would merge into it in one colour. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108"
     android:tint="#FFFFFF">
-    <path android:strokeWidth="7" android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:strokeColor="#FFFFFF" android:fillColor="#00000000"
-        android:pathData="M33,32 H73 L35,66 H49 L54,58 L60,76 L65,66 H75"/>
+    <group android:translateX="26.143" android:translateY="37.75" android:scaleX="0.23214" android:scaleY="0.23214">
+        <path android:strokeWidth="26" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:strokeColor="#FFFFFF" android:fillColor="#00000000"
+            android:pathData="M 60,30 C 90,30 110,60 120,60 C 130,60 150,30 180,30 C 205,30 220,50 220,70 C 220,90 205,110 180,110 C 150,110 130,80 120,80 C 110,80 90,110 60,110 C 35,110 20,90 20,70 C 20,50 35,30 60,30 Z"/>
+    </group>
 </vector>

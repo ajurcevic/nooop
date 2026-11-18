@@ -30,7 +30,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -358,17 +357,15 @@ private fun WelcomeStep() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            // The NOOP mark centred on a flat brushed-titanium hero tile (the metallic titanium ramp, a
-            // reset token — no gold). Clean and flat: a hairline rim, no bloom.
+            // The Zoop mark centred on a Calm card-coloured disc. Clean and flat: no rim, no bloom.
             Box(contentAlignment = Alignment.Center, modifier = Modifier.size(150.dp)) {
                 Box(
                     modifier = Modifier
                         .size(150.dp)
                         .clip(CircleShape)
-                        .background(Brush.linearGradient(*Palette.titaniumGradient.toTypedArray()))
-                        .border(1.dp, Palette.hairline, CircleShape),
+                        .background(Palette.surfaceRaised),
                 )
-                BrandMark(size = 104.dp)
+                ZoopMark(width = 104.dp)
             }
             Spacer(Modifier.height(18.dp))
             Text(

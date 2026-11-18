@@ -2,36 +2,17 @@ package com.noop.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.IosShare
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalView
-import kotlinx.coroutines.launch
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,108 +25,81 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noop.R
+import com.noop.analytics.SkinTempDisplay
+import com.noop.analytics.TrainingLoadEngine
 import com.noop.analytics.WeeklyDigestEngine
 import com.noop.data.DailyMetric
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAdjusters
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
-// MARK: - Trends
+// MARK: - Trends (Zoop "Calm" redesign)
 //
-// The longitudinal view, ported from Strand/Screens/TrendsView.swift onto the locked
-// Android component system so every surface, height and gap matches: one
-// SegmentedPillControl for the range (W / M / 3M / 6M / 1Y / ALL), a hero Recovery
-// ChartCard, and a uniform set of HRV / Resting HR / Day-strain ChartCards (all
-// Metrics.chartHeight tall), followed by a recovery history strip.
+// The long view. One range control (1M / 3M / 6M / 1Y / All) and one caption that explains every number, then
+// This week (Charge, Effort and Rest against the week before, browsable week by week) and four sections:
+// Recovery, Sleep, Training and Body. A section's numbers are averages for the period with an arrow against
+// the same span just before it, and its charts shade the owner's normal range. The maths lives in
+// TrendsInsight.kt and the drawing in TrendsCalmCards.kt; the Trends report export stays at the end.
 //
-// Windows are taken relative to the phone's actual local day, with the macOS auto-expand
-// rule: if the selected window holds zero points for a metric, the smallest larger range
-// that does is used and the card caption notes the widening.
+// Data: full history is loaded once via repo.daysMerged; until it arrives the reactive recentDays flow backs
+// the screen, so it is never empty when data exists. Rest is the sleep_performance composite (the number the
+// Today Rest score shows), and weight comes from Apple Health / Health Connect like the Metrics Weight tile.
 //
-// Data: full history is loaded once via repo.days("my-whoop"); until it arrives the
-// reactive recentDays flow backs the charts, so the screen is never empty when data exists.
-//
-// Difference from macOS: the macOS Trends footer carries a YearHeatStrip calendar
-// (a bespoke 53-week heat grid) that has no Android foundation equivalent. Rather than
-// fake it, the "Recovery history" card renders the real per-day recovery series as a
-// bar strip over the same window, with a short note pointing at the macOS calendar view.
-
-// MARK: - Liquid hero tokens (the liquid Trends restyle)
-//
-// The Charge hero card floats over the day-of-sky, so it carries the liquid translucent near-black fill
-// (rgba(13,14,20,.80)) rather than the classic frosted surface — the card does the contrast work so the
-// crisp line chart + the count-up vessel accent read clean over the sky. Radius 26 + a white@0.11 hairline
-// give it the frosted-glass edge. Mirrors the liquid Today heroCard (LiquidTodayView / TodayScreen).
-private val LIQUID_HERO_RADIUS: Dp = 26.dp
+// The Today-hosted trend cards (TrendHostCard, further down) keep their own chart card and trailing month.
 
 @Composable
 fun TrendsScreen(vm: AppViewModel) {
     // Reactive cache (oldest → newest) as the immediate backing.
     val reactiveDays by vm.recentDays.collectAsStateWithLifecycle()
 
-    // Full history loaded once for the long (1Y / ALL) ranges; falls back to the flow
-    // until it lands so the screen is populated on first frame when any data exists.
+    // Full history loaded once for the long ranges; falls back to the flow until it lands so the screen is
+    // populated on first frame when any data exists.
     var fullHistory by remember { mutableStateOf<List<DailyMetric>?>(null) }
     LaunchedEffect(Unit) {
         // Merged: imported WHOOP days win; on-device computed days gap-fill the trends. Reads the registry's
-        // ACTIVE strap id so daysMerged resolves the active-id ∪ canonical "my-whoop" union (SPINE / #814) ,
+        // ACTIVE strap id so daysMerged resolves the active-id ∪ canonical "my-whoop" union (SPINE / #814),
         // a re-added strap's data and the canonical import both surface; a single-WHOOP install is unchanged.
         fullHistory = vm.repo.daysMerged(vm.activeStrapId)
     }
     val days = fullHistory ?: reactiveDays
 
-    // Effort display scale (#268) , routes the Effort small-multiple's numbers + unit. Display-only.
-    val effortScale = UnitPrefs.effortScale(LocalContext.current)
+    val context = LocalContext.current
+    // Display preferences, read on each composition like the rest of the app (returning from Settings
+    // recomposes the screen). They only change how numbers read, never which numbers they are.
+    val effortScale = UnitPrefs.effortScale(context)
+    val unitSystem = UnitPrefs.system(context)
+    val fahrenheit = UnitPrefs.temperature(context) == TemperatureUnit.FAHRENHEIT
+    val preferSkinDeviation = UnitPrefs.skinTempPreferred(context) == SkinTempDisplay.Kind.DEVIATION
 
-    // Day-cycle sky backdrop (#698). Default ON. When off, Trends drops the liquid sky and the scaffold
-    // paints the plain dark surface canvas instead. SharedPreferences isn't reactive, so this is read once
-    // into local state (mirrors Today's showDayCycleBackground gate).
-    val trendsCtx = LocalContext.current
-    val showDayCycleBackground = remember { NoopPrefs.showDayCycleBackground(trendsCtx) }
-    // Sky-behind-cards (#434 family): when on, the sky fills the whole viewport so the transparent
-    // cards reveal it the whole way down, exactly like Today and the metric-detail screens.
-    val skyBehindCards = remember { NoopPrefs.skyBehindCards(trendsCtx) }
+    // Day-cycle sky backdrop (#698) and sky-behind-cards (#434 family), read once like Today.
+    val showDayCycleBackground = remember { NoopPrefs.showDayCycleBackground(context) }
+    val skyBehindCards = remember { NoopPrefs.skyBehindCards(context) }
 
     var range by remember { mutableStateOf(TrendsRange.Quarter) }
+    var showExport by remember { mutableStateOf(false) }
 
-    // #710 , browse previous weeks in the Week-in-review digest. 0 = the week containing today; each step
-    // back is one Mon–Sun week earlier, clamped so it never runs past the earliest day we hold. The Trends
-    // RANGE control above scopes the long charts; this only moves the weekly digest at the top.
+    // #710: browse earlier weeks on the This-week card. 0 = the week containing today; each step back is one
+    // Monday-to-Sunday week earlier, clamped so it never runs past the earliest day we hold.
     var weekOffset by remember { mutableStateOf(0) }
-    // Re-clamp the offset whenever the loaded history changes (e.g. an import lands more weeks), so a
-    // stored offset can never point past the new earliest week. Mirrors the iOS minWeekOffset clamp.
     val minWeekOffset = remember(days) { minWeekOffset(days) }
     LaunchedEffect(minWeekOffset) { weekOffset = weekOffset.coerceIn(minWeekOffset, 0) }
 
-    // Resolve each metric's window ONCE per composition and reuse below , mirrors the macOS resolve(_:)
-    // so caption / widened / points aren't recomputed per use. HOISTED above the lazy scaffold: these
-    // are @Composable `remember` hooks, which can't run inside the LazyListScope content lambda. They're
-    // cheap memoized resolves (no-ops over an empty `days`), so the empty branch below simply ignores
-    // them , same as Intelligence's hoisted range/filter. Mirrors the eager body's per-composition resolve.
-    val recovery = remember(days, range) { resolveMetric(days, range) { it.recovery } }
-    val hrv = remember(days, range) { resolveMetric(days, range) { it.avgHrv } }
-    val rhr = remember(days, range) { resolveMetric(days, range) { it.restingHr?.toDouble() } }
-    val strain = remember(days, range) { resolveMetric(days, range) { it.strain } }
-    // Rest = the sleep_performance COMPOSITE (0–100) , the SAME metric the Today Rest score/tile and the
-    // Sleep Rest-detail plot (#614 follow-up), NOT raw efficiency, which is a different number under the
-    // same "Rest" label and made the Trends Rest graph disagree with the Today Rest score (#732).
-    // sleep_performance is a metricSeries (imported-wins resolved), not a DailyMetric column, so fetch the
-    // resolved series and key it by day for the existing windowing/widening below. Mirrors the source
-    // TodayScreen's restScore reads, so the two screens now plot the same number.
+    // Rest = the sleep_performance COMPOSITE (0–100), the SAME metric the Today Rest score and the Sleep Rest
+    // detail plot (#614 follow-up, #732). It is a resolved metric series, not a DailyMetric column.
     var sleepPerfByDay by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
     LaunchedEffect(days) {
         sleepPerfByDay = runCatching {
@@ -154,24 +108,57 @@ fun TrendsScreen(vm: AppViewModel) {
                 .values.associate { it.first to it.second }
         }.getOrDefault(emptyMap())
     }
-    val rest = remember(days, range, sleepPerfByDay) {
-        resolveMetric(days, range) { d -> sleepPerfByDay[d.day] }
+
+    // Every measured body weight by day, with the Metrics Weight tile's Health Connect rule.
+    var weightByDay by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
+    val weightFromHealthConnect = ProfileStore.from(context).useHealthConnectWeight
+    LaunchedEffect(days, weightFromHealthConnect) {
+        weightByDay = runCatching {
+            val apple = vm.repo.appleDaily("apple-health", "0000-01-01", "9999-12-31")
+            val healthConnect = vm.repo.appleDaily("health-connect", "0000-01-01", "9999-12-31")
+            weightHistoryKg(apple, healthConnect, healthConnectOnly = weightFromHealthConnect)
+        }.getOrDefault(emptyMap())
     }
-    val recAvg = recovery.values.averageOrNull()
-    val rangeSubtitle = range.days?.let { dayCount ->
-        stringResource(R.string.trends_trailing_days, dayCount)
-    } ?: stringResource(R.string.trends_all_history)
+
+    // The period ends on the logical day (the one the day rows are keyed by), refreshed with the data.
+    // HOISTED above the lazy scaffold: remember can't run inside the LazyListScope content lambda.
+    val today = remember(days) { logicalDayNow() }
+    val histories = remember(days) { MetricHistories(days) }
+    val series = remember(histories, sleepPerfByDay, weightByDay) {
+        TrendsSeries(
+            charge = histories.charge,
+            hrv = histories.hrv,
+            restingHr = histories.restingHr,
+            effort = histories.effort,
+            rest = sleepPerfByDay,
+            weight = weightByDay,
+            skinDeviation = histories.skinDeviation,
+            skinAbsolute = histories.skinAbsolute,
+        )
+    }
+    val model = remember(series, range, today, preferSkinDeviation) {
+        trendsPeriodModel(series, range.days, today, preferSkinDeviation)
+    }
+    // Training load models the full history, not the period: chronic load is a 42-day horizon by nature.
+    // Days without an Effort are left out so the model runs through the latest day that has one.
+    val training = remember(days) {
+        TrainingLoadEngine.evaluate(
+            days.filter { it.strain != null }.map { TrainingLoadEngine.DailyLoad(it.day, it.strain) },
+        )
+    }
+    val monday = remember(today, weekOffset) {
+        today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).plusWeeks(weekOffset.toLong())
+    }
+    val week = remember(series, monday) {
+        listOf(weekSummary(series.charge, monday), weekSummary(series.effort, monday), weekSummary(series.rest, monday))
+    }
 
     LazyScreenScaffold(
         title = stringResource(R.string.nav_trends),
         subtitle = stringResource(R.string.trends_subtitle),
-        // LIQUID SKY BACKDROP (the pilot pattern — LiquidScreenSky.kt): the time-of-day liquid sky settles
-        // into the theme canvas behind the header + top rows, full-bleed via the scaffold's topBackground
-        // plumbing. Static (LiquidSkyStatic, inside the helper) — never an animated sky behind a scrolling
-        // list. Gated on the same day-cycle pref as Today; when off, the scaffold paints the flat canvas.
+        // LIQUID SKY BACKDROP (LiquidScreenSky.kt): the static time-of-day sky behind the header and top rows,
+        // gated on the same day-cycle pref as Today; when off, the scaffold paints the flat canvas.
         topBackground = screenBackdropSlot(showDayCycleBackground, skyBehindCards),
-        // Sky-behind-cards fills the viewport so the transparent cards reveal the sky the whole way down
-        // (Today / metric-detail parity — the same two prefs drive the same two behaviours everywhere).
         fullBleedBackground = screenBackdropFullBleed(showDayCycleBackground, skyBehindCards),
     ) {
         if (days.isEmpty()) {
@@ -179,166 +166,283 @@ fun TrendsScreen(vm: AppViewModel) {
             return@LazyScreenScaffold
         }
 
-        // The main card list ripples in once on appear (Reduce-Motion safe), mirroring the iOS
-        // staggeredAppear sequence , each top-level section is one staggered child.
-
-        // --- Week-in-review digest (#208) with prev/next week browsing (#710). Past weeks render in the
-        // same format; the chevrons stay visible on an empty PAST week so the user can step on. ---
+        // --- Range control and the one caption that explains every number below. ---
         item {
-            Column(modifier = Modifier.staggeredAppear(index = 0)) {
-                WeeklyDigestNav(
-                    days = days,
-                    weekOffset = weekOffset,
-                    minWeekOffset = minWeekOffset,
-                    onStep = { delta -> weekOffset = (weekOffset + delta).coerceIn(minWeekOffset, 0) },
+            Column(
+                modifier = Modifier.staggeredAppear(index = 0),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space8),
+            ) {
+                SegmentedPillControl(
+                    items = TrendsRange.entries.toList(),
+                    selection = range,
+                    label = { it.label() },
+                    onSelect = { range = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    adaptsToAvailableWidth = true,
                 )
+                val periodDays = range.days
+                if (periodDays != null) {
+                    TrendsPeriodCaption(
+                        lead = uiString(R.string.trends_caption_lead_days, periodDays),
+                        body = uiString(R.string.trends_caption_period, periodDays),
+                    )
+                } else {
+                    TrendsPeriodCaption(
+                        lead = uiString(R.string.trends_caption_lead_all),
+                        body = uiString(R.string.trends_caption_all),
+                    )
+                }
             }
         }
 
-        // --- Week in review , the Charge / Effort / Rest trio in NOOP's pip language (PipBar +
-        // CountUpText), mirroring the iOS TrendsView.weekInReview card. White count-up numbers over
-        // segmented count-up bars; self-hides when none of the three carry a window mean. ---
+        // --- This week: Charge, Effort and Rest against the week before, with a bar per day. ---
         item {
-            WeekInReviewCard(
-                charge = recovery,
-                effort = strain,
-                rest = rest,
-                effortScale = effortScale,
+            TrendsWeekCard(
+                title = weekTitle(weekOffset),
+                subtitle = uiString(R.string.trends_week_subtitle, trendsWeekRangeLabel(monday)),
+                scores = weekScores(week, effortScale),
+                canGoBack = weekOffset > minWeekOffset,
+                canGoForward = weekOffset < 0,
+                onStep = { step -> weekOffset = (weekOffset + step).coerceIn(minWeekOffset, 0) },
                 modifier = Modifier.staggeredAppear(index = 1),
             )
         }
 
-        // --- Range control ---
+        // --- Recovery: the Charge line, its stats, HRV and resting heart rate, and every day's Charge. ---
         item {
-            Column(
+            val charge = model.charge
+            TrendsSectionCard(
+                category = MetricCategory.RECOVERY,
+                line = trendsRecoveryLine(model),
                 modifier = Modifier.staggeredAppear(index = 2),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space8),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    SegmentedPillControl(
-                        items = TrendsRange.entries.toList(),
-                        selection = range,
-                        label = { it.label },
-                        onSelect = { range = it },
-                    )
-                    Spacer(Modifier.weight(1f))
-                    TrendsRangeCaption(range = range, fullSubtitle = rangeSubtitle)
+                TrendHeadline(
+                    TrendHeadlineUi(
+                        label = uiString(R.string.trends_charge),
+                        detail = null,
+                        value = charge.average?.let(::trendsWhole),
+                        valueColor = charge.average?.let { Palette.recoveryColor(it) } ?: Palette.textPrimary,
+                        delta = charge.delta,
+                        tone = comparisonTone(charge.average, charge.previousAverage, TrendRule.HIGHER_IS_BETTER),
+                        formatDelta = ::trendsWhole,
+                    ),
+                )
+                if (model.chargeLine.size >= 2) {
+                    ChargeLineChart(model.chargeLine, model.axis, charge.band)
                 }
-                Text(
-                    recovery.caption,
-                    style = NoopType.footnote,
-                    color = if (recovery.widened) Palette.statusWarning else Palette.textTertiary,
+                if (charge.average != null) {
+                    TrendsBlockDivider()
+                    TrendStatsRow(
+                        listOf(
+                            uiString(R.string.trends_avg) to trendsWhole(charge.average),
+                            uiString(R.string.trends_peak) to (charge.peak?.let(::trendsWhole) ?: TRENDS_EMPTY_VALUE),
+                            uiString(R.string.trends_low) to (charge.low?.let(::trendsWhole) ?: TRENDS_EMPTY_VALUE),
+                            uiString(R.string.trends_days) to charge.points.size.toString(),
+                        ),
+                    )
+                }
+                if (model.hrv.average != null || model.restingHr.average != null) {
+                    TrendsBlockDivider()
+                    TrendMiniPair(
+                        left = vitalMini(model.hrv, R.string.trends_hrv_full, "ms", Palette.metricPurple, TrendRule.HIGHER_IS_BETTER),
+                        right = vitalMini(model.restingHr, R.string.trends_resting_hr_full, "bpm", Palette.metricRose, TrendRule.LOWER_IS_BETTER),
+                        axis = model.axis,
+                    )
+                }
+                if (charge.points.size >= 2) {
+                    TrendsBlockDivider()
+                    ChargeDayStrip(
+                        points = charge.epochDays,
+                        axis = model.axis,
+                        lowPeak = if (charge.low != null && charge.peak != null) {
+                            uiString(R.string.trends_low_peak, trendsWhole(charge.low), trendsWhole(charge.peak))
+                        } else {
+                            null
+                        },
+                    )
+                }
+            }
+        }
+
+        // --- Sleep: Rest's period average and its weekly (or monthly) bars. ---
+        item {
+            val rest = model.rest
+            val period = barPeriodFor(model.days)
+            TrendsSectionCard(
+                category = MetricCategory.SLEEP,
+                line = trendsSleepLine(model),
+                modifier = Modifier.staggeredAppear(index = 3),
+            ) {
+                TrendHeadline(
+                    TrendHeadlineUi(
+                        label = uiString(R.string.trends_rest),
+                        detail = uiString(if (period == BarPeriod.WEEK) R.string.trends_weekly else R.string.trends_monthly),
+                        value = rest.average?.let(::trendsWhole),
+                        valueColor = rest.average?.let { homeToneColor(restTone(it)) } ?: Palette.textPrimary,
+                        delta = rest.delta,
+                        tone = comparisonTone(rest.average, rest.previousAverage, TrendRule.HIGHER_IS_BETTER),
+                        formatDelta = ::trendsWhole,
+                    ),
+                )
+                RestPeriodBars(
+                    bars = periodBars(rest.points, period),
+                    band = rest.band,
+                    barColor = { homeToneColor(restTone(it)) },
+                    format = ::trendsWhole,
                 )
             }
         }
 
-        // --- Hero , charge over time. Charge (green) world: domain card wash, a crisp flat line with a
-        // bright "now" end-cap, and a TrendChip for the window's move. ---
+        // --- Training: Effort's daily bars, then fitness against fatigue. ---
         item {
-            ChartCard(
-                modifier = Modifier.staggeredAppear(index = 3),
-                title = stringResource(R.string.trends_charge),
-                // The range bar above already prints the authoritative reading-count caption;
-                // the hero only names its window so the count isn't doubled in one card height.
-                subtitle = rangeSubtitle,
-                trailing = recAvg?.let { "${it.roundToInt()}" },
-                // LIQUID hero: the translucent-black frosted wrapper + a small count-up Charge vessel accent
-                // in the header (the screen's one headline single value — the window-average Charge). The
-                // line chart below stays crisp. Small multiples pass liquidHero = false → untouched.
-                liquidHero = true,
-                headlineValue = recAvg,
-                color = Palette.chargeColor,
-                tipColor = Palette.chargeBright,
-                values = recovery.values,
-                dates = recovery.dates,
-                formatY = { "${it.roundToInt()}" },
-                change = periodChange(recovery.values),
-                higherIsBetter = true,
-                changeFmt = { "${it.roundToInt()}" },
-                // Lift the ceiling ~6% so a near-100 peak and the now-cap halo clear the top gridline ,
-                // mirrors the iOS hero's `valueRange: 0...106`.
-                chartHeadroom = 0.06f,
-                footer = listOf(
-                    stringResource(R.string.trends_avg) to (recAvg?.let { "${it.roundToInt()}" } ?: EM_DASH),
-                    stringResource(R.string.trends_peak) to (recovery.values.maxOrNull()?.let { "${it.roundToInt()}" } ?: EM_DASH),
-                    stringResource(R.string.trends_low) to (recovery.values.minOrNull()?.let { "${it.roundToInt()}" } ?: EM_DASH),
-                    stringResource(R.string.trends_days) to "${recovery.values.size}",
-                ),
-            )
+            val effort = model.effort
+            val factor = UnitFormatter.effortValue(1.0, effortScale)
+            val scaleMax = UnitFormatter.effortValue(100.0, effortScale)
+            val load = trainingLoadUi(training, model.axis, effortScale)
+            TrendsSectionCard(
+                category = MetricCategory.TRAINING,
+                line = trendsTrainingLine(model, training, load != null, effortScale),
+                modifier = Modifier.staggeredAppear(index = 4),
+            ) {
+                TrendHeadline(
+                    TrendHeadlineUi(
+                        label = uiString(R.string.trends_effort),
+                        detail = uiString(R.string.trends_daily_out_of, UnitFormatter.effortScaleMax(effortScale)),
+                        value = effort.average?.let { effortText(it, effortScale) },
+                        valueColor = effort.average?.let { Palette.strainColor(it) } ?: Palette.textPrimary,
+                        delta = effort.delta,
+                        tone = null,
+                        formatDelta = { effortText(it, effortScale) },
+                    ),
+                )
+                if (effort.points.isNotEmpty()) {
+                    EffortDayBars(
+                        points = effort.epochDays.map { (day, value) -> day to value * factor },
+                        axis = model.axis,
+                        scaleMax = scaleMax,
+                        grid = if (effortScale == EffortScale.WHOOP) listOf(0.0, 7.0, 14.0, 21.0) else listOf(0.0, 25.0, 50.0, 75.0, 100.0),
+                        band = effort.band?.let { (low, high) -> low * factor to high * factor },
+                        format = ::trendsWhole,
+                    )
+                }
+                if (load != null || !training.isAvailable) {
+                    TrendsBlockDivider()
+                    TrainingLoadBlock(
+                        subtitle = trainingLoadSubtitle(training),
+                        load = load,
+                        note = if (training.isAvailable) {
+                            null
+                        } else {
+                            uiString(R.string.trends_tl_needs, TrainingLoadEngine.standard.minimumDays, training.contiguousDays)
+                        },
+                        axis = model.axis,
+                    )
+                }
+            }
         }
 
-        // --- Small multiples , HRV / Resting HR / Effort. HRV/RHR are Charge sub-signals; the card
-        // surface is neutral (EXP-004) and each line keeps its metric hue; Effort is the WHOOP blue
-        // strain world. ---
-        // No trailing window label , the range bar's overline already states it.
+        // --- Body: weight and skin temperature. ---
+        item {
+            val weightFormat: (Double) -> String = { kg ->
+                trendsDecimal(if (unitSystem == UnitSystem.IMPERIAL) UnitFormatter.kgToPounds(kg) else kg)
+            }
+            val weightUnit = UnitFormatter.massUnit(unitSystem)
+            val skinKind = if (model.skinIsDeviation) SkinTempDisplay.Kind.DEVIATION else SkinTempDisplay.Kind.ABSOLUTE
+            val skinFormat: (Double) -> String = { SkinTempDisplay.numberString(it, skinKind, fahrenheit) }
+            val skinDeltaFormat: (Double) -> String = { trendsDecimal(if (fahrenheit) it * 9.0 / 5.0 else it) }
+            val skinUnit = if (fahrenheit) "°F" else "°C"
+            val weight = model.weight
+            val skin = model.skin
+            TrendsSectionCard(
+                category = MetricCategory.BODY,
+                line = trendsBodyLine(model, weightFormat, weightUnit, skinFormat, skinDeltaFormat, skinUnit),
+                modifier = Modifier.staggeredAppear(index = 5),
+            ) {
+                if (weight.average != null || skin.average != null) {
+                    TrendMiniPair(
+                        left = weight.average?.let { average ->
+                            TrendMiniUi(
+                                title = uiString(R.string.today_metric_weight),
+                                value = weightFormat(average),
+                                unitAvg = uiString(R.string.trends_unit_avg, weightUnit),
+                                valueColor = Palette.metricCyan,
+                                delta = weight.delta,
+                                tone = null,
+                                formatDelta = weightFormat,
+                                deltaUnit = null,
+                                points = weight.epochDays,
+                                band = weight.band,
+                                lineColor = Palette.metricCyan,
+                                maxGapDays = TRENDS_WEIGHT_MAX_GAP_DAYS,
+                            )
+                        },
+                        right = skin.average?.let { average ->
+                            TrendMiniUi(
+                                title = uiString(R.string.today_card_skin_temp_subtitle),
+                                value = skinFormat(average),
+                                unitAvg = uiString(R.string.trends_unit_avg, skinUnit),
+                                valueColor = Palette.metricCyan,
+                                delta = skin.delta,
+                                tone = comparisonTone(average, skin.previousAverage, TrendRule.STEADY_IS_BEST),
+                                formatDelta = skinDeltaFormat,
+                                deltaUnit = null,
+                                points = skin.epochDays,
+                                band = skin.band,
+                                lineColor = Palette.metricCyan,
+                            )
+                        },
+                        axis = model.axis,
+                    )
+                }
+            }
+        }
+
+        // --- Export trends report (#436), the shareable offline PDF exporter, behind one quiet button. The
+        // same composable Settings hosts, so both surfaces offer it. ---
         item {
             Column(
-                modifier = Modifier.staggeredAppear(index = 4),
+                modifier = Modifier.staggeredAppear(index = 6),
                 verticalArrangement = Arrangement.spacedBy(Metrics.gap),
             ) {
-                SectionHeader(stringResource(R.string.trends_daily_signals), overline = stringResource(R.string.nav_trends))
-                MetricTrendCard(
-                    title = stringResource(R.string.trends_hrv_full), unit = "ms",
-                    color = Palette.metricPurple,
-                    higherIsBetter = true,
-                    resolved = hrv,
-                    fmt = { "${it.roundToInt()}" },
+                NoopButton(
+                    text = uiString(R.string.trends_export_report),
+                    leadingIcon = Icons.Filled.Download,
+                    kind = NoopButtonKind.Secondary,
+                    fullWidth = true,
+                    onClick = { showExport = !showExport },
                 )
-                MetricTrendCard(
-                    title = stringResource(R.string.trends_resting_hr_full), unit = "bpm",
-                    color = Palette.metricRose,
-                    higherIsBetter = false,
-                    resolved = rhr,
-                    fmt = { "${it.roundToInt()}" },
-                )
-                MetricTrendCard(
-                    // Plotted values stay on the stored 0–100 scale (line shape unchanged); only the displayed
-                    // numbers + unit follow the Effort-scale toggle, converted inside `fmt`. (#268)
-                    title = stringResource(R.string.trends_effort), unit = "/ ${UnitFormatter.effortScaleMax(effortScale)}",
-                    // WHOOP: Effort/Strain is always BLUE , a deep→bright blue line, not the amber ramp.
-                    color = Palette.effortColor,
-                    tint = Palette.effortColor,
-                    tipColor = Palette.effortBright,
-                    higherIsBetter = null,
-                    resolved = strain,
-                    fmt = { UnitFormatter.effortDisplay(it, effortScale) },
-                )
-            }
-        }
-
-        // --- Long-horizon training load (CTL/ATL/TSB). Full history, not the range window — chronic
-        // load is inherently a 42-day horizon. Shows an honest "needs N more days" state until enough
-        // contiguous Effort history exists. Twin of the Apple TrainingLoadCard. ---
-        item {
-            TrainingLoadCard(days = days, modifier = Modifier.staggeredAppear(index = 5))
-        }
-
-        // --- Recovery history strip (stands in for the macOS YearHeatStrip) ---
-        item {
-            Column(modifier = Modifier.staggeredAppear(index = 6)) {
-                RecoveryHistoryCard(days = days, range = range)
-            }
-        }
-
-        // --- Export trends report (#436) , the shareable offline PDF exporter. Mirrors the iOS
-        // TrendsView.exportReportRow footer; the same composable Settings hosts, so both surfaces
-        // offer it. Routed through NoopButton like every other CTA (no gold). ---
-        item {
-            Column(modifier = Modifier.staggeredAppear(index = 7)) {
-                TrendsReportExportSection(vm)
+                if (showExport) TrendsReportExportSection(vm)
             }
         }
     }
 }
 
-// MARK: - Week-in-review digest with prev/next week browsing (#710)
+/** Longest gap, in days, a weight sparkline bridges: weigh-ins are often days or weeks apart. */
+private const val TRENDS_WEIGHT_MAX_GAP_DAYS = 45
+
+// MARK: - Range control
+
+/** The Trends range control: the last 30, 90, 180 or 365 days, or all history. */
+private enum class TrendsRange(val days: Int?, private val shortLabel: String?) {
+    Month(30, "1M"),
+    Quarter(90, "3M"),
+    Half(180, "6M"),
+    Year(365, "1Y"),
+    All(null, null);
+
+    /** The pill's label; "All" is a word, so it is translated. */
+    fun label(): String = shortLabel ?: uiString(R.string.trends_range_all)
+
+    /** This range plus every longer one, shortest first: the order a hosted card widens through. */
+    val widening: List<TrendsRange>
+        get() = entries.dropWhile { it != this }
+}
+
+// MARK: - This week
 
 /**
  * The most-negative weekOffset allowed: the number of whole Mon–Sun weeks between the earliest day we
- * hold and this week. Beyond it there's no data to digest, so the back chevron disables. 0 when history
+ * hold and this week. Beyond it there's no data to show, so the back button disables. 0 when history
  * is empty or unparseable (so we stay on this week). `days` is oldest → newest. Mirrors iOS minWeekOffset.
  */
 private fun minWeekOffset(days: List<DailyMetric>): Int {
@@ -355,256 +459,222 @@ private fun minWeekOffset(days: List<DailyMetric>): Int {
     return off
 }
 
-/**
- * The Week-in-review digest for the selected week, with prev/next chevrons in its header. The digest for
- * the offset week is built straight from the shared [buildWeeklyDigest] (the same builder
- * WeeklyDigestCard uses) so past weeks render in the identical format. The whole block self-hides only
- * when the WHOLE history is empty; an empty PAST week still shows the chevrons so the user can step on.
- * Mirrors iOS TrendsView.weeklyDigestNav.
- */
-@Composable
-private fun WeeklyDigestNav(
-    days: List<DailyMetric>,
-    weekOffset: Int,
-    minWeekOffset: Int,
-    onStep: (Int) -> Unit,
-) {
-    if (days.isEmpty()) return
-    // Anchor day for this offset = today shifted back by weekOffset whole weeks; the engine snaps it to
-    // that week's Monday. Memoised so the (cheap but non-trivial) digest rebuild only runs on a real change.
-    val anchorDay = remember(weekOffset) {
-        WeeklyDigestEngine.addDays(logicalDayKeyNow(), weekOffset * 7)
-    }
-    // #268/#463: past weeks quote Effort on the user's display scale too, same as the live card.
-    val context = LocalContext.current
-    val factor = effortDisplayFactor(UnitPrefs.effortScale(context))
-    val digest = remember(days, anchorDay, factor) {
-        buildWeeklyDigest(days, anchorDay, effortDisplayFactor = factor)
-    }
-    // "Share recap" capture: track the card's on-screen bounds, then draw the Compose host view + crop
-    // (RecapShare.captureCropped) — the Compose-1.7 GraphicsLayer capture API isn't in this 1.6.8 build.
-    val scope = rememberCoroutineScope()
-    val hostView = LocalView.current
-    var cardBounds by remember { mutableStateOf<Rect?>(null) }
+/** "This week", "Last week" or "3 weeks ago". */
+private fun weekTitle(weekOffset: Int): String = when (weekOffset) {
+    0 -> uiString(R.string.trends_this_week)
+    -1 -> uiString(R.string.trends_last_week)
+    else -> uiPlural(R.plurals.trends_weeks_ago, -weekOffset, -weekOffset)
+}
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        WeekNavBar(weekOffset = weekOffset, minWeekOffset = minWeekOffset, onStep = onStep)
-        if (digest.isEmpty) {
-            DataPendingNote(
-                title = stringResource(R.string.trends_no_readings_this_week),
-                body = stringResource(R.string.trends_no_readings_body),
-            )
-        } else {
-            Box(modifier = Modifier.onGloballyPositioned { cardBounds = it.boundsInRoot() }) {
-                NoopCard { WeeklyDigestContent(digest = digest, compact = true) }
-            }
-            NoopButton(
-                text = "Share recap",
-                leadingIcon = Icons.Filled.IosShare,
-                kind = NoopButtonKind.Secondary,
-                onClick = {
-                    val bounds = cardBounds
-                    val bmp = bounds?.let { RecapShare.captureCropped(hostView, it) }
-                    if (bmp != null) scope.launch { RecapShare.share(context, bmp, anchorDay) }
-                },
-            )
-        }
-    }
+/** Charge, Effort and Rest for the This-week card, from the week's three summaries in that order. */
+private fun weekScores(week: List<WeekSummary>, effortScale: EffortScale): List<WeekScoreUi> {
+    val (charge, effort, rest) = week
+    return listOf(
+        WeekScoreUi(
+            label = uiString(R.string.trends_charge),
+            value = charge.average?.let(::trendsWhole),
+            valueColor = charge.average?.let { Palette.recoveryColor(it) } ?: Palette.textPrimary,
+            delta = charge.delta,
+            tone = comparisonTone(charge.average, charge.previousAverage, TrendRule.HIGHER_IS_BETTER),
+            formatDelta = ::trendsWhole,
+            daily = charge.daily,
+            barColor = { Palette.recoveryColor(it) },
+        ),
+        WeekScoreUi(
+            label = uiString(R.string.trends_effort),
+            value = effort.average?.let { effortText(it, effortScale) },
+            valueColor = effort.average?.let { Palette.strainColor(it) } ?: Palette.textPrimary,
+            delta = effort.delta,
+            tone = null,
+            formatDelta = { effortText(it, effortScale) },
+            daily = effort.daily,
+            barColor = { Palette.strainColor(it) },
+        ),
+        WeekScoreUi(
+            label = uiString(R.string.trends_rest),
+            value = rest.average?.let(::trendsWhole),
+            valueColor = rest.average?.let { homeToneColor(restTone(it)) } ?: Palette.textPrimary,
+            delta = rest.delta,
+            tone = comparisonTone(rest.average, rest.previousAverage, TrendRule.HIGHER_IS_BETTER),
+            formatDelta = ::trendsWhole,
+            daily = rest.daily,
+            barColor = { homeToneColor(restTone(it)) },
+        ),
+    )
+}
+
+// MARK: - Section lines and models
+
+/** HRV or resting heart rate as a small card: its average in the metric's hue, the arrow, and its sparkline. */
+private fun vitalMini(stats: TrendPeriodStats, title: Int, unit: String, color: Color, rule: TrendRule): TrendMiniUi? {
+    val average = stats.average ?: return null
+    return TrendMiniUi(
+        title = uiString(title),
+        value = trendsWhole(average),
+        unitAvg = uiString(R.string.trends_unit_avg, unit),
+        valueColor = color,
+        delta = stats.delta,
+        tone = comparisonTone(average, stats.previousAverage, rule),
+        formatDelta = ::trendsWhole,
+        deltaUnit = unit,
+        points = stats.epochDays,
+        band = stats.band,
+        lineColor = color,
+    )
+}
+
+/** The Recovery line: Charge's move on the period before, crediting HRV only when it moved the same way. */
+private fun trendsRecoveryLine(model: TrendsPeriodModel): String {
+    val charge = model.charge
+    val sentence = recoveryTrendSentence(
+        charge = trendDirection(charge.delta, charge.previousAverage),
+        hrv = trendDirection(model.hrv.delta, model.hrv.previousAverage),
+        hasValues = charge.average != null,
+    )
+    return sentenceText(sentence, charge.delta?.let { trendsWhole(abs(it)) }, charge.average?.let(::trendsWhole), model.days)
+}
+
+/** The Sleep line: Rest's move on the period before. */
+private fun trendsSleepLine(model: TrendsPeriodModel): String {
+    val rest = model.rest
+    val sentence = sleepTrendSentence(trendDirection(rest.delta, rest.previousAverage), rest.average != null)
+    return sentenceText(sentence, rest.delta?.let { trendsWhole(abs(it)) }, rest.average?.let(::trendsWhole), model.days)
 }
 
 /**
- * Prev/next week stepper. Back is clamped at the earliest week we hold; forward at this week (no future
- * weeks). Flat accent chevrons, mirroring the iOS FullDayChart day stepper (#597).
+ * The Training line: where fitness is heading and how fresh the owner is while training load is on screen,
+ * else Effort's move on the period before.
  */
-@Composable
-private fun WeekNavBar(weekOffset: Int, minWeekOffset: Int, onStep: (Int) -> Unit) {
-    val atOldest = weekOffset <= minWeekOffset
-    val atNewest = weekOffset >= 0
-    val label = when {
-        weekOffset == 0 -> stringResource(R.string.trends_this_week)
-        weekOffset == -1 -> stringResource(R.string.trends_last_week)
-        else -> pluralStringResource(R.plurals.trends_weeks_ago, -weekOffset, -weekOffset)
-    }
-    // liquidPress on the two week-step chevrons (the screen's tappable controls): each settles inward on
-    // press, wired to the SAME interactionSource the IconButton uses for its own ripple, matching the pilot.
-    val prevInteraction = remember { MutableInteractionSource() }
-    val nextInteraction = remember { MutableInteractionSource() }
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Metrics.space4),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(
-            onClick = { onStep(-1) },
-            enabled = !atOldest,
-            interactionSource = prevInteraction,
-            modifier = Modifier.liquidPress(prevInteraction),
-        ) {
-            Icon(
-                Icons.Filled.ChevronLeft,
-                contentDescription = stringResource(R.string.trends_previous_week),
-                tint = if (atOldest) Palette.textTertiary else Palette.accent,
-            )
-        }
-        Spacer(Modifier.weight(1f))
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(label, style = NoopType.headline, color = Palette.textPrimary)
-            Overline(stringResource(R.string.trends_week_in_review), color = Palette.textSecondary)
-        }
-        Spacer(Modifier.weight(1f))
-        IconButton(
-            onClick = { onStep(1) },
-            enabled = !atNewest,
-            interactionSource = nextInteraction,
-            modifier = Modifier.liquidPress(nextInteraction),
-        ) {
-            Icon(
-                Icons.Filled.ChevronRight,
-                contentDescription = stringResource(R.string.trends_next_week),
-                tint = if (atNewest) Palette.textTertiary else Palette.accent,
-            )
-        }
-    }
-}
-
-// MARK: - Week in review , the Charge / Effort / Rest trio in pip language
-//
-// The three daily scores as NOOP pip rows over the resolved window: Charge (recovery, 0–100),
-// Effort (strain, shown on the WHOOP 0–21 / 0–100 scale per the unit toggle) and Rest (sleep
-// efficiency, 0–100). Each value ticks up via CountUpText; the segmented PipBar cascades on appear.
-// Self-hides when none of the three carry a window mean. Mirrors iOS TrendsView.weekInReview.
-
-@Composable
-private fun WeekInReviewCard(
-    charge: ResolvedMetric,
-    effort: ResolvedMetric,
-    rest: ResolvedMetric,
+private fun trendsTrainingLine(
+    model: TrendsPeriodModel,
+    training: TrainingLoadEngine.Result,
+    loadShown: Boolean,
     effortScale: EffortScale,
-    modifier: Modifier = Modifier,
-) {
-    val chargeAvg = charge.values.averageOrNull()
-    val effortAvg = effort.values.averageOrNull() // stored 0–100 internal Effort scale
-    val restAvg = rest.values.averageOrNull()
-    if (chargeAvg == null && effortAvg == null && restAvg == null) return
+): String {
+    val latest = training.points.lastOrNull()
+    if (loadShown && latest != null) {
+        val sentences = trainingLoadSentences(fitnessDirection(training.points), trainingForm(latest)).map { uiString(it) }
+        return if (sentences.size == 2) uiString(R.string.metrics_two_sentences, sentences[0], sentences[1]) else sentences.first()
+    }
+    val effort = model.effort
+    val sentence = effortTrendSentence(
+        trendDirection(effort.delta, effort.previousAverage, tolerance = EFFORT_TYPICAL_TOLERANCE),
+        effort.average != null,
+    )
+    return sentenceText(
+        sentence,
+        effort.delta?.let { effortText(abs(it), effortScale) },
+        effort.average?.let { effortText(it, effortScale) },
+        model.days,
+    )
+}
 
-    NoopCard(modifier = modifier) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SectionHeader(stringResource(R.string.trends_week_in_review), overline = stringResource(R.string.trends_charge_effort_rest))
-            if (chargeAvg != null) {
-                PipScoreRow(
-                    label = stringResource(R.string.trends_charge), value = chargeAvg, range = 0f..100f,
-                    tint = Palette.chargeColor, format = { "${it.roundToInt()}" },
-                )
-            }
-            if (effortAvg != null) {
-                // Effort is stored 0–100 but reads on the user's chosen scale: convert the displayed
-                // number AND the bar position so the pip fill and the count-up value agree. On WHOOP's
-                // 0–21 scale Effort reads to one decimal; on 0–100 it's a whole number.
-                val display = UnitFormatter.effortValue(effortAvg, effortScale)
-                val maxV = UnitFormatter.effortValue(100.0, effortScale)
-                val oneDecimal = effortScale == EffortScale.WHOOP
-                PipScoreRow(
-                    label = stringResource(R.string.trends_effort), value = display, range = 0f..maxV.toFloat(),
-                    tint = Palette.effortColor,
-                    format = { if (oneDecimal) String.format(Locale.US, "%.1f", it) else "${it.roundToInt()}" },
-                )
-            }
-            if (restAvg != null) {
-                PipScoreRow(
-                    label = stringResource(R.string.trends_rest), value = restAvg, range = 0f..100f,
-                    tint = Palette.restColor, format = { "${it.roundToInt()}" },
-                )
-            }
-        }
+/** The Body line: a sentence for weight and one for skin temperature, each only when the period has readings. */
+private fun trendsBodyLine(
+    model: TrendsPeriodModel,
+    weightFormat: (Double) -> String,
+    weightUnit: String,
+    skinFormat: (Double) -> String,
+    skinDeltaFormat: (Double) -> String,
+    skinUnit: String,
+): String {
+    val weight = model.weight
+    val weightSentence = weightTrendSentence(
+        trendDirection(weight.delta, weight.previousAverage, steadyBand = TRENDS_WEIGHT_STEADY_KG),
+        weight.average != null,
+    )?.let {
+        sentenceText(
+            it,
+            weight.delta?.let { delta -> withUnit(weightFormat(abs(delta)), weightUnit) },
+            weight.average?.let { average -> withUnit(weightFormat(average), weightUnit) },
+            model.days,
+        )
+    }
+    val skin = model.skin
+    val skinSentence = skinTrendSentence(
+        trendDirection(skin.delta, skin.previousAverage, steadyBand = TRENDS_SKIN_STEADY_C),
+        skin.average != null,
+    )?.let {
+        sentenceText(
+            it,
+            skin.delta?.let { delta -> withUnit(skinDeltaFormat(abs(delta)), skinUnit) },
+            skin.average?.let { average -> withUnit(skinFormat(average), skinUnit) },
+            model.days,
+        )
+    }
+    return when {
+        weightSentence != null && skinSentence != null ->
+            uiString(R.string.metrics_two_sentences, weightSentence, skinSentence)
+        weightSentence != null -> weightSentence
+        skinSentence != null -> skinSentence
+        else -> uiString(R.string.trends_body_empty)
     }
 }
+
+/** A section sentence with its arguments filled in: the change and the period's length, or the average. */
+private fun sentenceText(sentence: TrendSentence, change: String?, level: String?, days: Int?): String =
+    when (sentence.args) {
+        SentenceArgs.CHANGE -> uiString(sentence.res, change.orEmpty(), days ?: 0)
+        SentenceArgs.LEVEL -> uiString(sentence.res, level.orEmpty())
+        SentenceArgs.NONE -> uiString(sentence.res)
+    }
+
+/** "0.6 kg": a number and its unit, joined the way the reader's language does. */
+private fun withUnit(number: String, unit: String): String = uiString(R.string.trends_value_unit, number, unit)
 
 /**
- * One pip row matching PipBarRow's layout, but with the value driven by [CountUpText] so the big
- * number ticks up. UPPERCASE label + big white count-up value over the segmented count-up bar.
- * Mirrors iOS TrendsView.pipScoreRow.
+ * Fitness and fatigue inside the period, on the owner's Effort scale, with the form chip's text. Null while the
+ * model is unavailable, or when its latest day falls before the period (a strap left in a drawer for months).
  */
-@Composable
-private fun PipScoreRow(
-    label: String,
-    value: Double,
-    range: ClosedFloatingPointRange<Float>,
-    tint: Color,
-    format: (Double) -> String,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space8)) {
-        Text(
-            text = label.uppercase(),
-            style = NoopType.overline,
-            color = Palette.textSecondary,
-        )
-        CountUpText(
-            value = value,
-            format = format,
-            style = NoopType.number(30f, weight = FontWeight.Bold),
-            color = Palette.textPrimary,
-        )
-        PipBar(value = value.toFloat(), range = range, tint = tint)
-    }
+private fun trainingLoadUi(training: TrainingLoadEngine.Result, axis: TrendAxis, effortScale: EffortScale): TrainingLoadUi? {
+    if (!training.isAvailable) return null
+    val latest = training.points.lastOrNull() ?: return null
+    val factor = UnitFormatter.effortValue(1.0, effortScale)
+    val fitness = epochPoints(training.points.map { it.day to it.chronicLoad * factor }).filter { it.first >= axis.startDay }
+    val fatigue = epochPoints(training.points.map { it.day to it.acuteLoad * factor }).filter { it.first >= axis.startDay }
+    if (fitness.isEmpty()) return null
+    val form = trainingForm(latest)
+    val balance = String.format(Locale.getDefault(), "%+.1f", latest.balance * factor)
+    return TrainingLoadUi(
+        fitness = fitness,
+        fatigue = fatigue,
+        form = form,
+        formText = uiString(R.string.trends_form_chip, balance, uiString(trainingFormWord(form))),
+        format = ::trendsDecimal,
+    )
 }
 
-// MARK: - Range control model (ported from TrendsView.Range)
-
-/** W(7) / M(30) / 3M(90) / 6M(180) / 1Y(365) / ALL. */
-private enum class TrendsRange(val days: Int?, val label: String, val longName: String) {
-    Week(7, "W", "week"),
-    Month(30, "M", "month"),
-    Quarter(90, "3M", "3 months"),
-    Half(180, "6M", "6 months"),
-    Year(365, "1Y", "year"),
-    All(null, "ALL", "all history");
-
-    /** This range plus every LARGER range, ascending , the auto-expand search order. */
-    val widening: List<TrendsRange>
-        get() = entries.dropWhile { it != this }
+/** What the training-load block compares, or how far along the model is while it builds. */
+private fun trainingLoadSubtitle(training: TrainingLoadEngine.Result): String = when (training.state) {
+    TrainingLoadEngine.State.ESTABLISHED -> uiString(R.string.trends_tl_established)
+    TrainingLoadEngine.State.BUILDING ->
+        uiString(R.string.trends_tl_building, training.contiguousDays, TrainingLoadEngine.standard.establishedDays)
+    TrainingLoadEngine.State.UNAVAILABLE -> uiString(R.string.trends_tl_unavailable)
 }
 
-@Composable
-private fun TrendsRangeCaption(range: TrendsRange, fullSubtitle: String) {
-    val days = range.days
-    if (days == null) {
-        Overline(fullSubtitle, color = Palette.textTertiary)
-    } else {
-        // Keep both lines leading-aligned while the row's weighted spacer pins this
-        // intrinsic-width column to the shared trailing content edge.
-        Column(
-            modifier = Modifier.clearAndSetSemantics {
-                contentDescription = fullSubtitle
-            },
-            horizontalAlignment = Alignment.Start,
-        ) {
-            Overline(stringResource(R.string.trends_trailing), color = Palette.textTertiary)
-            Overline(
-                pluralStringResource(R.plurals.trends_n_days, days, days),
-                color = Palette.textTertiary,
-            )
-        }
-    }
+/** Effort on the owner's scale: one decimal out of 21, a whole number out of 100. */
+private fun effortText(stored: Double, scale: EffortScale): String {
+    val shown = UnitFormatter.effortValue(stored, scale)
+    return if (scale == EffortScale.WHOOP) trendsDecimal(shown) else trendsWhole(shown)
 }
 
-// MARK: - Resolved metric (mirrors TrendsView.ResolvedMetric / resolve)
+/** A whole number, rounded: Charge, Rest, HRV, resting heart rate. */
+private fun trendsWhole(value: Double): String = value.roundToInt().toString()
 
-/** A metric's window: its plotted values + the day-string of each point, the range it
- *  resolved to, whether the selection was widened to find data, and the caption to show. */
+/** One decimal in the reader's locale: weight, temperatures, Effort out of 21. */
+private fun trendsDecimal(value: Double): String = String.format(Locale.getDefault(), "%.1f", value)
+
+// MARK: - Resolved metric (the Today-hosted trend cards)
+
+/** A metric's window for a hosted card: its plotted values and the day-string of each point. */
 private data class ResolvedMetric(
     val values: List<Double>,
     val dates: List<String>,
-    val effective: TrendsRange,
-    val widened: Boolean,
-    val caption: String,
 )
 
 /**
  * Walk the widening order once: take the smallest range ≥ selected whose window holds
- * ≥1 non-null point for [value]; if none do, fall back to ALL. Windows are taken
- * relative to the LATEST recorded day, exactly like the macOS `days(for:)`.
+ * ≥1 non-null point for [value]; if none do, fall back to all history.
  */
 private fun resolveMetric(
     days: List<DailyMetric>,
@@ -613,31 +683,16 @@ private fun resolveMetric(
 ): ResolvedMetric {
     for (r in selected.widening) {
         val pts = windowPoints(days, r, value)
-        if (pts.isNotEmpty()) {
-            return ResolvedMetric(
-                values = pts.map { it.second },
-                dates = pts.map { it.first },
-                effective = r,
-                widened = r != selected,
-                caption = caption(pts.size, r, selected),
-            )
-        }
+        if (pts.isNotEmpty()) return ResolvedMetric(values = pts.map { it.second }, dates = pts.map { it.first })
     }
     val pts = windowPoints(days, TrendsRange.All, value)
-    return ResolvedMetric(
-        values = pts.map { it.second },
-        dates = pts.map { it.first },
-        effective = TrendsRange.All,
-        widened = TrendsRange.All != selected,
-        caption = caption(pts.size, TrendsRange.All, selected),
-    )
+    return ResolvedMetric(values = pts.map { it.second }, dates = pts.map { it.first })
 }
 
 /**
- * Non-null metric points (day, value) within [range]'s trailing window, taken relative to
- * the latest recorded day (oldest → newest). `days` is the full oldest-first history. A null
- * `range.days` (ALL) returns every non-null point. The day string is carried alongside each
- * value so the chart can draw a real date X-axis.
+ * Non-null metric points (day, value) within [range]'s trailing window (oldest → newest). `days` is the
+ * full oldest-first history. A null `range.days` (all history) returns every non-null point. The day
+ * string is carried alongside each value so the chart can draw a real date X-axis.
  */
 private fun windowPoints(
     days: List<DailyMetric>,
@@ -647,10 +702,8 @@ private fun windowPoints(
     if (days.isEmpty()) return emptyList()
     val sliced = when (val n = range.days) {
         null -> days
-        // Trailing N CALENDAR days ending today , anchored to the phone's date, NOT the last N rows
-        // (which on a stale import made months-old data fill the W/M/3M windows, looking current , #23).
-        // ISO yyyy-MM-dd sorts chronologically. Empty short windows auto-widen via resolveMetric, so old
-        // imports surface under a wider range / All history rather than masquerading as recent.
+        // Trailing N CALENDAR days ending today, anchored to the phone's date, NOT the last N rows
+        // (which on a stale import made months-old data fill the short windows, looking current, #23).
         else -> {
             val cutoff = LocalDate.now().minusDays((n - 1).toLong()).toString()
             days.filter { it.day >= cutoff }
@@ -659,21 +712,10 @@ private fun windowPoints(
     return sliced.mapNotNull { d -> value(d)?.let { d.day to it } }
 }
 
-/** Caption text, mirroring TrendsView.caption(count:eff:). */
-private fun caption(count: Int, eff: TrendsRange, selected: TrendsRange): String {
-    val unit = if (count == 1) "reading" else "readings"
-    return if (eff != selected) {
-        "$count $unit · sparse , widened to ${eff.longName}"
-    } else {
-        "$count $unit · ${selected.longName}"
-    }
-}
-
-// MARK: - ChartCard , the uniform fixed-height trend card
+// MARK: - ChartCard, the hosted trend card
 //
-// A NoopCard holding a header (overline-styled title + caption + trailing read-out), a
-// fixed-height LineChart, and a divided footer of labelled stats. Mirrors the macOS
-// ChartCard used across Trends so every card is Metrics.chartHeight-class and identical.
+// A NoopCard holding a header (overline-styled title + trailing read-out), a fixed-height LineChart, and a
+// divided footer of labelled stats. The Today-hosted trend cards draw it.
 
 @Composable
 private fun ChartCard(
@@ -692,21 +734,8 @@ private fun ChartCard(
     change: Double? = null,
     higherIsBetter: Boolean? = null,
     changeFmt: (Double) -> String = { "${it.roundToInt()}" },
-    // Fraction of the plot height left empty above the peak , the Android stand-in for the iOS
-    // hero's `valueRange: 0...106` padded ceiling, so the peak + now-cap halo clear the top
-    // gridline. 0 keeps the curve filling the full height (the small multiples). (#458/parity)
-    chartHeadroom: Float = 0f,
-    // LIQUID: the hero card only. When true the card carries the liquid translucent-black frosted wrapper
-    // (rgba(13,14,20,.80), radius 26, white@0.11 hairline) instead of the classic NoopCard surface, and the
-    // trailing readout becomes a small count-up Charge vessel filled to [headlineValue] (0..100). Every
-    // small-multiple card leaves this false → identical classic NoopCard + plain text readout as before.
-    liquidHero: Boolean = false,
-    headlineValue: Double? = null,
 ) {
-    // The card body — one composable reused by both the classic and the liquid-hero container so the
-    // header / chart / footer layout is byte-identical between them; only the surface + the header readout
-    // treatment differ.
-    val body: @Composable () -> Unit = {
+    NoopCard(modifier = modifier, padding = Metrics.cardPadding, tint = tint) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             // Header.
             Row(verticalAlignment = Alignment.Top) {
@@ -716,13 +745,8 @@ private fun ChartCard(
                         Text(subtitle, style = NoopType.footnote, color = Palette.textTertiary)
                     }
                 }
-                if (liquidHero && headlineValue != null) {
-                    // The one liquid accent on this screen: a small Charge vessel filled to the window
-                    // average, the value counting up over it (white, tabular, soft shadow, hit-transparent).
-                    // Same value + charge tint as the plain readout it replaces — the chart stays crisp.
-                    HeadlineVessel(value = headlineValue, tint = Palette.recoveryColor(headlineValue))
-                } else if (trailing != null) {
-                    // Neutral 15pt readout (matches iOS TrendsView) , not the 22sp tinted figure.
+                if (trailing != null) {
+                    // Neutral 15pt readout (matches iOS TrendsView), not the 22sp tinted figure.
                     Text(trailing, style = NoopType.bodyNumber, color = Palette.textPrimary)
                 }
             }
@@ -737,7 +761,6 @@ private fun ChartCard(
                     color = color,
                     tipColor = tipColor,
                     formatY = formatY,
-                    headroom = chartHeadroom,
                 )
             } else {
                 SparsePlaceholder()
@@ -749,52 +772,6 @@ private fun ChartCard(
                 ChangeChip(change, higherIsBetter, changeFmt)
             }
         }
-    }
-
-    if (liquidHero) {
-        // The liquid hero surface: a translucent near-black that floats over the day-of-sky so the crisp
-        // chart + the vessel accent read clean — the card does the contrast work, not a muted sky. Radius 26
-        // + a faint white hairline give the frosted-glass edge of the iOS liquid heroCard. Mirrors Today.
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LIQUID_HERO_RADIUS))
-                .background(Palette.heroFill.copy(alpha = Palette.heroFill.alpha * CardAppearance.opacity))
-                .border(1.dp, Palette.heroBorder.copy(alpha = Palette.heroBorder.alpha * CardAppearance.opacity), RoundedCornerShape(LIQUID_HERO_RADIUS))
-                .padding(Metrics.cardPadding),
-        ) {
-            body()
-        }
-    } else {
-        NoopCard(modifier = modifier, padding = Metrics.cardPadding, tint = tint) { body() }
-    }
-}
-
-/**
- * The screen's single liquid accent: a small [LiquidVessel] filled to [value] (0..100 → 0..1) in the
- * charge [tint], the number rolling up over it via [CountUpText] (white, tabular, a soft shadow so it reads
- * on the vessel, hit-transparent so a tap falls through to the vessel's own splash). The Trends echo of the
- * liquid Today `HeroScoreVessel`, sized down to a header readout so it accents the headline value without
- * competing with the crisp chart below.
- */
-@Composable
-private fun HeadlineVessel(value: Double, tint: Color) {
-    val diameter = 44.dp
-    Box(modifier = Modifier.size(diameter), contentAlignment = Alignment.Center) {
-        LiquidVessel(
-            value = (value / 100.0).coerceIn(0.0, 1.0),
-            tint = tint,
-            animated = true,
-            modifier = Modifier.size(diameter),
-        )
-        CountUpText(
-            value = value,
-            format = { "${it.roundToInt()}" },
-            style = NoopType.number(17f, weight = FontWeight.Bold)
-                .copy(shadow = Shadow(color = Color.Black.copy(alpha = 0.5f), offset = Offset(0f, 1f), blurRadius = 6f)),
-            color = Color.White,
-            modifier = Modifier.clearAndSetSemantics {},
-        )
     }
 }
 
@@ -810,13 +787,11 @@ private fun ChangeChip(change: Double?, higherIsBetter: Boolean?, fmt: (Double) 
     }
     // Parity with iOS #967 (fix(trends): label change indicators): a "Trend" overline above the delta chip
     // so it reads as a labeled statistic beside the ChartFooter columns instead of an unlabeled pill at the
-    // card edge. Mirrors the sibling TrendsRangeCaption's leading-aligned Overline stack + merged a11y
-    // announcement ("Trend: +5") so TalkBack reads it as one statistic, not two.
+    // card edge, announced as ONE statistic ("Trend: +5") so TalkBack reads it as one value, not two.
     val trendLabel = stringResource(R.string.trends_trend)
-    // A11y announces the label + delta as ONE statistic ("Trend: +5"), in natural case (not the visible
-    // all-caps, which readers may spell out). Routed through a format resource so the label + locale-correct
-    // separator (e.g. French thin space, Chinese full-width colon) are localized — a bare "$label: $delta"
-    // template is both un-localizable and flagged by the i18n regression gate.
+    // Routed through a format resource so the label + locale-correct separator (e.g. French thin space,
+    // Chinese full-width colon) are localized — a bare "$label: $delta" template is both un-localizable
+    // and flagged by the i18n regression gate.
     val trendA11y = stringResource(R.string.trends_trend_a11y, deltaText)
     Column(
         modifier = Modifier.clearAndSetSemantics { contentDescription = trendA11y },
@@ -829,7 +804,6 @@ private fun ChangeChip(change: Double?, higherIsBetter: Boolean?, fmt: (Double) 
 
 /**
  * A [LineChart] with a max/avg/min Y-axis label column and a first/mid/last date X-axis row.
- * Shared by the hero + small-multiple trend cards so every chart gets the same axis treatment.
  * Date strings (ISO yyyy-MM-dd) are reformatted to "d MMM"; an unparseable string falls back to
  * its raw value so a non-ISO key never blanks a label.
  */
@@ -840,15 +814,12 @@ private fun ChartWithAxes(
     color: Color,
     formatY: (Double) -> String,
     tipColor: Color = color,
-    // See ChartCard.chartHeadroom , fraction of the plot left empty above the peak.
-    headroom: Float = 0f,
 ) {
     val maxV = values.max()
     val avgV = values.average()
     val minV = values.min()
-    // Trend chart style (line vs bar). Read here at the single chart choke point (every trend card routes
-    // through ChartWithAxes); SharedPreferences isn't reactive, but returning from Settings recomposes the
-    // Trends screen, which re-reads it — the same read-on-recompose the Effort scale toggle relies on.
+    // Trend chart style (line vs bar). Read here at the single chart choke point; SharedPreferences isn't
+    // reactive, but returning from Settings recomposes the host screen, which re-reads it.
     val chartStyle = UnitPrefs.trendChartStyle(LocalContext.current)
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Column(
@@ -863,47 +834,31 @@ private fun ChartWithAxes(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            // The shared LineChart with a glowing "now" end-cap drawn on top , the Bevel idiom from
-            // Today's OverviewHRChart. The cap reproduces LineChart's own point geometry (same
-            // strokePx/topPad/bottomPad) so the dot lands exactly on the line's final sample.
-            //
-            // headroom leaves the top fraction of the card empty and pins the plotting Box to the
-            // bottom , the Android stand-in for the iOS hero's `valueRange: 0...106` (LineChart has
-            // no value-domain hook, so we shrink its drawing box instead). Both LineChart and the
-            // GlowEndCap fill this same Box, so the cap stays on the line.
-            val plotHeight = Metrics.chartHeight * (1f - headroom.coerceIn(0f, 0.5f))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(Metrics.chartHeight),
-                contentAlignment = Alignment.BottomCenter,
-            ) {
-                Box(modifier = Modifier.fillMaxWidth().height(plotHeight)) {
-                    if (chartStyle == TrendChartStyle.BAR) {
-                        // Bar mode: value-ramp bars from the baseline. No GlowEndCap (the "now" halo is a
-                        // line idiom). selectionEnabled is OFF so BarChart mean-bins a dense window (the
-                        // multi-year "ALL" span) down to the pixel width — a clean silhouette instead of a
-                        // 1000-bar sub-pixel smear. The max/avg/min axis column + footer carry the numbers.
-                        BarChart(
-                            values = values,
-                            modifier = Modifier.fillMaxSize(),
-                            color = color,
-                            selectionEnabled = false,
-                        )
-                    } else {
-                        LineChart(
-                            values = values,
-                            modifier = Modifier.fillMaxSize(),
-                            color = color,
-                            fill = true,
-                            selectionEnabled = true,
-                            // #463: the pinpoint label goes through the SAME formatter as the axis column,
-                            // so a tapped Effort day can't print the stored 0-100 value beside a 0-21 axis.
-                            formatValue = formatY,
-                            selectionLabels = dates.map(::prettyAxisDate),
-                        )
-                        GlowEndCap(values = values, tipColor = tipColor)
-                    }
+            // The shared LineChart with a glowing "now" end-cap drawn on top. The cap reproduces LineChart's
+            // own point geometry (same strokePx/topPad/bottomPad) so the dot lands on the line's final sample.
+            Box(modifier = Modifier.fillMaxWidth().height(Metrics.chartHeight)) {
+                if (chartStyle == TrendChartStyle.BAR) {
+                    // Bar mode: value-ramp bars from the baseline. selectionEnabled is OFF so BarChart
+                    // mean-bins a dense window down to the pixel width.
+                    BarChart(
+                        values = values,
+                        modifier = Modifier.fillMaxSize(),
+                        color = color,
+                        selectionEnabled = false,
+                    )
+                } else {
+                    LineChart(
+                        values = values,
+                        modifier = Modifier.fillMaxSize(),
+                        color = color,
+                        fill = true,
+                        selectionEnabled = true,
+                        // #463: the pinpoint label goes through the SAME formatter as the axis column,
+                        // so a tapped Effort day can't print the stored 0-100 value beside a 0-21 axis.
+                        formatValue = formatY,
+                        selectionLabels = dates.map(::prettyAxisDate),
+                    )
+                    GlowEndCap(values = values, tipColor = tipColor)
                 }
             }
             val axisLabels = trendAxisLabels(dates)
@@ -958,11 +913,9 @@ private fun prettyAxisDate(day: String?): String =
 /**
  * One Trends metric trend, rendered as a Today host card (#today-hosted-cards).
  *
- * Renders the SAME [MetricTrendCard] the Trends tab draws, so the hosted copy cannot drift into a
- * second chart of the same numbers. What it does NOT carry is the range selector: a home-screen card
- * has nowhere to put one and no obvious place to persist a per-card choice, so it takes a fixed
- * trailing month and keeps the tab's widening fallback for a wearer whose history is shorter than
- * that. The Trends tab remains where you change the window.
+ * A home-screen card has nowhere to put a range selector and no obvious place to persist a per-card
+ * choice, so it takes a fixed trailing month and widens for a wearer whose history is shorter than that.
+ * The Trends tab remains where you change the window.
  *
  * Costs nothing to host. [resolveMetric] is a pure walk over the `days` list Today already holds, so
  * unlike the sleep model or the stress curve there is no read behind this and nothing to gate.
@@ -987,8 +940,7 @@ internal fun TrendHostCard(card: HostedCard, days: List<DailyMetric>, effortScal
         )
         HostedCard.TREND_EFFORT -> MetricTrendCard(
             // Plotted values stay on the stored 0-100 scale (line shape unchanged); only the displayed
-            // numbers and unit follow the Effort-scale toggle, converted inside `fmt`, exactly as the
-            // Trends tab does it (#268).
+            // numbers and unit follow the Effort-scale toggle, converted inside `fmt` (#268).
             title = stringResource(R.string.trends_effort),
             unit = "/ ${UnitFormatter.effortScaleMax(effortScale)}",
             color = Palette.effortColor,
@@ -1063,55 +1015,6 @@ private fun ChartFooter(items: List<Pair<String, String>>) {
                     Text(value, style = NoopType.bodyNumber, color = Palette.textPrimary)
                 }
             }
-        }
-    }
-}
-
-// MARK: - Recovery history strip (stands in for the macOS YearHeatStrip)
-
-/**
- * The recovery history card. macOS shows a YearHeatStrip (a 53-week calendar heat grid);
- * that bespoke component has no Android foundation equivalent, so we plot the real
- * per-day recovery series as a bar strip over the same window and note the difference.
- * Always shows at least a full year of context, like the macOS strip.
- */
-@Composable
-private fun RecoveryHistoryCard(days: List<DailyMetric>, range: TrendsRange) {
-    // PERF (#scroll-jank): memoise the window slice + recovery extraction on (days, range) so the
-    // 800+-day takeLast + mapNotNull don't re-run on every recomposition (e.g. the staggered-appear
-    // animation frames that drive this whole strip). Same span rule, same values, same order , purely
-    // skips redundant re-slicing. NOTE: the bars are NOT caller-downsampled , BarChart already mean-
-    // bucket-downsamples internally to ~one bar per horizontal pixel (pixel-identical), so a second,
-    // coarser caller-side bucket (e.g. ≤180) would visibly widen the bars and is deliberately avoided.
-    val recovery = remember(days, range) {
-        // Always show at least a year; expand to all history on ALL.
-        val span = (range.days ?: days.size).coerceAtLeast(365)
-        days.takeLast(span).mapNotNull { it.recovery }
-    }
-    val title = if (range == TrendsRange.All && days.size > 365) {
-        "Charge , all history"
-    } else {
-        "Charge , past year"
-    }
-
-    NoopCard {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SectionHeader(title, overline = stringResource(R.string.trends_calendar), trailing = "${recovery.size} days")
-            if (recovery.size >= 2) {
-                BarChart(
-                    values = recovery,
-                    modifier = Modifier.height(Metrics.trendStripHeight),
-                    color = Palette.accent,
-                )
-            } else {
-                SparsePlaceholder(height = Metrics.trendStripHeight)
-            }
-            HorizontalDivider(color = Palette.hairline)
-            Text(
-                stringResource(R.string.trends_calendar_footnote),
-                style = NoopType.footnote,
-                color = Palette.textTertiary,
-            )
         }
     }
 }
