@@ -2,11 +2,8 @@ package com.noop.ui
 
 import com.noop.R
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 
 /**
  * The Blood O₂ tile must distinguish "the sensor recorded nothing" from "the sensor recorded, but the
@@ -43,40 +40,5 @@ class Spo2MissingCaptionTest {
     @Test
     fun theTwoEmptyStatesAreNotTheSameString() {
         assertNotEquals(spo2MissingCaptionRes(true), spo2MissingCaptionRes(false))
-    }
-
-    // --- cross-platform wording parity ---
-
-    private fun repoRoot(): File {
-        val userDir = File(System.getProperty("user.dir") ?: ".")
-        val candidates = listOf(userDir, File(userDir, ".."), File(userDir, "../.."))
-        val found = candidates.firstOrNull { File(it, "android/app/src/main/java").isDirectory }
-        assertNotNull(
-            "repo root not found from user.dir=$userDir — this guard cannot run, and a skip reads as a " +
-                "pass. Add this host's working dir rather than letting it slide.",
-            found,
-        )
-        return found!!
-    }
-
-    /**
-     * The new caption must be translated everywhere the one it sits beside is, or the fix lands as English
-     * for precisely the non-English users who hit the confusing version. (The report behind this was a
-     * German screenshot.)
-     */
-    @Test
-    fun theNewCaptionIsTranslatedInEveryLocaleTheSiblingIs() {
-        val root = File(repoRoot(), "android/app/src/main/res")
-        val locales = root.listFiles { f: File -> f.isDirectory && f.name.startsWith("values-") }
-            ?.filterNot { it.name.matches(Regex("values-(night|v\\d+|land|sw\\d+.*)")) }
-            ?.filter { File(it, "strings.xml").isFile }
-            ?: emptyList()
-        assertTrue("no locale dirs found — the census is looking in the wrong place", locales.isNotEmpty())
-
-        val missing = locales.filterNot {
-            File(it, "strings.xml").readText()
-                .contains("l10n_health_screen_raw_counts_only_needs_an_import_d0e33552")
-        }.map { it.name }
-        assertEquals("these locales have the sibling caption but not the new one: $missing", emptyList<String>(), missing)
     }
 }

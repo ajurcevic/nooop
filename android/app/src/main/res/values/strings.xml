@@ -2932,4 +2932,6 @@
     <string name="home_still_learning">Still learning</string>
     <string name="sleep_stages_estimated_note">Stages are estimated from heart rate and movement, not measured brain activity.</string>
     <string name="metrics_point_estimated">%1$s (est.)</string>
+    <string name="trends_chart_summary">Latest %1$s, lowest %2$s, highest %3$s.</string>
+    <string name="trends_chart_no_data">No data for this period.</string>
 </resources>
