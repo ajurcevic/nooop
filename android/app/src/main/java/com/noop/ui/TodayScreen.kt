@@ -44,7 +44,6 @@ import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Air
-import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothSearching
@@ -688,6 +687,9 @@ fun TodayScreen(
     // Keyed by day; `caloriesByDay` feeds the SELECTED-day value the dashboard card + Key-Metrics tile both
     // read — day-scoped like every other card, and like steps.
     var caloriesByDay by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
+    // The days whose figure above is the on-device HR estimate (no phone import that day), so the tile
+    // can say so. Resolved in the same pass as caloriesByDay, from the same two maps.
+    var caloriesEstimatedDays by remember { mutableStateOf<Set<String>>(emptySet()) }
     LaunchedEffect(days) {
         caloriesByDay = runCatching {
             val onDevice = viewModel.repo.resolvedSeries("active_kcal", "my-whoop", "0000-00-00", "9999-99-99",
@@ -697,6 +699,7 @@ fun TodayScreen(
                 viewModel.repo.appleDaily("health-connect", "0000-01-01", "9999-12-31")) {
                 r.activeKcal?.takeIf { it > 0 }?.let { imported.putIfAbsent(r.day, it) }
             }
+            caloriesEstimatedDays = onDevice.keys - imported.keys
             (onDevice.keys + imported.keys)
                 .mapNotNull { day -> (imported[day] ?: onDevice[day])?.let { day to it } }.toMap()
         }.getOrDefault(emptyMap())
@@ -1265,6 +1268,8 @@ fun TodayScreen(
             onOpenMetric = onOpenMetric,
             onOpenSleep = onOpenSleep,
             onOpenStepsCalibration = onOpenStepsCalibration,
+            chargeConfidence = chargeConfidenceTier(chargeBaselines, stepResolvedDisplayMetric),
+            caloriesEstimatedDays = caloriesEstimatedDays,
         )
     }
 
@@ -1676,6 +1681,7 @@ fun TodayScreen(
                     effortScale = effortScale,
                     restScore = restScoreForDay,
                     restHistory = restHistory,
+                    chargeConfidence = chargeConfidenceTier(chargeBaselines, displayMetric),
                     onChargeTap = { showChargeBreakdown = true },
                     onOpenMetric = onOpenMetric,
                 )
@@ -2611,99 +2617,111 @@ private fun LiquidTodayHeader(
         }
     }
 
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        // LEFT: the tappable title block — big rounded-bold day title over the human date line. Taps open the
-        // day picker; a horizontal swipe across the dashboard still changes the day. weight(1f) so the title
-        // claims the leading room and never pushes the trailing control cluster. Mirrors iOS's title Button.
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                // #492: NO rounded clip here. With indication = null there's no ripple to shape, and the
-                // rounded corners were clipping the title/date text's bottom-left (the "W" of "Wednesday").
-                // iOS's title Button uses a plain contentShape(Rectangle()) with no clip — mirror that.
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClickLabel = uiString(R.string.today_action_change_day),
-                    onClick = { showPicker = true },
-                )
-                .semantics { contentDescription = uiString(R.string.l10n_today_screen_daytitle_humandate_tap_to_pick_a_7e12ce96, dayTitle, humanDate) },
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                dayTitle,
-                // Calm page title, 30/700 in the primary text colour on the flat canvas.
-                style = NoopType.title1,
-                color = Palette.textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                humanDate,
-                style = NoopType.caption,
-                color = Palette.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-
-        // RIGHT: the controls, in order — [sync chip] · avatar · + · battery ring. Each ~36dp, 8dp apart.
-        //
-        // #2110: deliberately NOT where the Customize control went, even though that is where iOS keeps it.
-        // The title Column beside this is weight(1f) with maxLines=1 + Ellipsis, so every control added here
-        // is width taken from the day title, and Android starts from a wider cluster than iOS because of the
-        // sync chip iOS has no equivalent of. iOS can afford its fourth control because it fades the title
-        // under a MEASURED cluster width (headerTrailingControlFadeMask); Android has no such reserve. On a
-        // 393dp phone a fifth control leaves the 28sp title ~117dp, and "Yesterday" needs ~139dp, so it
-        // would have started ellipsizing a day title that fits today.
+    // The header row, then (only while strap history offloads) the thin catch-up line across its full
+    // width. The line sits under the row instead of inside the trailing cluster, so syncing costs the
+    // day title no width at all.
+    Column(modifier = modifier.fillMaxWidth()) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // #245: compact sync-status chip, shown for EVERY user — syncing / last-synced / experimental,
-            // so the absence of active syncing reads as caught-up (the full SyncingHistoryNote is gated on
-            // recovery == null). Twin of iOS SyncStatusChip.
-            SyncStatusChip(
-                backfilling = backfilling, chunks = syncChunksThisSession,
-                lastSyncAt = lastSyncAt, historySyncExperimental = historySyncExperimental,
-                pagesBehind = pagesBehindAtConnect,
-                scanning = scanning, onRescan = onRescan,
-            )
-            // (a) Profile avatar (the photo set in Settings, or the NOOP loop mark) → Settings. Mirrors iOS.
-            Box(
+            // LEFT: the tappable title block — big rounded-bold day title over the human date line. Taps open the
+            // day picker; a horizontal swipe across the dashboard still changes the day. weight(1f) so the title
+            // claims the leading room and never pushes the trailing control cluster. Mirrors iOS's title Button.
+            Column(
                 modifier = Modifier
-                    .size(HeaderClusterControl)
-                    .clip(CircleShape)
+                    .weight(1f)
+                    // #492: NO rounded clip here. With indication = null there's no ripple to shape, and the
+                    // rounded corners were clipping the title/date text's bottom-left (the "W" of "Wednesday").
+                    // iOS's title Button uses a plain contentShape(Rectangle()) with no clip — mirror that.
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                        onClick = onOpenSettings,
+                        onClickLabel = uiString(R.string.today_action_change_day),
+                        onClick = { showPicker = true },
                     )
-                    .semantics { contentDescription = uiString(R.string.l10n_today_screen_profile_and_settings_9b3d12f2) },
-                contentAlignment = Alignment.Center,
+                    .semantics { contentDescription = uiString(R.string.l10n_today_screen_daytitle_humandate_tap_to_pick_a_7e12ce96, dayTitle, humanDate) },
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                ProfileAvatar(size = HeaderClusterControl)
+                Text(
+                    dayTitle,
+                    // Calm page title, 30/700 in the primary text colour on the flat canvas.
+                    style = NoopType.title1,
+                    color = Palette.textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    humanDate,
+                    style = NoopType.caption,
+                    color = Palette.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-            // (b) Quick-add (+), the accented primary. Mirrors iOS's LiquidAddButton (a glyph on a translucent
-            // disc → the quick-actions menu). Sized to match the rest of the liquid cluster (shared HeaderClusterControl).
-            QuickActionDisc(onClick = onQuickActions)
-            // (c) Active-device battery ring showing the % (iOS LiquidBatteryButton). Tap → Devices.
-            // Not drawn when the active device is neither the strap nor a ring with a charge of its own to
-            // show: an empty "Strap battery" ring under a streaming ring is a control asserting something
-            // about a strap nobody is wearing. A ring that HAS reported its charge is the active device's
-            // own reading, and #2208's fix left it undrawn only because the control could not yet tell
-            // whose number it held.
-            when (battery) {
-                HeaderBatteryDisplay.State.NotActiveDevice -> Unit
-                HeaderBatteryDisplay.State.Offline, HeaderBatteryDisplay.State.Pending ->
-                    LiquidBatteryRing(batteryPct = null, isRing = false, onClick = onOpenDevices)
-                is HeaderBatteryDisplay.State.Charge ->
-                    LiquidBatteryRing(batteryPct = battery.pct, isRing = battery.isRing, onClick = onOpenDevices)
+
+            // RIGHT: the controls, in order — [sync chip] · avatar · + · battery ring. Each ~36dp, 8dp apart.
+            //
+            // #2110: deliberately NOT where the Customize control went, even though that is where iOS keeps it.
+            // The title Column beside this is weight(1f) with maxLines=1 + Ellipsis, so every control added here
+            // is width taken from the day title, and Android starts from a wider cluster than iOS because of the
+            // sync chip iOS has no equivalent of. iOS can afford its fourth control because it fades the title
+            // under a MEASURED cluster width (headerTrailingControlFadeMask); Android has no such reserve. On a
+            // 393dp phone a fifth control leaves the 28sp title ~117dp, and "Yesterday" needs ~139dp, so it
+            // would have started ellipsizing a day title that fits today.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // #245: compact sync-status chip, shown for EVERY user — syncing / last-synced / experimental,
+                // so the absence of active syncing reads as caught-up (the full SyncingHistoryNote is gated on
+                // recovery == null). Twin of iOS SyncStatusChip.
+                SyncStatusChip(
+                    backfilling = backfilling, chunks = syncChunksThisSession,
+                    lastSyncAt = lastSyncAt, historySyncExperimental = historySyncExperimental,
+                    pagesBehind = pagesBehindAtConnect,
+                    scanning = scanning, onRescan = onRescan,
+                )
+                // (a) Profile avatar (the photo set in Settings, or the NOOP loop mark) → Settings. Mirrors iOS.
+                Box(
+                    modifier = Modifier
+                        .size(HeaderClusterControl)
+                        .clip(CircleShape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onOpenSettings,
+                        )
+                        .semantics { contentDescription = uiString(R.string.l10n_today_screen_profile_and_settings_9b3d12f2) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    ProfileAvatar(size = HeaderClusterControl)
+                }
+                // (b) Quick-add (+), the accented primary. Mirrors iOS's LiquidAddButton (a glyph on a translucent
+                // disc → the quick-actions menu). Sized to match the rest of the liquid cluster (shared HeaderClusterControl).
+                QuickActionDisc(onClick = onQuickActions)
+                // (c) Active-device battery ring showing the % (iOS LiquidBatteryButton). Tap → Devices.
+                // Not drawn when the active device is neither the strap nor a ring with a charge of its own to
+                // show: an empty "Strap battery" ring under a streaming ring is a control asserting something
+                // about a strap nobody is wearing. A ring that HAS reported its charge is the active device's
+                // own reading, and #2208's fix left it undrawn only because the control could not yet tell
+                // whose number it held.
+                when (battery) {
+                    HeaderBatteryDisplay.State.NotActiveDevice -> Unit
+                    HeaderBatteryDisplay.State.Offline, HeaderBatteryDisplay.State.Pending ->
+                        LiquidBatteryRing(batteryPct = null, isRing = false, onClick = onOpenDevices)
+                    is HeaderBatteryDisplay.State.Charge ->
+                        LiquidBatteryRing(batteryPct = battery.pct, isRing = battery.isRing, onClick = onOpenDevices)
+                }
             }
+        }
+        if (backfilling) {
+            SyncProgressLine(
+                chunks = syncChunksThisSession,
+                pagesBehind = pagesBehindAtConnect?.takeIf { it > 0 },
+                modifier = Modifier.padding(top = Metrics.space8),
+            )
         }
     }
 }
@@ -2747,26 +2765,9 @@ private fun SyncStatusChip(
     // a scan in flight, and asking to reconnect mid-backfill is a reasonable thing to want.
     val tap = onRescan?.takeIf { !scanning }
     when (state) {
-        is SyncChipState.Syncing -> {
-            // Both counts are inflected, so "1 chunk" and "1 page" read correctly. Android <plurals>
-            // inflects one quantity per resource, so each count resolves separately and a template
-            // sentence joins them — the joiner sits inside the template, never on a resource edge,
-            // because aapt2 strips edge whitespace (#2041).
-            val chunksText = uiPlural(R.plurals.sync_chip_chunks_count, state.chunks, state.chunks)
-            val pagesText = state.pagesBehind?.let {
-                uiPlural(R.plurals.sync_chip_pages_behind_count, it, it)
-            }
-            ChipCapsule(
-                Icons.Filled.Autorenew, "${state.chunks}", Palette.accent,
-                desc = if (pagesText != null) {
-                    uiString(R.string.l10n_today_screen_sync_chip_syncing_pages_desc_ad763b39, chunksText, pagesText)
-                } else {
-                    uiString(R.string.l10n_today_screen_sync_chip_syncing_desc_92daf60c, chunksText)
-                },
-                detail = pagesText,
-                onClick = tap,
-            )
-        }
+        // Syncing draws no pill: the thin [SyncProgressLine] under the header carries it instead, so a
+        // long "N pages to catch up" label can no longer squeeze the day title down to "T…".
+        is SyncChipState.Syncing -> Unit
         is SyncChipState.Synced -> ChipCapsule(
             Icons.Filled.Check, state.agoText, Palette.textSecondary,
             uiString(R.string.l10n_today_screen_sync_chip_synced_desc_4d255944, state.agoText),
@@ -2780,6 +2781,65 @@ private fun SyncStatusChip(
     }
 }
 
+/** The Today header's catch-up indicator: a thin line across the full header width with a soft
+ *  segment gliding along it while strap history offloads. It replaces the old syncing pill, whose
+ *  backlog label ("80 pages to catch up") took width from the day title. The offload has no reliable
+ *  total, so the line is indeterminate and never a percent (see AppViewModel). The counts it used to
+ *  print stay available to TalkBack through the content description. Posed still, it shows a fixed
+ *  segment so screenshots stay stable. */
+@Composable
+private fun SyncProgressLine(chunks: Int, pagesBehind: Int?, modifier: Modifier = Modifier) {
+    // Both counts are inflected, so "1 chunk" and "1 page" read correctly. Android <plurals> inflects
+    // one quantity per resource, so each count resolves separately and a template sentence joins them;
+    // the joiner sits inside the template, never on a resource edge, because aapt2 strips edge
+    // whitespace (#2041).
+    val chunksText = uiPlural(R.plurals.sync_chip_chunks_count, chunks, chunks)
+    val pagesText = pagesBehind?.let { uiPlural(R.plurals.sync_chip_pages_behind_count, it, it) }
+    val desc = if (pagesText != null) {
+        uiString(R.string.l10n_today_screen_sync_chip_syncing_pages_desc_ad763b39, chunksText, pagesText)
+    } else {
+        uiString(R.string.l10n_today_screen_sync_chip_syncing_desc_92daf60c, chunksText)
+    }
+    val still = rememberPoseStill()
+    val phase = if (still) {
+        0.35f
+    } else {
+        val transition = rememberInfiniteTransition()
+        val p by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1600, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        )
+        p
+    }
+    val track = Palette.surfaceInset
+    val glow = Palette.accent
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(SyncLineThickness)
+            .clearAndSetSemantics { contentDescription = desc },
+    ) {
+        val y = size.height / 2f
+        val stroke = size.height
+        drawLine(track, Offset(0f, y), Offset(size.width, y), strokeWidth = stroke, cap = StrokeCap.Round)
+        // The segment enters from the left edge and leaves past the right one, clipped to the track.
+        val segment = size.width * 0.3f
+        val head = phase * (size.width + segment)
+        val start = (head - segment).coerceIn(0f, size.width)
+        val end = head.coerceIn(0f, size.width)
+        if (end > start) {
+            drawLine(glow, Offset(start, y), Offset(end, y), strokeWidth = stroke, cap = StrokeCap.Round)
+        }
+    }
+}
+
+/** Thickness of the header catch-up line: a hairline that reads as status, not as a control. */
+private val SyncLineThickness = 3.dp
+
 /** The shared sync-chip capsule (icon + terse label). Twin of the iOS `SyncStatusChip.chip`. */
 @Composable
 private fun ChipCapsule(
@@ -2787,7 +2847,6 @@ private fun ChipCapsule(
     text: String,
     tint: Color,
     desc: String,
-    detail: String? = null,
     // #2169: a second way to the same action as the disc, on the one header element that already
     // reports sync state and took no tap at all. Costs no width, and null leaves the pill inert.
     onClick: (() -> Unit)? = null,
@@ -2819,19 +2878,6 @@ private fun ChipCapsule(
     ) {
         Icon(icon, contentDescription = desc, tint = tint, modifier = Modifier.size(14.dp))
         Text(text, style = NoopType.caption, color = tint)
-        // #689/#815: the optional secondary line (the backlog figure). Dimmer than the count it follows,
-        // because the count is the live thing and this is a fixed sample taken at connect. maxLines = 1
-        // with ellipsis so a long localisation cannot push the header cluster off a narrow screen
-        // (#1835); the accessibility description carries the full sentence either way.
-        if (detail != null) {
-            Text(
-                detail,
-                style = NoopType.caption,
-                color = Palette.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }
 
@@ -3923,10 +3969,14 @@ private fun HomeScoreCard(
     effortScale: EffortScale,
     restScore: Double?,
     restHistory: Map<String, Double>,
+    chargeConfidence: ScoreConfidence?,
     onChargeTap: () -> Unit,
     onOpenMetric: (String) -> Unit,
 ) {
     val charge = day?.recovery
+    // A Charge whose HRV baseline is still thin says so in place of its comparison line, the same rule the
+    // Metrics tile's note follows (chargeEstimateNote), so the two surfaces flag the same days.
+    val chargeLearning = chargeEstimateNote(charge != null, chargeConfidence) == EstimateNote.STILL_LEARNING
     val chargeAvg = remember(days, selectedDayKey) { trailingAverage(days.seriesOf { it.recovery }, selectedDayKey) }
     val effortAvg = remember(days, selectedDayKey) { trailingAverage(days.seriesOf { it.strain }, selectedDayKey) }
     val restAvg = remember(restHistory, selectedDayKey) { trailingAverage(restHistory, selectedDayKey) }
@@ -3939,7 +3989,11 @@ private fun HomeScoreCard(
                 // Charge and Rest are 0-100 scores; Effort is stored on the 0-100 scale whatever the
                 // display scale, so all three rings fill by value / 100.
                 fraction = ((charge ?: 0.0) / 100.0).toFloat(),
-                comparison = homeComparison(charge, chargeAvg, decimals = 0),
+                comparison = if (chargeLearning) {
+                    uiString(R.string.home_still_learning)
+                } else {
+                    homeComparison(charge, chargeAvg, decimals = 0)
+                },
                 valueColor = charge?.let { Palette.recoveryColor(it) },
                 onClick = onChargeTap,
                 modifier = Modifier.weight(1f),
