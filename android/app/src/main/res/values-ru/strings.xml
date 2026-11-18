@@ -2801,4 +2801,6 @@
     <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Разрешите Zoop устанавливать приложения, затем нажмите «Установить».</string>
     <string name="metrics_estimate_still_learning">Ещё изучает ваш базовый уровень</string>
     <string name="metrics_estimate_from_heart_rate">Оценка по пульсу</string>
+    <string name="home_still_learning">Ещё изучает</string>
+    <string name="sleep_stages_estimated_note">Фазы оцениваются по пульсу и движению, а не по измеренной активности мозга.</string>
 </resources>

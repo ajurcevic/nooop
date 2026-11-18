@@ -2931,4 +2931,6 @@
     <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Allow Zoop to install apps, then tap Install.</string>
     <string name="metrics_estimate_still_learning">Still learning your baseline</string>
     <string name="metrics_estimate_from_heart_rate">Estimated from heart rate</string>
+    <string name="home_still_learning">Still learning</string>
+    <string name="sleep_stages_estimated_note">Stages are estimated from heart rate and movement, not measured brain activity.</string>
 </resources>

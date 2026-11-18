@@ -2921,4 +2921,6 @@
     <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Zezwól Zoop na instalowanie aplikacji, a potem dotknij Zainstaluj.</string>
     <string name="metrics_estimate_still_learning">Wciąż poznaje Twoją bazę</string>
     <string name="metrics_estimate_from_heart_rate">Szacowane z tętna</string>
+    <string name="home_still_learning">Wciąż się uczy</string>
+    <string name="sleep_stages_estimated_note">Fazy są szacowane na podstawie tętna i ruchu, a nie mierzonej aktywności mózgu.</string>
 </resources>
