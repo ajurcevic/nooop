@@ -5,6 +5,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +37,10 @@ import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +55,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -645,6 +652,8 @@ private fun ExpandedMetricTile(tile: MetricTileUi, onToggle: () -> Unit) {
             )
         }
         if (insight.points.size >= 2) {
+            // The point the owner tapped or dragged to, read out in the axis row; cleared when the data changes.
+            var picked by remember(tile.id, insight.points) { mutableStateOf<Int?>(null) }
             BaselineChart(
                 points = insight.points,
                 low = low,
@@ -652,8 +661,16 @@ private fun ExpandedMetricTile(tile: MetricTileUi, onToggle: () -> Unit) {
                 reference = reference,
                 lineColor = tile.lineColor,
                 dotColor = tile.valueColor,
+                picked = picked,
+                onPick = { picked = it },
             )
-            ChartAxis(start = tile.axisStart, end = tile.axisEnd)
+            ChartAxis(
+                start = tile.axisStart,
+                end = tile.axisEnd,
+                middle = picked?.let { insight.points.getOrNull(it) }?.let { point ->
+                    pickedPointLabel(insight.windowStart, point, tile.format, tile.unit)
+                },
+            )
         }
         StatsRow(tile)
         tile.onOpen?.let { open ->
@@ -802,6 +819,8 @@ private fun BaselineChart(
     reference: Double?,
     lineColor: Color,
     dotColor: Color,
+    picked: Int? = null,
+    onPick: (Int) -> Unit = {},
 ) {
     val values = points.map { it.second } + listOfNotNull(low, high, reference)
     val minValue = values.min()
@@ -812,7 +831,22 @@ private fun BaselineChart(
     val dash = Palette.textTertiary
     val ring = Palette.surfaceInset
     val lastDay = points.last().first.coerceAtLeast(1)
-    Canvas(modifier = Modifier.fillMaxWidth().height(ChartHeight)) {
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(ChartHeight)
+            // Tap or drag along the line to read a day. These consume the touch, so a tap on the chart does not
+            // also collapse the tile around it.
+            .pointerInput(points) {
+                detectTapGestures { onPick(nearestPointIndex(points, lastDay, size.width.toFloat(), it.x)) }
+            }
+            .pointerInput(points) {
+                detectHorizontalDragGestures { change, _ ->
+                    change.consume()
+                    onPick(nearestPointIndex(points, lastDay, size.width.toFloat(), change.position.x))
+                }
+            },
+    ) {
         val width = size.width
         val height = size.height
         fun x(day: Int): Float = day.toFloat() / lastDay * width
@@ -849,7 +883,34 @@ private fun BaselineChart(
         val end = offsets.last()
         drawCircle(ring, radius = 5.dp.toPx(), center = end)
         drawCircle(dotColor, radius = 3.5.dp.toPx(), center = end)
+        offsets.getOrNull(picked ?: -1)?.let { at ->
+            drawLine(dash, start = Offset(at.x, 0f), end = Offset(at.x, height), strokeWidth = 1.dp.toPx())
+            drawCircle(ring, radius = 5.dp.toPx(), center = at)
+            drawCircle(lineColor, radius = 3.5.dp.toPx(), center = at)
+        }
     }
+}
+
+/**
+ * The index of the point nearest [x] on a chart [width] wide whose x axis runs from day 0 to [lastDay]. Pure,
+ * so the pick is testable without a touch.
+ */
+internal fun nearestPointIndex(points: List<Pair<Int, Double>>, lastDay: Int, width: Float, x: Float): Int {
+    if (points.isEmpty() || width <= 0f) return 0
+    val day = x / width * lastDay.coerceAtLeast(1)
+    return points.indices.minByOrNull { abs(points[it].first - day) } ?: 0
+}
+
+/** "12 Nov · 54 ms": the picked point's date and value, or the value alone when the window has no start date. */
+internal fun pickedPointLabel(
+    windowStart: LocalDate?,
+    point: Pair<Int, Double>,
+    format: (Double) -> String,
+    unit: String,
+): String {
+    val value = listOf(format(point.second), unit).filter { it.isNotBlank() }.joinToString(" ")
+    val date = windowStart?.plusDays(point.first.toLong())?.let { shortDate(it, 0) } ?: return value
+    return "$date · $value"
 }
 
 /** A smooth curve through [points], easing horizontally between each pair so it never overshoots them. */
@@ -864,16 +925,19 @@ internal fun smoothPath(points: List<Offset>): Path = Path().apply {
     }
 }
 
-/** The dates under the chart: the window's first day, "Last 30 days" and the number's own day. */
+/**
+ * The dates under the chart: the window's first day, "Last 30 days" (or the picked point's reading, [middle])
+ * and the number's own day.
+ */
 @Composable
-private fun ChartAxis(start: String?, end: String?) {
+private fun ChartAxis(start: String?, end: String?, middle: String? = null) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(start.orEmpty(), style = NoopType.caption, color = Palette.textTertiary, maxLines = 1)
         Spacer(Modifier.weight(1f))
         Text(
-            uiString(R.string.metrics_last_30_days),
+            middle ?: uiString(R.string.metrics_last_30_days),
             style = NoopType.caption,
-            color = Palette.textTertiary,
+            color = if (middle != null) Palette.textPrimary else Palette.textTertiary,
             maxLines = 1,
         )
         Spacer(Modifier.weight(1f))

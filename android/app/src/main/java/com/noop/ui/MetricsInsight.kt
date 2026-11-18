@@ -78,6 +78,8 @@ internal data class MetricInsight(
     val average7: Double?,
     /** The window's days and the number's own day, oldest first, as (days since the window start, value). */
     val points: List<Pair<Int, Double>>,
+    /** The calendar day [points] count from, so a picked point can name its date. Null when there is no window. */
+    val windowStart: LocalDate? = null,
 ) {
     companion object {
         val EMPTY = MetricInsight(null, null, null, null, emptyList())
@@ -117,6 +119,7 @@ internal fun metricInsight(
         rangeHigh = if (hasRange) percentile(sortedPrior, METRICS_RANGE_HIGH) else null,
         average7 = trailingAverage(history, key, HOME_AVERAGE_WINDOW_DAYS),
         points = points,
+        windowStart = start,
     )
 }
 
