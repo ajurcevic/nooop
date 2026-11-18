@@ -906,6 +906,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val logicalKey = logicalDayKeyNow()       // ISO yyyy-MM-dd, local logical day
                 val localKey = java.time.LocalDate.now().toString()
                 _today.value = resolveTodayRow(days, logicalKey, localKey)
+                syncWindDownNeed(days)
                 _healthAlert.value =
                     (if (_illnessWatchEnabled.value && _today.value != null &&
                         days.lastOrNull()?.day == _today.value?.day
@@ -2704,6 +2705,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Whether the OS will honour an exact alarm right now (API 31+ gates it behind a permission). */
     fun canScheduleExactAlarms(): Boolean = SmartAlarmScheduler.canScheduleExact(appContext)
+
+    /**
+     * Keep the wind-down nudge on the same personal sleep need the Sleep tab shows
+     * ([RestScorer.personalNeedMinutes]). The store used to keep its own fixed 8 h, which nothing ever
+     * updated, so the nudge could aim at a different need than the one on screen. Persisted (not just
+     * passed to the scheduler) because the boot receiver re-schedules from the store with no day history.
+     * Re-schedules only when the need actually moved, so the per-change day collector costs nothing.
+     */
+    private fun syncWindDownNeed(days: List<DailyMetric>) {
+        if (days.isEmpty()) return
+        val need = RestScorer.personalNeedMinutes(days.map { it.totalSleepMin }).roundToInt()
+        if (need == windDownStore.sleepNeedMinutes) return
+        windDownStore.sleepNeedMinutes = need
+        if (windDownStore.enabled) WindDownScheduler.schedule(
+            appContext, windDownStore, phoneAlarmStore.targetMinutes, phoneAlarmStore.targetOverrides,
+        )
+    }
 
     /** Enable/disable the evening wind-down nudge. Schedules the daily inexact reminder from the
      *  current earliest wake time, or cancels it. */

@@ -18,7 +18,8 @@ class WindDownStore(private val prefs: SharedPreferences) {
         get() = prefs.getBoolean(KEY_ENABLED, false)
         set(v) = prefs.edit().putBoolean(KEY_ENABLED, v).apply()
 
-    /** Typical sleep need in minutes (default 8 h). Used to back-compute the nudge from the wake time. */
+    /** Sleep need in minutes, kept equal to the personal need the Sleep tab shows (AppViewModel.syncWindDownNeed).
+     *  8 h until the first day history arrives. Used to back-compute the nudge from the wake time. */
     var sleepNeedMinutes: Int
         get() = prefs.getInt(KEY_SLEEP_NEED, DEFAULT_SLEEP_NEED).coerceIn(SLEEP_MIN, SLEEP_MAX)
         set(v) = prefs.edit().putInt(KEY_SLEEP_NEED, v.coerceIn(SLEEP_MIN, SLEEP_MAX)).apply()

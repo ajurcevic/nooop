@@ -134,9 +134,9 @@ class SleepImportedFiguresTest {
             deviceId = "my-whoop", startTs = 1780351200L, endTs = 1780387200L, efficiency = 90.0,
         )
         val m = buildSleepModel(days, session = session, todayKey = pinnedToday)!!
-        // hours-vs-needed (DESCRIPTIVE) still uses the mean need = max(450, mean[420,410]=415) = 450,
-        // and reads ASLEEP 410, not the 600-min in-bed window.
-        assertEquals(410.0 / 450.0 * 100.0, m.hoursVsNeeded.latest!!, 1e-9)
+        // hours-vs-needed reads the SAME single need as the debt tile below (2 nights < the 7-night
+        // minimum, so the 8 h population target = 480), and reads ASLEEP 410, not the 600-min in-bed window.
+        assertEquals(410.0 / 480.0 * 100.0, m.hoursVsNeeded.latest!!, 1e-9)
         // Debt tile reads ASLEEP too, but against the NORMATIVE need now (#242): only 2 nights < the
         // 7-night minimum, so personalizedNeedHours cold-starts to the 8 h population target = 480, and
         // The carried target is 0.55 × (480 + 33 − 410) = 56.65, surfaced at the shared

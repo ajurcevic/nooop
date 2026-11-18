@@ -1606,6 +1606,16 @@ object RestScorer {
     }
 
     /**
+     * The one nightly sleep need (minutes) every surface reads: the Sleep tab's hours-vs-needed and debt
+     * tiles, the Charge-Effort-Rest overview, and the wind-down reminder. [nightlySleepMin] holds one asleep
+     * total per day; null and non-positive entries count as no data. A thin wrapper over
+     * [personalizedNeedHours] so callers that hold minutes cannot each convert, floor and default
+     * differently, which is how three screens once showed three needs for the same night.
+     */
+    fun personalNeedMinutes(nightlySleepMin: List<Double?>, age: Int? = null): Double =
+        personalizedNeedHours(nightlySleepMin.mapNotNull { it?.div(60.0) }, age) * 60.0
+
+    /**
      * Healthy restorative (deep + REM) share of asleep time. A share at/above this earns full
      * restorative credit; below it scales linearly. ~0.50 reflects ~20% deep + ~25–30% REM in a
      * well-structured night.
