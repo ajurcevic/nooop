@@ -628,7 +628,7 @@ fun TodayScreen(
     // reading lands ~every 8 min), when the link comes/goes, or when the strap generation resolves. Charging
     // hides it (no "X left" while topping up); a too-short discharge run returns null and the badge shows just
     // the %. Display rule: hours < 48 -> "~Nh left", else "~N days left"; null hides the estimate.
-    var batteryEstimateText by remember { mutableStateOf<String?>(null) }
+    var batteryEstimateText by rememberTodayCached<String?>(viewModel.todayUiCache, "today.batteryEstimateText", selectedDayKey, null)
     LaunchedEffect(liveSnap.connected, liveSnap.batteryPct, liveSnap.whoop5, liveSnap.charging) {
         batteryEstimateText = if (!liveSnap.connected || liveSnap.charging == true) {
             null
@@ -678,10 +678,10 @@ fun TodayScreen(
     // falling back to NOOP's on-device HR estimate (activeKcalEst) only for days the phone didn't cover.
     // Keyed by day; `caloriesByDay` feeds the SELECTED-day value the dashboard card + Key-Metrics tile both
     // read — day-scoped like every other card, and like steps.
-    var caloriesByDay by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
+    var caloriesByDay by rememberTodayCached<Map<String, Double>>(viewModel.todayUiCache, "today.caloriesByDay", selectedDayKey, emptyMap())
     // The days whose figure above is the on-device HR estimate (no phone import that day), so the tile
     // can say so. Resolved in the same pass as caloriesByDay, from the same two maps.
-    var caloriesEstimatedDays by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var caloriesEstimatedDays by rememberTodayCached<Set<String>>(viewModel.todayUiCache, "today.caloriesEstimatedDays", selectedDayKey, emptySet())
     LaunchedEffect(days) {
         caloriesByDay = runCatching {
             val onDevice = viewModel.repo.resolvedSeries("active_kcal", "my-whoop", "0000-00-00", "9999-99-99",
@@ -710,7 +710,7 @@ fun TodayScreen(
     // "Sky behind cards" (opt-in, default OFF): extend the day-cycle sky behind the WHOLE scroll so the
     // Card-transparency slider reveals it under every card (no effect when the scene is off). Read once.
     val skyBehindCards = remember { NoopPrefs.skyBehindCards(context) }
-    var hydrationTotalMl by remember { mutableStateOf(0.0) }
+    var hydrationTotalMl by rememberTodayCached(viewModel.todayUiCache, "today.hydrationTotalMl", selectedDayKey, 0.0)
     // #989: `days` only changes on a data refresh, which a hydration write never causes, so the card sat
     // stale after logging a drink until an unrelated sync landed. Keying on the store's mutationSeq too
     // re-reads the one metric row the moment a drink is logged / edited / deleted. Mirrors the iOS
@@ -834,9 +834,9 @@ fun TodayScreen(
     // The newest Apple Health / Health Connect body weight, loaded off the main thread. Null until the
     // load runs or when neither source carries a weight, the Weight tile then falls back to the profile.
     // With "Use weight from Health Connect" ON it reads Health Connect only, the source the profile holds.
-    var weightKg by remember { mutableStateOf<Double?>(null) }
+    var weightKg by rememberTodayCached<Double?>(viewModel.todayUiCache, "today.weightKg", selectedDayKey, null)
     // Every measured weight by day from the same rows, the history the Metrics Weight tile compares with.
-    var weightHistory by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
+    var weightHistory by rememberTodayCached<Map<String, Double>>(viewModel.todayUiCache, "today.weightHistory", selectedDayKey, emptyMap())
     val weightFromHealthConnect = ProfileStore.from(context).useHealthConnectWeight
     LaunchedEffect(days, weightFromHealthConnect) {
         val apple = viewModel.repo.appleDaily("apple-health", "0000-01-01", "9999-12-31")
@@ -850,10 +850,10 @@ fun TodayScreen(
     // steps (in the official WHOOP app), but NOOP can't yet read them off the strap over Bluetooth, so
     // on a 4.0 the tile shows your imported steps instead of "No Data". Reloads as the day selector
     // moves. On-device WHOOP 5/MG steps still take precedence. (#150)
-    var importedStepsForDay by remember { mutableStateOf<Int?>(null) }
+    var importedStepsForDay by rememberTodayCached<Int?>(viewModel.todayUiCache, "today.importedStepsForDay", selectedDayKey, null)
     // The same imported totals for every day, the history the Metrics Steps tile compares with.
-    var importedStepsByDay by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
-    var stepsAverage30 by remember { mutableStateOf<Pair<Double?, Int>>(null to 0) }
+    var importedStepsByDay by rememberTodayCached<Map<String, Double>>(viewModel.todayUiCache, "today.importedStepsByDay", selectedDayKey, emptyMap())
+    var stepsAverage30 by rememberTodayCached<Pair<Double?, Int>>(viewModel.todayUiCache, "today.stepsAverage30", selectedDayKey, null to 0)
     LaunchedEffect(days, selectedDayKey, enabledDashboardCards, importedStepsForDay) {
         stepsAverage30 = if (DashboardCard.STEPS_AVERAGE_30 in enabledDashboardCards) {
             val readings = buildSeriesVitalDetail(viewModel, "steps_est")?.readings.orEmpty()
@@ -880,9 +880,9 @@ fun TodayScreen(
     // day has NEITHER does it fall back to this estimate, shown with an "est." caption so it's never read
     // as a measured count. resolvedSeries reads the computed source for the my-whoop key, exactly like
     // the Explore "steps_est" metric. Null until loaded / no estimate for the day. (#150)
-    var stepsEstForDay by remember { mutableStateOf<Int?>(null) }
+    var stepsEstForDay by rememberTodayCached<Int?>(viewModel.todayUiCache, "today.stepsEstForDay", selectedDayKey, null)
     // Every day's estimate, kept for the Metrics Steps tile's history on days with no counted steps.
-    var stepsEstByDay by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
+    var stepsEstByDay by rememberTodayCached<Map<String, Double>>(viewModel.todayUiCache, "today.stepsEstByDay", selectedDayKey, emptyMap())
     LaunchedEffect(days, selectedDayKey) {
         val byDay = runCatching {
             viewModel.repo.resolvedSeries("steps_est", "my-whoop", "0000-00-00", "9999-99-99",
@@ -899,7 +899,7 @@ fun TodayScreen(
     // the day has no classed sample (a 4.0 strap, a pre-v13 row, or every record's @63 byte was invalid), then
     // the tile shows NO icon. Mirrors the iOS Today step-activity read exactly. Best-effort: a read hiccup just
     // drops the optional icon.
-    var stepActivityClassForDay by remember { mutableStateOf<Int?>(null) }
+    var stepActivityClassForDay by rememberTodayCached<Int?>(viewModel.todayUiCache, "today.stepActivityClassForDay", selectedDayKey, null)
     LaunchedEffect(days, selectedDay, today) {
         val zone = ZoneId.systemDefault()
         val start = selectedDay.atStartOfDay(zone).toEpochSecond()
@@ -920,10 +920,10 @@ fun TodayScreen(
     // as the caption; the tile previously showed hours where the score belonged (#248). resolvedSeries
     // merges imported + computed sleep_performance (imported-wins), so an importer sees the export's
     // figure and a Bluetooth-only user sees the on-device composite. Null until loaded / no night yet.
-    var restScoreForDay by remember { mutableStateOf<Double?>(null) }
+    var restScoreForDay by rememberTodayCached<Double?>(viewModel.todayUiCache, "today.restScoreForDay", selectedDayKey, null)
     // The same resolved Rest series keyed by day, kept so Home can compare the day's Rest with its own
     // trailing 7-day average without a second read.
-    var restHistory by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
+    var restHistory by rememberTodayCached<Map<String, Double>>(viewModel.todayUiCache, "today.restHistory", selectedDayKey, emptyMap())
     LaunchedEffect(days, selectedDayKey, selectedDayOffset) {
         val byDay = runCatching {
             viewModel.repo.resolvedSeries("sleep_performance", "my-whoop", "0000-00-00", "9999-99-99",
@@ -947,7 +947,7 @@ fun TodayScreen(
     // imported-WHOOP > NOOP-computed > Apple-Health precedence the dashboard merge uses field-by-field
     // (WhoopRepository.mergeDaily), then computed rows resolve through durable input provenance so the
     // card-level badge names the sensor/import providers rather than where NOOP ran the math.
-    var providerByMetric by remember { mutableStateOf<Map<String, ScoreInputProvider>>(emptyMap()) }
+    var providerByMetric by rememberTodayCached<Map<String, ScoreInputProvider>>(viewModel.todayUiCache, "today.providerByMetric", selectedDayKey, emptyMap())
     LaunchedEffect(days, selectedDayKey, viewModel.activeStrapId) {
         val resolved = mutableMapOf<String, ScoreInputProvider>()
         for (key in listOf("recovery", "strain", "sleep_performance")) {
@@ -974,7 +974,7 @@ fun TodayScreen(
     // `minReadings`, so before there's enough HR the gauge falls back to the stored value and never shows a
     // fabricated number. Any past day → null (the gauge uses the stored strain). Keyed on the same inputs
     // as the day-scoped loads so it reloads as the selector moves and as a sync/import grows the HR window.
-    var liveTodayStrain by remember { mutableStateOf<Double?>(null) }
+    var liveTodayStrain by rememberTodayCached<Double?>(viewModel.todayUiCache, "today.liveTodayStrain", selectedDayKey, null)
     LaunchedEffect(days, selectedDayKey, selectedDayOffset, activeDayCycle, dayCycleMode) {
         liveTodayStrain = if (selectedDayOffset == 0) {
             val zone = ZoneId.systemDefault()
@@ -1108,7 +1108,7 @@ fun TodayScreen(
             prior.recovery?.let { LastCharge(it, carriedChargeCaption.orEmpty()) }
         }
     }
-    var carriedRecoveryProvider by remember { mutableStateOf<ScoreInputProvider?>(null) }
+    var carriedRecoveryProvider by rememberTodayCached<ScoreInputProvider?>(viewModel.todayUiCache, "today.carriedRecoveryProvider", selectedDayKey, null)
     LaunchedEffect(lastScoredRecoveryDay?.day, viewModel.activeStrapId) {
         val carriedDay = lastScoredRecoveryDay?.day
         carriedRecoveryProvider = if (carriedDay == null) {
@@ -1129,9 +1129,9 @@ fun TodayScreen(
     // row, two indexed MINs), keyed on `days` so a sync that lands labelled beats moves the scorable day
     // instead of leaving a stale one telling a wearer last night could not be scored.
     // A read that throws leaves the flag off, which HIDES the note rather than showing a guessed one.
-    var whoop5StrictRr by remember { mutableStateOf(false) }
-    var firstRecordedRrDay by remember { mutableStateOf<String?>(null) }
-    var firstScorableRrDay by remember { mutableStateOf<String?>(null) }
+    var whoop5StrictRr by rememberTodayCached(viewModel.todayUiCache, "today.whoop5StrictRr", selectedDayKey, false)
+    var firstRecordedRrDay by rememberTodayCached<String?>(viewModel.todayUiCache, "today.firstRecordedRrDay", selectedDayKey, null)
+    var firstScorableRrDay by rememberTodayCached<String?>(viewModel.todayUiCache, "today.firstScorableRrDay", selectedDayKey, null)
     LaunchedEffect(days) {
         runCatching {
             // The ACTIVE strap, the id every other read on this screen threads. A re-pair leaves history
@@ -5951,12 +5951,12 @@ private fun HeartRateTrendCard(
     // "Today" here is the LOGICAL day (rolls at 04:00 local), so in the small hours after midnight the
     // trend keeps the evening's curve, window start at the logical day's own midnight, "since midnight"
     // subtitle, "Today" label, rather than blanking to an empty new-calendar-day axis (#144).
-    var buckets by remember { mutableStateOf<List<HrBucket>>(emptyList()) }
+    var buckets by rememberTodayCached<List<HrBucket>>(viewModel.todayUiCache, "hrCard.buckets", selectedDay.toString(), emptyList())
     // The night's sleep session overlapping the HR window + the day's workouts, the Overview-HR
     // marker layers (sleep band, Charge at wake, sport glyphs at HR peaks). Loaded off the main
     // thread alongside the buckets; each marker self-hides when its data is absent. (PR #285)
-    var sleepToday by remember { mutableStateOf<SleepSession?>(null) }
-    var workoutsToday by remember { mutableStateOf<List<WorkoutRow>>(emptyList()) }
+    var sleepToday by rememberTodayCached<SleepSession?>(viewModel.todayUiCache, "hrCard.sleepToday", selectedDay.toString(), null)
+    var workoutsToday by rememberTodayCached<List<WorkoutRow>>(viewModel.todayUiCache, "hrCard.workoutsToday", selectedDay.toString(), emptyList())
     // #985: the selected HR window. rememberSaveable ordinal so the choice survives rotation / process
     // death and feels sticky like a preference; 0 = TODAY, the unchanged full-day default. Forced to
     // TODAY on a past day (no "now" to anchor a rolling window — the pills don't render there either).

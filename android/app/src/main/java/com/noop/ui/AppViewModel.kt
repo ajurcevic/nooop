@@ -616,6 +616,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var todayVitalityCache: Double? = null
     var todayVo2maxCache: Double? = null
 
+    /** Last-loaded Today read-outs, so a tab switch shows them at once instead of an empty state. */
+    val todayUiCache = TodayUiCache()
+
     /**
      * Recent daily metrics (newest last), backing the Today grid + illness watch.
      * MERGED: imported "my-whoop" rows win per day; on-device computed "my-whoop-noop"
