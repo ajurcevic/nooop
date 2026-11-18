@@ -113,7 +113,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '25'
       - uses: gradle/actions/wrapper-validation@v5
       - uses: gradle/actions/setup-gradle@v5
       # NOTE: both APKs are signed with the committed android/fork-debug.keystore via an explicit
