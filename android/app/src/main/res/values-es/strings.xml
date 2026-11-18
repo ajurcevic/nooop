@@ -2905,4 +2905,6 @@
     <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Permite que Zoop instale aplicaciones y luego toca Instalar.</string>
     <string name="metrics_estimate_still_learning">Aún aprendiendo su referencia</string>
     <string name="metrics_estimate_from_heart_rate">Estimado a partir del pulso</string>
+    <string name="home_still_learning">Aún aprendiendo</string>
+    <string name="sleep_stages_estimated_note">Las fases se estiman a partir del pulso y el movimiento, no de la actividad cerebral medida.</string>
 </resources>

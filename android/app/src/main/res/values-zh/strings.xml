@@ -2875,4 +2875,6 @@
     <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">请允许 Zoop 安装应用，然后点按“安装”。</string>
     <string name="metrics_estimate_still_learning">仍在学习你的基线</string>
     <string name="metrics_estimate_from_heart_rate">根据心率估算</string>
+    <string name="home_still_learning">仍在学习</string>
+    <string name="sleep_stages_estimated_note">睡眠阶段根据心率和动作估算，并非测量脑电活动。</string>
 </resources>

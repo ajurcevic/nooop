@@ -1681,6 +1681,7 @@ fun TodayScreen(
                     effortScale = effortScale,
                     restScore = restScoreForDay,
                     restHistory = restHistory,
+                    chargeConfidence = chargeConfidenceTier(chargeBaselines, displayMetric),
                     onChargeTap = { showChargeBreakdown = true },
                     onOpenMetric = onOpenMetric,
                 )
@@ -3968,10 +3969,14 @@ private fun HomeScoreCard(
     effortScale: EffortScale,
     restScore: Double?,
     restHistory: Map<String, Double>,
+    chargeConfidence: ScoreConfidence?,
     onChargeTap: () -> Unit,
     onOpenMetric: (String) -> Unit,
 ) {
     val charge = day?.recovery
+    // A Charge whose HRV baseline is still thin says so in place of its comparison line, the same rule the
+    // Metrics tile's note follows (chargeEstimateNote), so the two surfaces flag the same days.
+    val chargeLearning = chargeEstimateNote(charge != null, chargeConfidence) == EstimateNote.STILL_LEARNING
     val chargeAvg = remember(days, selectedDayKey) { trailingAverage(days.seriesOf { it.recovery }, selectedDayKey) }
     val effortAvg = remember(days, selectedDayKey) { trailingAverage(days.seriesOf { it.strain }, selectedDayKey) }
     val restAvg = remember(restHistory, selectedDayKey) { trailingAverage(restHistory, selectedDayKey) }
@@ -3984,7 +3989,11 @@ private fun HomeScoreCard(
                 // Charge and Rest are 0-100 scores; Effort is stored on the 0-100 scale whatever the
                 // display scale, so all three rings fill by value / 100.
                 fraction = ((charge ?: 0.0) / 100.0).toFloat(),
-                comparison = homeComparison(charge, chargeAvg, decimals = 0),
+                comparison = if (chargeLearning) {
+                    uiString(R.string.home_still_learning)
+                } else {
+                    homeComparison(charge, chargeAvg, decimals = 0)
+                },
                 valueColor = charge?.let { Palette.recoveryColor(it) },
                 onClick = onChargeTap,
                 modifier = Modifier.weight(1f),

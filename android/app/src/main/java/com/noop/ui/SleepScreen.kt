@@ -1517,6 +1517,13 @@ private fun Hero(
             // so the larger Awake / smaller Deep+REM here isn't misread as the polished numbers the Oura app
             // shows for the same night (the app post-processes the same stream). Mirrors iOS ouraRawStagesNote.
             if (activeIsOura) OuraRawStagesNote()
+            // Every split here is inferred from heart rate and movement, never measured brain activity, so
+            // the breakdown always says so in one quiet line rather than only on a flagged night.
+            Text(
+                uiString(R.string.sleep_stages_estimated_note),
+                style = NoopType.caption,
+                color = Palette.textTertiary,
+            )
             // #H9: when the engine's Rest confidence flags this night's staging as low-confidence (a
             // high-efficiency night whose deep+REM share is implausibly low, so a likely staging miss
             // rather than a real night with no restorative sleep), say so honestly under the breakdown
