@@ -321,8 +321,8 @@ NOOP runs a **deliberately lean CI**: fast, no-hardware checks guard the point o
 and hardware-dependent verification runs at release time or on demand. This is a choice for an
 anonymous, offline, sideloaded project — not a gap to fill with more gates.
 
-- **On every PR (required):** `source-hygiene`, `tools-python` and `i18n-coverage` have no path
-  filter, so all three run on everything. (`tools-python`'s Windows leg is a separate workflow and IS
+- **On every PR (required):** `source-hygiene` and `tools-python` have no path
+  filter, so both run on everything. (`tools-python`'s Windows leg is a separate workflow and IS
   filtered, to `Tools/linux-capture/**`: it re-runs only those tests under legacy console encodings,
   and they read nothing outside their own package.) `swift-packages` (`swift test` for `Packages/**`) and
   `android` (`assembleFullDebug` + `testFullDebugUnitTest`) are **path-filtered** — they run when you

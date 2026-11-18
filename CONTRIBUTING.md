@@ -85,7 +85,6 @@ names. That column is why this table exists:
 
 | Check you see | Workflow | Runs when |
 |---|---|---|
-| `check` | **i18n Coverage** (`i18n-coverage.yml`) | every PR |
 | `doc-comments` | **Source Hygiene** (`source-hygiene.yml`) | every PR |
 | `linux-capture` | **Tools Python CI** (`tools-python.yml`) | every PR |
 | `windows-capture` | **Tools Python CI (Windows)** (`tools-python-windows.yml`) | `Tools/linux-capture/**` |

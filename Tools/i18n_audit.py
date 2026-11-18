@@ -15,9 +15,8 @@ Two independent problems, both covered here:
 Target languages: de, es, fr, pt-PT (the focus set). English is the source
 language and is not checked for itself.
 
-Read-only. Prints a report; does not modify any file. Re-runnable, and the
-same logic is meant to be wired into a CI check later (see i18n-coverage.yml)
-so this stops being a manual step.
+Read-only. Prints a report; does not modify any file. Re-runnable. It no
+longer runs as its own CI check; the Tools Python suites still import it.
 
 Usage: python3 Tools/i18n_audit.py [--platform ios|android|all] [--full]
 """

@@ -77,7 +77,6 @@ cd android && ./gradlew assembleFullDebug                  # build the real app
 # After a branch switch, ALWAYS add --no-build-cache --rerun-tasks. Gradle can otherwise serve
 # generated sources (Room/KSP) from the previous branch and fail classes you never touched.
 cd Tools && python3 -m unittest -v $(ls test_*.py | sed 's/\.py$//')
-python3 Tools/i18n_audit.py --ci origin/main               # translation gate
 python3 Tools/doc_comment_lint.py                          # detached doc comments
 ```
 
@@ -87,7 +86,6 @@ python3 Tools/doc_comment_lint.py                          # detached doc commen
 | `android.yml` | `assembleFullDebug` + `testFullDebugUnitTest` | **active**, path-filtered to `android/**` |
 | `tools-python.yml` | The `Tools/test_*.py` suites, with a discovery floor | **active**, NO path filter: several suites assert on Android source (`test_home_i18n.py` reads `TodayScreen.kt` and the string resources), so no path list describes their inputs. |
 | `source-hygiene.yml` | Doc comments that bind to nothing (`Tools/doc_comment_lint.py`) | **active** |
-| `i18n-coverage.yml` | Diff-scoped translation gate (`Tools/i18n_audit.py --ci`) | **active** |
 | `prune-stale-branches.yml` | Deletes branches whose PR merged or closed unmerged | weekly + dispatch |
 | `fork-release.yml` | Patch bump committed to `main` + `v<VERSION>` release with the APK | **every push to `main`** + dispatch |
 | `fork-testing-build.yml` | Rolling `testing-latest` debug + release APKs | on dispatch |
