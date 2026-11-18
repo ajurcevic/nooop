@@ -74,7 +74,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.noop.ble.WhoopModel
 import com.noop.data.ImportSummary
-import com.noop.ingest.AppleHealthImporter
 import com.noop.ingest.HealthConnectImporter
 import com.noop.ingest.WhoopCsvImporter
 import kotlinx.coroutines.Dispatchers
@@ -818,10 +817,6 @@ private fun ImportStep(viewModel: AppViewModel) {
         ActivityResultContracts.OpenDocument(),
     ) { uri -> if (uri != null) runImport { WhoopCsvImporter.importZip(context, uri, viewModel.repo) } }
 
-    val appleImportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri -> if (uri != null) runImport { AppleHealthImporter.importExport(context, uri, viewModel.repo) } }
-
     val hcPermissionLauncher = rememberLauncherForActivityResult(
         PermissionController.createRequestPermissionResultContract(),
     ) { granted ->
@@ -901,11 +896,6 @@ private fun ImportStep(viewModel: AppViewModel) {
                             },
                         )
                     }
-                    OnboardingActionButton(
-                        label = uiString(R.string.l10n_onboarding_screen_import_apple_health_export_077b5624),
-                        icon = Icons.Filled.FavoriteBorder,
-                        enabled = !busy,
-                    ) { appleImportLauncher.launch(arrayOf("*/*")) }
                 }
             }
 

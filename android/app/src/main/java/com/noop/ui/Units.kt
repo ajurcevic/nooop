@@ -122,31 +122,32 @@ enum class SleepChartStyle(val raw: String) {
      *  timestamped segments, else falls back to CLASSIC. */
     FILLED("filled"),
 
-    /** The same filled chart drawn in Garmin's blue/magenta ramp. */
-    GARMIN_FILLED("garminFilled"),
-
     /** The stepped chart drawn as a slim RIBBON (a uniform band at each stage level, not filled to the
      *  baseline), in Oura's cream/blue ramp. */
     RIBBON("ribbon");
 
-    /** Whether the stepped chart fills to the baseline (Fill / Garmin Fill) or draws a slim ribbon. */
-    val isFilled: Boolean get() = this == FILLED || this == GARMIN_FILLED
+    /** Whether the stepped chart fills to the baseline (Fill) or draws a slim ribbon. */
+    val isFilled: Boolean get() = this == FILLED
 
     /** The stage-colour ramp this style draws with. */
     val stagePalette: SleepStagePalette
         get() = when (this) {
             CLASSIC, FILLED -> SleepStagePalette.NOOP
-            GARMIN_FILLED -> SleepStagePalette.GARMIN
             RIBBON -> SleepStagePalette.OURA
         }
 
     companion object {
-        fun fromRaw(raw: String?): SleepChartStyle = entries.firstOrNull { it.raw == raw } ?: CLASSIC
+        /** The retired Garmin-coloured fill, still possibly stored on older installs and backups. */
+        private const val LEGACY_GARMIN_FILLED = "garminFilled"
+
+        /** An unset/unknown value resolves to [CLASSIC]; the retired Garmin fill keeps its filled shape. */
+        fun fromRaw(raw: String?): SleepChartStyle =
+            if (raw == LEGACY_GARMIN_FILLED) FILLED else entries.firstOrNull { it.raw == raw } ?: CLASSIC
     }
 }
 
 /** Which stage-colour ramp a sleep chart draws with. Twin of the Swift `SleepStagePalette`. */
-enum class SleepStagePalette { NOOP, OURA, GARMIN }
+enum class SleepStagePalette { NOOP, OURA }
 
 /**
  * Reads the display preferences and resolves backwards-compatible fallbacks. SharedPreferences isn't

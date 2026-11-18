@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Refresh
@@ -115,7 +114,6 @@ fun HealthScreen(
     vm: AppViewModel,
     onVitalClick: (String) -> Unit = {},
     onOpenLabBook: () -> Unit = {},
-    onOpenFusedRecord: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -233,13 +231,12 @@ fun HealthScreen(
             // labelled progress bars in the shared stage/zone bar style, mirroring Today's section.
             item { Spacer(Modifier.height(Metrics.selectorTopUp)) }
             item { HealthContributorsSection(today) }
-            // RECORDS & SOURCES (Swift parity) — deep-link rows into the local Lab Book and the
-            // "Your Data, Fused" record, so both are discoverable from Health, not just the drawer.
+            // RECORDS (Swift parity) — a deep-link row into the local Lab Book, so it is discoverable
+            // from Health, not just the drawer.
             item { Spacer(Modifier.height(Metrics.selectorTopUp)) }
             item {
                 RecordsAndSourcesSection(
                     onOpenLabBook = onOpenLabBook,
-                    onOpenFusedRecord = onOpenFusedRecord,
                 )
             }
         }
@@ -374,16 +371,14 @@ private fun syncHelperText(live: LiveState): String = when {
 
 // MARK: - Records & sources (Swift parity) — discoverable deep-links into the on-device records
 //
-// Mirrors the Swift Health screen's "Records & sources" section: two clickable rows that route into
-// the Lab Book (your own bloods / BP / body numbers) and the fused multi-source record ("Your Data,
-// Fused"). Both live entirely on this phone, so the overline says so. Plain navigation rows in the
-// house NoopCard style with an icon, a title/subtitle and a trailing chevron, each carrying a single
-// combined contentDescription for screen readers.
+// Mirrors the Swift Health screen's "Records & sources" section, now a single clickable row that routes
+// into the Lab Book (your own bloods / BP / body numbers). It lives entirely on this phone, so the
+// overline says so. A plain navigation row in the house NoopCard style with an icon, a title/subtitle
+// and a trailing chevron, carrying a single combined contentDescription for screen readers.
 
 @Composable
 private fun RecordsAndSourcesSection(
     onOpenLabBook: () -> Unit,
-    onOpenFusedRecord: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
         SectionHeader("Records & sources", overline = "On this phone")
@@ -393,13 +388,6 @@ private fun RecordsAndSourcesSection(
             title = uiString(R.string.l10n_health_screen_lab_book_f966c140),
             subtitle = "Your bloods, BP and body numbers. Kept private here.",
             onClick = onOpenLabBook,
-        )
-        RecordRow(
-            icon = Icons.AutoMirrored.Filled.CompareArrows,
-            tint = Palette.accent,
-            title = uiString(R.string.l10n_health_screen_your_data_fused_a740fd4a),
-            subtitle = "The best-sourced number per metric, across your bands.",
-            onClick = onOpenFusedRecord,
         )
     }
 }
