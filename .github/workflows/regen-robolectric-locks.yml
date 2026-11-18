@@ -1,4 +1,4 @@
-# TEMPORARY: records the lockfile and verification-metadata entries for the Robolectric and JaCoCo upgrade,
+# TEMPORARY: records the lockfile and verification-metadata entries for the Robolectric upgrade,
 # because the authoring session cannot reach Google's Maven repository. Removed before merge.
 name: Regenerate Robolectric locks (temporary)
 
@@ -29,10 +29,14 @@ jobs:
         working-directory: android
         run: |
           set -o pipefail
-          # Diagnose run: only the JaCoCo budget test, printing every cause in its stack trace.
-          ./gradlew --no-daemon testFullDebugUnitTest \
-            --tests 'com.noop.analytics.IntelligenceEngineJacocoBudgetTest' 2>&1 | tail -20 || true
-          grep -rh -E 'Caused by|LimitExceeded|Exception:' app/build/test-results/ | sort -u | head -40 || true
+          # Lock state is only written by a build that succeeds, so lock in its own invocation first.
+          ./gradlew --no-daemon --write-locks --write-verification-metadata sha256 \
+            :app:dependencies > "$RUNNER_TEMP/locks.log" 2>&1 || { tail -80 "$RUNNER_TEMP/locks.log"; exit 1; }
+          ./gradlew --no-daemon --continue --write-verification-metadata sha256 \
+            testFullDebugUnitTest testDemoDebugUnitTest 2>&1 | tee "$RUNNER_TEMP/regen.log" || true
+          git diff --stat
+          # Print every failure's message and causes so a red test is diagnosable from the job log.
+          grep -rh -E '<failure|Caused by' app/build/test-results/*/*.xml | sort -u | head -60 || true
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -46,5 +50,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add android/gradle/verification-metadata.xml android/app/gradle.lockfile
-          git commit -m "Record JaCoCo 0.8.16 in the lockfile and verification metadata" || exit 0
+          git commit -m "Record Robolectric 4.17 in the lockfile and verification metadata" || exit 0
           git push origin "HEAD:${{ github.ref_name }}"
