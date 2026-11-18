@@ -1,4 +1,4 @@
-# TEMPORARY: records the lockfile and verification-metadata entries for the Robolectric upgrade,
+# TEMPORARY: records the lockfile and verification-metadata entries for the Robolectric and JaCoCo upgrade,
 # because the authoring session cannot reach Google's Maven repository. Removed before merge.
 name: Regenerate Robolectric locks (temporary)
 
@@ -35,6 +35,8 @@ jobs:
           ./gradlew --no-daemon --continue --write-verification-metadata sha256 \
             testFullDebugUnitTest testDemoDebugUnitTest 2>&1 | tee "$RUNNER_TEMP/regen.log" || true
           git diff --stat
+          # Print the first lines of every failure so a red test is diagnosable from the job log.
+          grep -rh -A12 '<failure' app/build/test-results/ | head -120 || true
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -48,5 +50,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add android/gradle/verification-metadata.xml android/app/gradle.lockfile
-          git commit -m "Record Robolectric 4.18.1 in the lockfile and verification metadata" || exit 0
+          git commit -m "Record JaCoCo 0.8.16 in the lockfile and verification metadata" || exit 0
           git push origin "HEAD:${{ github.ref_name }}"
