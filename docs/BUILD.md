@@ -17,9 +17,9 @@ the [privacy inventory](PRIVACY_SECURITY.md#11-network-paths-canonical-inventory
 
 | Tool | Version |
 |---|---|
-| JDK | 17 |
-| Android SDK | `platform-tools`, `platforms;android-35`, `build-tools;34.0.0` |
-| Gradle | 8.7, provisioned by `android/gradlew` (do not install a system Gradle) |
+| JDK | 17 to 25 (CI builds with 25; app bytecode targets Java 17) |
+| Android SDK | `platform-tools`, `platforms;android-35`, `build-tools;36.0.0` |
+| Gradle | 9.6.1, provisioned by `android/gradlew` (do not install a system Gradle) |
 | Android Studio | optional, current stable |
 
 Point Gradle at the SDK with `android/local.properties` (`sdk.dir=/path/to/sdk`, git-ignored) or
