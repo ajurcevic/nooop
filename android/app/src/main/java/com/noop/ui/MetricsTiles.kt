@@ -3,6 +3,7 @@ package com.noop.ui
 import androidx.compose.ui.graphics.Color
 import com.noop.R
 import com.noop.analytics.Baselines
+import com.noop.analytics.ScoreConfidence
 import com.noop.analytics.SkinTempDisplay
 import com.noop.analytics.StrainScorer
 import com.noop.data.DailyMetric
@@ -93,6 +94,10 @@ internal fun buildMetricTiles(
     onOpenMetric: (String) -> Unit,
     onOpenSleep: () -> Unit,
     onOpenStepsCalibration: () -> Unit,
+    /** How sure the day's own Charge is; a "building" score says it is still learning. Null hides the note. */
+    chargeConfidence: ScoreConfidence? = null,
+    /** Days whose calories are Zoop's heart-rate estimate rather than a phone-imported figure. */
+    caloriesEstimatedDays: Set<String> = emptySet(),
 ): Map<KeyMetric, MetricTileUi> {
     // A number takes its comparison colour when its metric has a healthy direction (the approved Calm mock:
     // HRV green, breathing amber), and the primary text colour when it has none. Charge, Effort and Rest
@@ -231,7 +236,7 @@ internal fun buildMetricTiles(
                 chargeReading == null && recoveryCalibration != null ->
                     uiString(R.string.score_state_title_calibrating)
                 carriedCharge != null -> lastScoredCharge?.caption?.takeIf { it.isNotEmpty() }
-                else -> null
+                else -> chargeEstimateNote(ownCharge != null, chargeConfidence)?.let { uiString(it.labelRes) }
             },
             onOpen = { onOpenMetric("recovery") },
         ),
@@ -362,6 +367,7 @@ internal fun buildMetricTiles(
             lineColor = Palette.metricAmber,
             rule = TrendRule.NEUTRAL,
             format = ::groupedNumber,
+            caption = caloriesEstimateNote(dayKey, calories != null, caloriesEstimatedDays)?.let { uiString(it.labelRes) },
             onOpen = { onOpenMetric("active_kcal") },
         ),
         KeyMetric.SKIN_TEMP to make(
@@ -378,6 +384,25 @@ internal fun buildMetricTiles(
         ),
     )
 }
+
+/**
+ * The short note a Metrics tile carries when its number is a guess rather than a measurement, so an
+ * estimated figure never reads as solidly as a measured one.
+ */
+internal enum class EstimateNote(@androidx.annotation.StringRes val labelRes: Int) {
+    /** The score is computed, but its personal baseline is still thin. */
+    STILL_LEARNING(R.string.metrics_estimate_still_learning),
+    /** Worked out from heart rate, weight and age with a published formula, not measured. */
+    FROM_HEART_RATE(R.string.metrics_estimate_from_heart_rate),
+}
+
+/** The Charge tile's note: only the day's OWN score, and only while its baseline is still building. */
+internal fun chargeEstimateNote(hasOwnScore: Boolean, confidence: ScoreConfidence?): EstimateNote? =
+    if (hasOwnScore && confidence == ScoreConfidence.BUILDING) EstimateNote.STILL_LEARNING else null
+
+/** The Calories tile's note: only when the day shows a figure and that figure is Zoop's own estimate. */
+internal fun caloriesEstimateNote(dayKey: String, hasValue: Boolean, estimatedDays: Set<String>): EstimateNote? =
+    if (hasValue && dayKey in estimatedDays) EstimateNote.FROM_HEART_RATE else null
 
 /**
  * The summary card's chips: HRV, resting heart rate and last night's sleep against their baselines. A metric

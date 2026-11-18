@@ -688,6 +688,9 @@ fun TodayScreen(
     // Keyed by day; `caloriesByDay` feeds the SELECTED-day value the dashboard card + Key-Metrics tile both
     // read — day-scoped like every other card, and like steps.
     var caloriesByDay by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
+    // The days whose figure above is the on-device HR estimate (no phone import that day), so the tile
+    // can say so. Resolved in the same pass as caloriesByDay, from the same two maps.
+    var caloriesEstimatedDays by remember { mutableStateOf<Set<String>>(emptySet()) }
     LaunchedEffect(days) {
         caloriesByDay = runCatching {
             val onDevice = viewModel.repo.resolvedSeries("active_kcal", "my-whoop", "0000-00-00", "9999-99-99",
@@ -697,6 +700,7 @@ fun TodayScreen(
                 viewModel.repo.appleDaily("health-connect", "0000-01-01", "9999-12-31")) {
                 r.activeKcal?.takeIf { it > 0 }?.let { imported.putIfAbsent(r.day, it) }
             }
+            caloriesEstimatedDays = onDevice.keys - imported.keys
             (onDevice.keys + imported.keys)
                 .mapNotNull { day -> (imported[day] ?: onDevice[day])?.let { day to it } }.toMap()
         }.getOrDefault(emptyMap())
@@ -1265,6 +1269,8 @@ fun TodayScreen(
             onOpenMetric = onOpenMetric,
             onOpenSleep = onOpenSleep,
             onOpenStepsCalibration = onOpenStepsCalibration,
+            chargeConfidence = chargeConfidenceTier(chargeBaselines, stepResolvedDisplayMetric),
+            caloriesEstimatedDays = caloriesEstimatedDays,
         )
     }
 

@@ -2799,4 +2799,6 @@
     <string name="l10n_settings_screen_install_fd6c3ebf">Установить</string>
     <string name="l10n_settings_screen_download_failed_try_again_6dda10a9">Не удалось загрузить. Попробуйте ещё раз.</string>
     <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Разрешите Zoop устанавливать приложения, затем нажмите «Установить».</string>
+    <string name="metrics_estimate_still_learning">Ещё изучает ваш базовый уровень</string>
+    <string name="metrics_estimate_from_heart_rate">Оценка по пульсу</string>
 </resources>

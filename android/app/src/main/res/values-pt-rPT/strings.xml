@@ -2895,4 +2895,6 @@
     <string name="l10n_settings_screen_install_fd6c3ebf">Instalar</string>
     <string name="l10n_settings_screen_download_failed_try_again_6dda10a9">A transferência falhou. Tenta novamente.</string>
     <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Permite que a Zoop instale apps e depois toca em Instalar.</string>
+    <string name="metrics_estimate_still_learning">Ainda a aprender a tua base</string>
+    <string name="metrics_estimate_from_heart_rate">Estimado a partir do ritmo cardíaco</string>
 </resources>

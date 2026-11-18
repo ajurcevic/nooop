@@ -2902,4 +2902,6 @@
     <string name="l10n_settings_screen_install_fd6c3ebf">Installer</string>
     <string name="l10n_settings_screen_download_failed_try_again_6dda10a9">Échec du téléchargement. Réessaie.</string>
     <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Autorise Zoop à installer des applis, puis touche Installer.</string>
+    <string name="metrics_estimate_still_learning">Apprend encore votre référence</string>
+    <string name="metrics_estimate_from_heart_rate">Estimé à partir du pouls</string>
 </resources>

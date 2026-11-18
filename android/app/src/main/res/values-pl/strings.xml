@@ -2919,4 +2919,6 @@
     <string name="l10n_settings_screen_install_fd6c3ebf">Zainstaluj</string>
     <string name="l10n_settings_screen_download_failed_try_again_6dda10a9">Pobieranie nie powiodło się. Spróbuj ponownie.</string>
     <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Zezwól Zoop na instalowanie aplikacji, a potem dotknij Zainstaluj.</string>
+    <string name="metrics_estimate_still_learning">Wciąż poznaje Twoją bazę</string>
+    <string name="metrics_estimate_from_heart_rate">Szacowane z tętna</string>
 </resources>
