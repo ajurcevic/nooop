@@ -46,7 +46,7 @@ concurrency:
 
 jobs:
   bump:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # Pushes the version-bump commit to the dispatched branch and creates the GitHub release.
     permissions:
       contents: write
@@ -160,7 +160,7 @@ jobs:
 
   android:
     needs: bump
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # Uploads the built APK to the release created by the `bump` job.
     permissions:
       contents: write
