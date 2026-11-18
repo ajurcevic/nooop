@@ -84,7 +84,7 @@ python3 Tools/doc_comment_lint.py                          # detached doc commen
 | Workflow | Covers | Default state |
 |---|---|---|
 | `android.yml` | `assembleFullDebug` + `testFullDebugUnitTest` | **active**, path-filtered to `android/**` |
-| `tools-python.yml` | The `Tools/test_*.py` suites, with a discovery floor | **active**, NO path filter: several suites assert on Android source (`test_home_i18n.py` reads `TodayScreen.kt` and the string resources), so no path list describes their inputs. |
+| `tools-python.yml` | The `Tools/test_*.py` suites, with a discovery floor | **active**, NO path filter: `test_appchangelog_gen.py` reads `AppChangelog.kt` and the string resources, so no path list describes their inputs. |
 | `source-hygiene.yml` | Doc comments that bind to nothing (`Tools/doc_comment_lint.py`) | **active** |
 | `prune-stale-branches.yml` | Deletes branches whose PR merged or closed unmerged | weekly + dispatch |
 | `fork-release.yml` | Patch bump committed to `main` + `v<VERSION>` release with the APK | **every push to `main`** + dispatch |
@@ -138,7 +138,7 @@ nothing about connection behavior. Say what you tested on hardware.
 ## PR & commit conventions
 
 - **One concern per PR.** Keep a protocol change, a schema migration, and a UI change separate.
-- **Use English for all repository-facing text.** App translations stay in their target languages.
+- **English only.** Repository text and the app itself are English; the app ships no translations.
 - **Reference issues neutrally** with `Refs #N`; avoid GitHub auto-closing keywords.
 - **Show your verification.** BLE → what you tested on hardware. Analytics → the method + a test.
   UI → design tokens only.
