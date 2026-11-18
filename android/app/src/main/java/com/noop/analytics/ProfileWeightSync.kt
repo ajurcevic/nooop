@@ -36,9 +36,8 @@ object ProfileWeightSync {
     fun newest(readings: List<WeightReading>): WeightReading? = readings.maxByOrNull { it.day }
 
     /**
-     * "25 Sep" in the app language for the Settings caption, verbatim on an unparseable day.
-     * [locale] defaults to [Locale.getDefault], which `AppLanguagePrefs` keeps on the selected app
-     * language, so an Italian UI reads "25 set" rather than an English month.
+     * "25 Sep" for the Settings caption, verbatim on an unparseable day.
+     * [locale] defaults to [Locale.getDefault].
      */
     fun captionDate(day: String, locale: Locale = Locale.getDefault()): String =
         runCatching { LocalDate.parse(day).format(DateTimeFormatter.ofPattern("d MMM", locale)) }

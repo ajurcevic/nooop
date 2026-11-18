@@ -11,12 +11,6 @@ A per-version notes file docs/releases/v<VER>.md may carry a YAML front-matter b
       items:
         - "**Bold lead.** One-line description."
         - "**Another.** ..."
-      title_locales:            # OPTIONAL, but see below — without it the card ships English titles
-        de: "Kurze Überschrift"
-        es: "..."
-        fr: "..."
-        pt-PT: "..."
-        zh: "..."
     ---
     # NOOP v<VER>
     <the full release notes — the GitHub release body; the front-matter is stripped there>
@@ -25,18 +19,12 @@ Running `Tools/appchangelog-gen.py docs/releases/v8.2.2.md` prepends the generat
 `releases` in AppChangelog.kt and bumps CURRENT_VERSION to that version. Idempotent: if the version is already the newest entry it only re-checks the constant. The
 version comes from the filename (v8.2.2.md -> 8.2.2).
 
-ANDROID TITLE LOCALIZATION (#878). Compose has no auto-extraction, so a raw Kotlin `title = "..."`
-is a hardcoded literal: the i18n gate fails on it, and because that gate audits the WHOLE tree the
-failure red-checks every open PR on a line none of them touched.
-
-This script therefore emits `title = uiString(R.string.<key>)` for Kotlin and writes the string
+ANDROID TITLE RESOURCE (#878). This script therefore emits `title = uiString(R.string.<key>)` for Kotlin and writes the string
 itself, using the repo's key scheme: `l10n_app_changelog_<first 6 alnum words, lowercased>_<sha1 of
 the exact title>[:8]` — verified to reproduce the existing 9.2.0 and 9.2.1 keys.
 
-Translations come from `whatsnew.title_locales`. A locale with no entry falls back to the ENGLISH
-title and is named in a warning, because the alternative — leaving the key out of that locale — is
-the same red gate this exists to prevent. An English title in a German card is a visible, fixable
-wart; a red main after every release is not.
+The app ships English only, so the string goes into `values/strings.xml` alone. Any
+`whatsnew.title_locales` block in older release notes is ignored.
 """
 import hashlib
 import re
@@ -48,15 +36,10 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 KT = ROOT / "android/app/src/main/java/com/noop/ui/AppChangelog.kt"
 RES = ROOT / "android/app/src/main/res"
 
-#: The locale resource dirs the i18n gate treats as the focus set. `values` is the English source.
-# Polish shipped in #1250 but was never added here, so a `title_locales.pl` entry was accepted and then
-# silently dropped: v10.1.0 supplied one and Polish users still saw the English card. Russian repeated it
-# in #1872, added as a locale in the same cycle this list was not. Keep this in step with the
-# res/values-* directories that actually exist, which `test_locale_dirs_match_the_res_directories` now
-# asserts rather than trusting anyone to remember.
-LOCALE_DIRS = {"en": "values", "de": "values-de", "es": "values-es",
-               "fr": "values-fr", "pt-PT": "values-pt-rPT", "zh": "values-zh",
-               "pl": "values-pl", "ru": "values-ru", "it": "values-it"}
+#: The string resource dirs the title is written to. The app ships English only, so this is just the
+# `values` source. `test_locale_dirs_match_the_res_directories` fails if a translated values-* dir
+# reappears without an entry here.
+LOCALE_DIRS = {"en": "values"}
 
 
 def title_key(title: str) -> str:

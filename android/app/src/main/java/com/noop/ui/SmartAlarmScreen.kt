@@ -457,8 +457,7 @@ private fun alarmCountdown(
     // DATE only, deliberately. The deadline time is already on this card twice, in the figures above and
     // in the "a backup alarm is set for ..." sentence below, and a third copy is noise. What neither of
     // those carries is WHICH DAY, which is the half that settles "tonight or tomorrow" and the only thing
-    // this line needs to add. `Locale.getDefault()` is the app language here: `AppLanguagePrefs.wrap` and
-    // `set` both call `Locale.setDefault`, which is why every other formatter on this screen uses it.
+    // this line needs to add. `Locale.getDefault()` matches every other formatter on this screen.
     val stamp = java.text.SimpleDateFormat("EEE d MMM", java.util.Locale.getDefault()).format(next.time)
 
     val totalMinutes = ((next.timeInMillis - nowMs) / 60_000L).toInt()

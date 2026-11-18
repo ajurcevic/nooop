@@ -7137,7 +7137,7 @@ private fun TodayWorkoutsSection(workouts: List<WorkoutRow>, onSelect: (WorkoutR
     if (feed.isEmpty()) return
 
     // "Latest Workouts", not "Last": "Last" read as "final". Mirrored on iOS (TodayView). Lives in
-    // strings.xml (values + values-de) so the header is localizable like the nav labels.
+    // strings.xml so the header is a resource like the nav labels.
     SectionHeader(stringResource(R.string.today_latest_workouts), overline = uiString(R.string.today_workouts_activity), trailing = uiString(R.string.today_workouts_14_days))
     // #1694: the feed was read-only, so the only way to a session's detail was More > Workouts. The
     // tap opens the SAME read-only WorkoutDetailSheet the Workouts list uses — nothing there can edit

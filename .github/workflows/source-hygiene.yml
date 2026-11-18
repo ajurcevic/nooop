@@ -10,14 +10,14 @@
 # parity is the #1 rule in CLAUDE.md. Losing that note is not a cosmetic problem.
 #
 # Pure Python + git, no Xcode/Gradle: runs in seconds on ubuntu-latest, independent of the
-# disabled-by-default app-build.yml / android.yml compile jobs. Same shape as i18n-coverage.yml.
+# disabled-by-default app-build.yml / android.yml compile jobs.
 name: Source Hygiene
 
 on:
   pull_request:
     branches: [main]
   # Audit main itself too, not just PRs into it — a release pushes straight to main with no PR, so a
-  # PR-only trigger would let a regression land unaudited. Same reasoning as i18n-coverage.yml.
+  # PR-only trigger would let a regression land unaudited.
   push:
     branches: [main]
 

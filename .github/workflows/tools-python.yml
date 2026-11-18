@@ -1,8 +1,8 @@
-# Unit tests for the Python tooling under Tools/ (i18n gate, doc-comment lint, What's New generator,
-# stale-branch pruner, protocol-doc reference checker).
+# Unit tests for the Python tooling under Tools/ (What's New generator, stale-branch pruner,
+# protocol-doc reference checker).
 #
-# NO path filter on purpose: several suites assert on Android product source (test_home_i18n.py reads
-# TodayScreen.kt and the strings.xml resources), so no path list describes their inputs.
+# NO path filter on purpose: test_appchangelog_gen.py asserts on Android product source
+# (AppChangelog.kt and the strings.xml resources), so no path list describes its inputs.
 name: Tools Python CI
 
 on:
@@ -36,8 +36,8 @@ jobs:
           python3 -m unittest -v "${modules[@]}" 2>&1 | tee "$RUNNER_TEMP/out.txt"
           ran=$(grep -oE '^Ran [0-9]+ test' "$RUNNER_TEMP/out.txt" | grep -oE '[0-9]+')
           echo "collected ${ran:-0} tests"
-          if [ "${ran:-0}" -lt 130 ]; then
-            echo "::error::expected at least 130 core Tools tests, collected ${ran:-0} — discovery is broken, not the suite"
+          if [ "${ran:-0}" -lt 35 ]; then
+            echo "::error::expected at least 35 core Tools tests, collected ${ran:-0} — discovery is broken, not the suite"
             exit 1
           fi
         working-directory: Tools
