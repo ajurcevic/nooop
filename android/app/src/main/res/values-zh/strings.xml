@@ -2873,4 +2873,6 @@
     <string name="l10n_settings_screen_install_fd6c3ebf">安装</string>
     <string name="l10n_settings_screen_download_failed_try_again_6dda10a9">下载失败，请重试。</string>
     <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">请允许 Zoop 安装应用，然后点按“安装”。</string>
+    <string name="metrics_estimate_still_learning">仍在学习你的基线</string>
+    <string name="metrics_estimate_from_heart_rate">根据心率估算</string>
 </resources>

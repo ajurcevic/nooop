@@ -2872,4 +2872,6 @@
     <string name="l10n_settings_screen_install_fd6c3ebf">Installa</string>
     <string name="l10n_settings_screen_download_failed_try_again_6dda10a9">Download non riuscito. Riprova.</string>
     <string name="l10n_settings_screen_allow_noop_to_install_apps_eafb9f4a">Consenti a Zoop di installare app, poi tocca Installa.</string>
+    <string name="metrics_estimate_still_learning">Sta ancora imparando la tua base</string>
+    <string name="metrics_estimate_from_heart_rate">Stimato dalla frequenza cardiaca</string>
 </resources>
