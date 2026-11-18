@@ -55,7 +55,6 @@ import androidx.compose.material.icons.filled.BatteryStd
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.outlined.GridView
@@ -154,7 +153,6 @@ internal enum class Destination(
 
     // Group: Live
     Live("live", R.string.nav_live, Icons.Filled.FavoriteBorder),
-    Intervals("intervals", R.string.nav_intervals, Icons.Filled.Timeline),
 
     // Group: Recovery
     Sleep("sleep", R.string.nav_sleep, Icons.Filled.Bedtime),
@@ -244,7 +242,7 @@ internal val drawerGroups: List<DrawerGroup> = listOf(
     ), defaultExpanded = true),
     DrawerGroup("Body", R.string.more_group_body, listOf(
         Destination.Live, Destination.Workouts, Destination.Health, Destination.VitalSigns,
-        Destination.LabBook, Destination.Stress, Destination.Breathe, Destination.Intervals,
+        Destination.LabBook, Destination.Stress, Destination.Breathe,
         Destination.Rhythm,
     ), defaultExpanded = true),
     DrawerGroup("Data", R.string.more_group_data, listOf(
@@ -624,18 +622,9 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                         onOpenSleep = { nav.navigateTopLevel(Destination.Sleep.route) },
                         // Optional Coupled view card (task #43): a normal push so back returns to Today.
                         onOpenCoupled = { nav.navigate(Destination.CoupledView.route) },
-                        // The "workout in progress" indicator: raise the one-shot the Live screen consumes to
-                        // re-open the in-exercise overlay, then route to Live. One tap from Today (iOS parity).
-                        onOpenActiveWorkout = {
-                            viewModel.openActiveWorkout()
-                            nav.navigate(Destination.Live.route)
-                        },
                         // The liquid header's strap battery ring taps through to Devices (iOS parity: the
                         // battery ring → router.openDevices()).
                         onOpenDevices = { nav.navigateTopLevel(Destination.Devices.route) },
-                        // #627: the journal-reminder card opens the journal (hosted in Insights), same
-                        // destination the Sleep screen's morning sheet uses.
-                        onOpenJournal = { nav.navigateTopLevel(Destination.Insights.route) },
                     )
                 }
                 composable(Destination.Live.route) {
@@ -647,7 +636,6 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 composable(Destination.Sleep.route) {
                     SleepScreen(
                         vm = viewModel,
-                        onOpenJournal = { nav.navigateTopLevel(Destination.Insights.route) },
                         onOpenAlarms = { nav.navigate(Destination.SmartAlarm.route) },
                     )
                 }
@@ -658,7 +646,6 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                         onOpenSleep = { nav.navigateTopLevel(Destination.Sleep.route) },
                     )
                 }
-                composable(Destination.Intervals.route) { IntervalsScreen(viewModel) }
                 composable(Destination.Breathe.route) { BreatheScreen(viewModel) }
                 composable(Destination.Explore.route) { TrendsExploreScreen(viewModel) }
                 composable(Destination.Automations.route) { AutomationsScreen(viewModel) }
@@ -1224,8 +1211,6 @@ private data class QuickAction(@StringRes val titleRes: Int, val icon: ImageVect
  *  — it moved off the bottom bar (so the FAB no longer overlaps a tab) but stays one tap away here. */
 private val quickActions: List<QuickAction> = listOf(
     QuickAction(R.string.action_live_hr, Destination.Live.icon, Destination.Live.route),
-    QuickAction(R.string.action_start_workout, Icons.Filled.FitnessCenter, Destination.Workouts.route),
-    QuickAction(R.string.action_log_journal, Icons.Filled.Edit, Destination.Insights.route),
     QuickAction(R.string.action_breathe, Icons.Filled.Air, Destination.Breathe.route),
 )
 

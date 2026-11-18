@@ -4,8 +4,8 @@ import android.content.Context
 
 /**
  * Per-event toggles for NOOP's IN-SESSION strap-haptic cues (#1115) — the cues that fire while you're
- * actively using a feature (Breathing pacer, Interval timer, Live Session coach cues, workout start/end,
- * biofeedback/resonance).
+ * actively using a feature (Breathing pacer, biofeedback/resonance). The interval timer, Live Session
+ * and workout start/end cues went with those features.
  *
  * These are feedback to something the user explicitly started, so they DEFAULT ON (opt-OUT): a fresh
  * install buzzes exactly as the features always did, and a user can turn any individual cue off. (The
@@ -22,9 +22,6 @@ object HapticPrefs {
     // run through the Breathe path). Double-tap is NOT here: it's already opt-in via its DoubleTapAction
     // picker (a second gate would silently kill a configured action).
     const val BREATHING = "haptics.breathing"
-    const val INTERVALS = "haptics.intervals"
-    const val LIVE_SESSION = "haptics.liveSession"
-    const val WORKOUT = "haptics.workout"
 
     /** Whether an in-session cue may fire. DEFAULT-ON: an unset key reads true, so no migration is needed —
      *  a fresh install buzzes as the features always did, and turning a cue off is an explicit user choice. */

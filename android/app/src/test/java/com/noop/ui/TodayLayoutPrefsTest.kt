@@ -22,30 +22,30 @@ class TodayLayoutPrefsTest {
     fun encodeDecode_roundTripsAReorderedList() {
         val reordered = listOf(
             TodaySection.HEART_RATE, TodaySection.HERO, TodaySection.YOUR_CARDS,
-            TodaySection.LIVE_SESSION, TodaySection.SYNTHESIS, TodaySection.KEY_METRICS,
-            TodaySection.WORKOUTS, TodaySection.RECOVERY_VITALS, TodaySection.JOURNAL,
+            TodaySection.SYNTHESIS, TodaySection.KEY_METRICS,
+            TodaySection.WORKOUTS, TodaySection.RECOVERY_VITALS,
             TodaySection.MENSTRUAL_CYCLE, TodaySection.ADDED_CARDS,
         )
         val encoded = TodayLayoutPrefs.encode(reordered)
         assertEquals(
-            "heartRate,hero,yourCards,liveSession,synthesis,keyMetrics,workouts,recoveryVitals,journal,menstrualCycle,addedCards",
+            "heartRate,hero,yourCards,synthesis,keyMetrics,workouts,recoveryVitals,menstrualCycle,addedCards",
             encoded,
         )
         assertEquals(reordered, TodayLayoutPrefs.decodeOrder(encoded))
     }
 
-    /** The v1 upgrade path: an order saved by the FIRST cut (6 sections — no hero/liveSession, which were
-     *  pinned then) must surface the two new sections at the TOP (their default position), not teleport
-     *  them to the bottom of the user's saved order. */
+    /** The v1 upgrade path: an order saved by the FIRST cut (6 sections — no hero, which was pinned then)
+     *  must surface the hero at the TOP (its default position), not teleport it to the bottom of the
+     *  user's saved order. */
     @Test
-    fun decode_savedOrderFromFirstCut_insertsHeroAndSessionAtTheirDefaultPosition() {
+    fun decode_savedOrderFromFirstCut_insertsHeroAtItsDefaultPosition() {
         val firstCut = "synthesis,keyMetrics,workouts,heartRate,recoveryVitals,yourCards"
         assertEquals(
             listOf(
-                TodaySection.HERO, TodaySection.LIVE_SESSION,
+                TodaySection.HERO,
                 TodaySection.SYNTHESIS, TodaySection.KEY_METRICS, TodaySection.WORKOUTS,
                 TodaySection.HEART_RATE, TodaySection.RECOVERY_VITALS, TodaySection.YOUR_CARDS,
-                TodaySection.MENSTRUAL_CYCLE, TodaySection.JOURNAL, TodaySection.ADDED_CARDS,
+                TodaySection.MENSTRUAL_CYCLE, TodaySection.ADDED_CARDS,
             ),
             TodayLayoutPrefs.decodeOrder(firstCut),
         )
@@ -53,19 +53,19 @@ class TodayLayoutPrefsTest {
 
     @Test
     fun decode_insertsAnyMissingSectionAtItsDefaultPositionRelativeToSaved_neverHides() {
-        // A saved order that omits WORKOUTS + YOUR_CARDS (and the newer hero/liveSession) must still
+        // A saved order that omits WORKOUTS + YOUR_CARDS (and the newer hero) must still
         // surface all of them, each before the first saved section that follows it in the default order.
         val partial = "heartRate,synthesis,keyMetrics,recoveryVitals"
         val decoded = TodayLayoutPrefs.decodeOrder(partial)
         assertEquals(TodaySection.entries.size, decoded.size)
         assertEquals(
             listOf(
-                // hero(0), liveSession(1), workouts(4) all precede heartRate(5) in default order, so all
+                // hero(0) and workouts(3) both precede heartRate(4) in default order, so both
                 // insert before the saved heartRate, in default order among themselves:
-                TodaySection.HERO, TodaySection.LIVE_SESSION, TodaySection.WORKOUTS,
+                TodaySection.HERO, TodaySection.WORKOUTS,
                 TodaySection.HEART_RATE, TodaySection.SYNTHESIS, TodaySection.KEY_METRICS,
                 TodaySection.RECOVERY_VITALS,
-                TodaySection.YOUR_CARDS, TodaySection.MENSTRUAL_CYCLE, TodaySection.JOURNAL,
+                TodaySection.YOUR_CARDS, TodaySection.MENSTRUAL_CYCLE,
                 TodaySection.ADDED_CARDS,
             ),
             decoded,
@@ -79,12 +79,12 @@ class TodayLayoutPrefsTest {
         assertEquals(TodaySection.entries.size, decoded.size)
         assertEquals(
             listOf(
-                // Every missing section's default index precedes yourCards(7), so each inserts before it,
+                // Every missing section's default index precedes yourCards(6), so each inserts before it,
                 // accumulating in default order; the saved yourCards→heartRate order is preserved at the end.
-                TodaySection.HERO, TodaySection.LIVE_SESSION, TodaySection.SYNTHESIS,
+                TodaySection.HERO, TodaySection.SYNTHESIS,
                 TodaySection.KEY_METRICS, TodaySection.WORKOUTS, TodaySection.RECOVERY_VITALS,
                 TodaySection.YOUR_CARDS, TodaySection.HEART_RATE,
-                TodaySection.MENSTRUAL_CYCLE, TodaySection.JOURNAL, TodaySection.ADDED_CARDS,
+                TodaySection.MENSTRUAL_CYCLE, TodaySection.ADDED_CARDS,
             ),
             decoded,
         )
@@ -97,9 +97,10 @@ class TodayLayoutPrefsTest {
 
     @Test
     fun hiddenSections_areExplicitReversibleAndDeduplicated() {
-        val hidden = TodayLayoutPrefs.decodeHidden("workouts,BOGUS,workouts,journal")
-        assertEquals(listOf(TodaySection.WORKOUTS, TodaySection.JOURNAL), hidden)
-        assertEquals("workouts,journal", TodayLayoutPrefs.encodeHidden(hidden))
+        // "journal" and "liveSession" were sections until those features were removed; stored tokens drop.
+        val hidden = TodayLayoutPrefs.decodeHidden("workouts,BOGUS,workouts,journal,liveSession,heartRate")
+        assertEquals(listOf(TodaySection.WORKOUTS, TodaySection.HEART_RATE), hidden)
+        assertEquals("workouts,heartRate", TodayLayoutPrefs.encodeHidden(hidden))
     }
 
     @Test
@@ -107,9 +108,9 @@ class TodayLayoutPrefsTest {
         val order = "heartRate,hero,yourCards,liveSession,synthesis,keyMetrics,workouts,recoveryVitals,journal"
         assertEquals(
             listOf(
-                TodaySection.HEART_RATE, TodaySection.YOUR_CARDS, TodaySection.LIVE_SESSION,
+                TodaySection.HEART_RATE, TodaySection.YOUR_CARDS,
                 TodaySection.SYNTHESIS, TodaySection.KEY_METRICS, TodaySection.RECOVERY_VITALS,
-                TodaySection.MENSTRUAL_CYCLE, TodaySection.JOURNAL, TodaySection.ADDED_CARDS,
+                TodaySection.MENSTRUAL_CYCLE, TodaySection.ADDED_CARDS,
             ),
             TodayLayoutPrefs.visibleOrder(order, "hero,workouts"),
         )
@@ -122,7 +123,7 @@ class TodayLayoutPrefsTest {
             "synthesis,keyMetrics,workouts,heartRate,recoveryVitals,yourCards",
             "workouts",
         )
-        assertEquals(true, TodaySection.JOURNAL in visible)
+        assertEquals(true, TodaySection.MENSTRUAL_CYCLE in visible)
     }
 
     /** defaultOrder must cover EVERY entry: the never-hide merge sorts by default index, so an entry
@@ -140,8 +141,8 @@ class TodayLayoutPrefsTest {
         // Pin the exact wire strings — they cross the .noopbak boundary and must match macOS byte-for-byte.
         assertEquals(
             listOf(
-                "hero", "liveSession", "synthesis", "keyMetrics",
-                "workouts", "heartRate", "recoveryVitals", "yourCards", "menstrualCycle", "journal",
+                "hero", "synthesis", "keyMetrics",
+                "workouts", "heartRate", "recoveryVitals", "yourCards", "menstrualCycle",
                 "addedCards",
             ),
             raws,

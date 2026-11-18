@@ -130,7 +130,7 @@ object BackupSettingsCodec {
 object BackupSettingsBridge {
 
     /** Journal-catalog storage keys in `noop_prefs` (#1361). The v2 items blob is the LIVE store; the
-     *  legacy custom/hidden keys are read ONCE by `JournalCatalog.loadJournalCatalogItems` to migrate into
+     *  legacy custom/hidden keys were read ONCE by the (now removed) journal catalog to migrate into
      *  v2, then never again. So export pulls custom names out of the v2 blob (parsed raw here to avoid a
      *  data→ui dependency — the JSON shape mirrors `JournalCatalog.encodeJournalCatalog`), and restore
      *  writes the names to the legacy custom key and CLEARS the v2 blob so the next load re-migrates them

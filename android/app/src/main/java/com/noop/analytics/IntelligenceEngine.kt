@@ -2472,7 +2472,7 @@ object IntelligenceEngine {
     ) {
         val since = nowSeconds - 14L * 86_400L
         val rows = runCatching { repo.workouts(deviceId, since, nowSeconds) }.getOrNull() ?: return
-        val hrMax = maxHROverride ?: (208.0 - 0.7 * profile.age)   // Tanaka, matching endWorkout
+        val hrMax = maxHROverride ?: (208.0 - 0.7 * profile.age)   // Tanaka
         val updated = ArrayList<WorkoutRow>()
         for (row in rows) {
             if (row.source != "manual") continue

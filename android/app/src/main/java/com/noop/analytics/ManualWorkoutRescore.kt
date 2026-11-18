@@ -14,8 +14,8 @@ import com.noop.data.HrSample
  *
  * Pure + deterministic (no DB, no I/O) so it's unit-tested directly. The caller (the post-sync scoring
  * pass) decides which workouts to feed it — under-scored `manual` ones — reads the window's HR, and
- * only persists a genuine improvement. The formulas mirror `AppViewModel.endWorkout` exactly (same
- * [StrainScorer] + [Calories.estimateBoutCalories]).
+ * only persists a genuine improvement. The formulas are the ones the removed live
+ * workout recorder used ([StrainScorer] + [Calories.estimateBoutCalories]).
  */
 object ManualWorkoutRescore {
 
@@ -50,8 +50,7 @@ object ManualWorkoutRescore {
     ): Scored? {
         if (windowSamples.size < 2) return null
         val bpms = windowSamples.map { it.bpm }
-        // Integer mean, matching AppViewModel.endWorkout (Android truncates; iOS rounds — each mirrors
-        // its own platform's save-time formula).
+        // Integer mean (Android truncates; iOS rounds — each mirrors its own platform's save-time formula).
         val avg = bpms.sum() / bpms.size
         val peak = bpms.maxOrNull() ?: 0
         val strain = StrainScorer.strain(
