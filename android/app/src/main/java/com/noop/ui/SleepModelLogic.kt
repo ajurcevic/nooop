@@ -185,16 +185,13 @@ internal fun buildSleepModel(
     val typicalRemMin = mean(days.mapNotNull { it.remMin }.filter { it > 0.0 })
     val typicalLightMin = mean(days.mapNotNull { it.lightMin }.filter { it > 0.0 })
 
-    // Personal sleep need (minutes): mean asleep, floored at 7.5h (450 min).
-    val needMin = max(450.0, typicalTotalMin ?: 450.0)
-    // #242: NORMATIVE need (min) the DEBT surfaces measure against — population-anchored, age-floored,
-    // upper-quartile personalizedNeedHours (the SAME estimator Rest/Intelligence score against), NOT the
-    // descriptive `needMin` mean which drifts toward a chronic under-sleeper's own deficit and quietly
-    // erases their debt. Age isn't plumbed here (null → adult target). One need across the debt tile +
-    // ledger + trend, agreeing with the engine. Need-unification from #464 by @vishk23; the descriptive
-    // `needMin` still drives the "hours vs needed" performance tile.
-    val debtNeedMin = RestScorer.personalizedNeedHours(
-        days.mapNotNull { it.totalSleepMin?.let { m -> m / 60.0 } }, null) * 60.0
+    // #242: the ONE nightly need (min) every Sleep surface reads: the hours-vs-needed tile, the debt tile,
+    // ledger and trend. Population-anchored, age-floored, upper-quartile personal need (the SAME estimator
+    // Rest/Intelligence score against). The hours-vs-needed tile used to read a separate descriptive
+    // mean (floored at 7.5 h), so it and the debt ledger's "Per-night need" could name two different needs
+    // for the same night. Age isn't plumbed here (null → adult target).
+    val debtNeedMin = RestScorer.personalNeedMinutes(days.map { it.totalSleepMin })
+    val needMin = debtNeedMin
 
     // Per-tile metrics — each a full pass over the FULL day history (asleep totals, no in-bed
     // substitution), latest = the most-recent day. Mirrors iOS SleepView, where every tile series

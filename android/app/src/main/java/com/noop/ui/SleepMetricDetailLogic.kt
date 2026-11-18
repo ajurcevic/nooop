@@ -38,11 +38,11 @@ internal fun buildSleepMetricPoints(
     imported: ImportedSleepSeries = ImportedSleepSeries(),
     napSleepMinByDay: Map<String, Double> = emptyMap(),
 ): List<Pair<String, Double>> {
-    val needMin = max(450.0, days.mapNotNull { it.totalSleepMin?.takeIf { m -> m > 0.0 } }.average().let { if (it.isNaN()) 480.0 else it })
+    // The same single need the Sleep tab tiles read (RestScorer.personalNeedMinutes), so the detail sheet
+    // measures against the need the tile it was opened from names.
+    val needMin = RestScorer.personalNeedMinutes(days.map { it.totalSleepMin })
     if (key == "sleep_debt") {
-        val debtNeedMin = RestScorer.personalizedNeedHours(
-            days.mapNotNull { it.totalSleepMin?.let { minutes -> minutes / 60.0 } }, null,
-        ) * 60.0
+        val debtNeedMin = needMin
         return SleepDebt.debtSeries(
             series = days.map { day ->
                 day.day to SleepDebt.creditedSleepMin(
