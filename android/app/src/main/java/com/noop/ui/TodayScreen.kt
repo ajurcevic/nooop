@@ -48,7 +48,6 @@ import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Functions
@@ -65,7 +64,6 @@ import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material.icons.automirrored.filled.BatteryUnknown
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -97,6 +95,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -2463,11 +2462,12 @@ private fun QuickActionDisc(onClick: () -> Unit) {
             .semantics { contentDescription = uiString(R.string.l10n_today_screen_quick_actions_e47e8042) },
         contentAlignment = Alignment.Center,
     ) {
+        // A bolt rather than "+": the menu holds shortcuts (Live HR, Breathe, Updates), not "add" actions.
         Icon(
-            Icons.Filled.Add,
+            Icons.Filled.Bolt,
             contentDescription = null,
             tint = Palette.textPrimary,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(18.dp),
         )
     }
 }
@@ -2548,19 +2548,16 @@ private fun ScoringGuideIntroCard(onOpen: () -> Unit, onDismiss: () -> Unit) {
     }
 }
 
-// MARK: - Liquid Today header (iOS LiquidTodayView.scene parity)
+// MARK: - Today header
 //
-// A STRUCTURAL rebuild to mirror the iOS liquid Today header element-for-element (NOT the old numeric-date +
-// recording-light + bell header). LEFT: a tappable title block — the big rounded-bold day title over a human
-// date line ("Friday, 3 July"), tap opens the day picker. RIGHT: exactly the iOS four controls, in order —
-// a filled HEART (→ Support), the PROFILE AVATAR (→ Settings), a "+" ADD button (→ quick actions), and the
-// strap BATTERY RING (→ Devices). Each ~36dp, spacing ~8dp. There is no recording light and no bell here;
-// iOS's Today header has neither, and the Updates inbox is relocated into the "+" quick-actions sheet.
+// LEFT: a tappable title block, the big day title over a human date line ("Friday, 3 July"); tap opens the
+// day picker. RIGHT: two round controls, quick actions (bolt, opens the quick-actions sheet that also holds
+// the Updates inbox) and the profile avatar (Settings). BELOW: the strap pill (charge and sync state, tap
+// opens Devices or reconnects) and, only while history offloads, the thin catch-up line.
 
-/** The uniform diameter of the round Today-header controls — profile avatar, quick-add (+) and the strap
- *  battery ring — so they sit level in the liquid cluster (the sync chip beside them is content-sized).
- *  Single source of truth so a size tweak keeps all three in lockstep. */
-private val HeaderClusterControl = 36.dp
+/** The diameter of the round Today-header controls (quick actions and the profile avatar), so they sit
+ *  level. Single source of truth so a size tweak keeps both in lockstep. */
+private val HeaderClusterControl = 40.dp
 
 @Composable
 private fun LiquidTodayHeader(
@@ -2571,7 +2568,7 @@ private fun LiquidTodayHeader(
      *  charge (or its offline / no-reading-yet glyph) under an active strap, the ring's own charge under an
      *  active ring, and nothing at all when the active device is neither. (#2208) */
     battery: HeaderBatteryDisplay.State,
-    // #245: sync state for the compact header chip (twin of iOS SyncStatusChip).
+    // #245: sync state, shown in the strap pill under the title row.
     backfilling: Boolean = false,
     syncChunksThisSession: Int = 0,
     lastSyncAt: Long? = null,
@@ -2661,28 +2658,16 @@ private fun LiquidTodayHeader(
                 )
             }
 
-            // RIGHT: the controls, in order — [sync chip] · avatar · + · battery ring. Each ~36dp, 8dp apart.
-            //
-            // #2110: deliberately NOT where the Customize control went, even though that is where iOS keeps it.
-            // The title Column beside this is weight(1f) with maxLines=1 + Ellipsis, so every control added here
-            // is width taken from the day title, and Android starts from a wider cluster than iOS because of the
-            // sync chip iOS has no equivalent of. iOS can afford its fourth control because it fades the title
-            // under a MEASURED cluster width (headerTrailingControlFadeMask); Android has no such reserve. On a
-            // 393dp phone a fifth control leaves the 28sp title ~117dp, and "Yesterday" needs ~139dp, so it
-            // would have started ellipsizing a day title that fits today.
+            // RIGHT: quick actions and the profile, 40dp each, 8dp apart. Kept to two controls on purpose:
+            // the title Column beside this is weight(1f) with maxLines=1 + Ellipsis, so every control added
+            // here is width taken from the day title (#2110). Battery and sync live in the strap pill below.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                // #245: compact sync-status chip, shown for EVERY user — syncing / last-synced / experimental,
-                // so the absence of active syncing reads as caught-up (the full SyncingHistoryNote is gated on
-                // recovery == null). Twin of iOS SyncStatusChip.
-                SyncStatusChip(
-                    backfilling = backfilling, chunks = syncChunksThisSession,
-                    lastSyncAt = lastSyncAt, historySyncExperimental = historySyncExperimental,
-                    pagesBehind = pagesBehindAtConnect,
-                    scanning = scanning, onRescan = onRescan,
-                )
+                // Quick actions first, then the profile. Battery and sync moved to the strap pill under
+                // this row, so the cluster is two controls and the day title keeps its width.
+                QuickActionDisc(onClick = onQuickActions)
                 // (a) Profile avatar (the photo set in Settings, or the NOOP loop mark) → Settings. Mirrors iOS.
                 Box(
                     modifier = Modifier
@@ -2698,23 +2683,32 @@ private fun LiquidTodayHeader(
                 ) {
                     ProfileAvatar(size = HeaderClusterControl)
                 }
-                // (b) Quick-add (+), the accented primary. Mirrors iOS's LiquidAddButton (a glyph on a translucent
-                // disc → the quick-actions menu). Sized to match the rest of the liquid cluster (shared HeaderClusterControl).
-                QuickActionDisc(onClick = onQuickActions)
-                // (c) Active-device battery ring showing the % (iOS LiquidBatteryButton). Tap → Devices.
-                // Not drawn when the active device is neither the strap nor a ring with a charge of its own to
-                // show: an empty "Strap battery" ring under a streaming ring is a control asserting something
-                // about a strap nobody is wearing. A ring that HAS reported its charge is the active device's
-                // own reading, and #2208's fix left it undrawn only because the control could not yet tell
-                // whose number it held.
-                when (battery) {
-                    HeaderBatteryDisplay.State.NotActiveDevice -> Unit
-                    HeaderBatteryDisplay.State.Offline, HeaderBatteryDisplay.State.Pending ->
-                        LiquidBatteryRing(batteryPct = null, isRing = false, onClick = onOpenDevices)
-                    is HeaderBatteryDisplay.State.Charge ->
-                        LiquidBatteryRing(batteryPct = battery.pct, isRing = battery.isRing, onClick = onOpenDevices)
-                }
             }
+        }
+        // The strap pill: the active device's charge and its sync state in one line. Tap opens Devices,
+        // or starts a scan while the strap is offline.
+        val pill = StrapStatusPill.resolve(
+            battery = battery,
+            sync = SyncChipState.resolve(
+                backfilling = backfilling,
+                chunks = syncChunksThisSession,
+                lastSyncAtSec = lastSyncAt,
+                historySyncExperimental = historySyncExperimental,
+                nowSec = System.currentTimeMillis() / 1000L,
+                pagesBehind = pagesBehindAtConnect,
+            ),
+            canReconnect = onRescan != null,
+            scanning = scanning,
+        )
+        if (pill != null) {
+            StrapPill(
+                model = pill,
+                onClick = when (pill.tap) {
+                    StrapStatusPill.Tap.Reconnect -> onRescan ?: onOpenDevices
+                    StrapStatusPill.Tap.OpenDevices -> onOpenDevices
+                },
+                modifier = Modifier.padding(top = Metrics.space10),
+            )
         }
         if (backfilling) {
             SyncProgressLine(
@@ -2723,61 +2717,6 @@ private fun LiquidTodayHeader(
                 modifier = Modifier.padding(top = Metrics.space8),
             )
         }
-    }
-}
-
-/** #245: compact sync-status chip for the Today top bar, shown to EVERY user. The full-width
- *  SyncingHistoryNote is gated on `recovery == null`, so an established user (and especially a WHOOP 5/MG
- *  owner, whose history offloads are rare) saw no sync feedback on Today. THREE states so the ABSENCE of
- *  active syncing reads as "caught up", not "missing indicator" (the real #245 confusion): actively
- *  offloading → ⟳ N; idle with a known last-sync → ✓ Xm; a 5/MG whose history sync is experimental
- *  (live-connected, no completed offload yet) → ✓ live. Nothing shows only on a true cold start (the
- *  building-scores note owns that). Twin of iOS SyncStatusChip. DRAFT (#245): final styling/wording TBD. */
-@Composable
-private fun SyncStatusChip(
-    backfilling: Boolean,
-    chunks: Int,
-    lastSyncAt: Long?,
-    historySyncExperimental: Boolean,
-    pagesBehind: Int? = null,
-    // #2169: the chip is the one thing in the header that reports sync state and took no tap at all,
-    // so asking it for a sync is the gesture a reader tries first. Routed through the caller rather
-    // than calling connect() here, because the permission gate has to come first: on Android 12+ a
-    // direct connect() silently does nothing when the Bluetooth permission was denied or revoked (#1).
-    // Null leaves the chip exactly as it was, which is what the other callers of it want.
-    scanning: Boolean = false,
-    onRescan: (() -> Unit)? = null,
-) {
-    // The clock and the translated "now" word are resolved HERE, in the composable that already depends
-    // on both, and handed down — so `SyncChipState.resolve` stays a genuinely pure decision that a plain
-    // JVM unit test can call with no attached Application. Reading the clock at composition time (rather
-    // than snapshotting it) is unchanged behaviour: `shortSyncAgo` did exactly this on every recomposition.
-    val state = SyncChipState.resolve(
-        backfilling = backfilling,
-        chunks = chunks,
-        lastSyncAtSec = lastSyncAt,
-        historySyncExperimental = historySyncExperimental,
-        nowSec = System.currentTimeMillis() / 1000L,
-        pagesBehind = pagesBehind,
-    )
-    // Offered only when there is an action to run and no scan already running, the same rule the
-    // Settings and Live buttons follow. `Syncing` deliberately keeps its tap: a sync in flight is not
-    // a scan in flight, and asking to reconnect mid-backfill is a reasonable thing to want.
-    val tap = onRescan?.takeIf { !scanning }
-    when (state) {
-        // Syncing draws no pill: the thin [SyncProgressLine] under the header carries it instead, so a
-        // long "N pages to catch up" label can no longer squeeze the day title down to "T…".
-        is SyncChipState.Syncing -> Unit
-        is SyncChipState.Synced -> ChipCapsule(
-            Icons.Filled.Check, state.agoText, Palette.textSecondary,
-            uiString(R.string.l10n_today_screen_sync_chip_synced_desc_4d255944, state.agoText),
-            onClick = tap)
-        SyncChipState.ExperimentalLive -> ChipCapsule(
-            Icons.Filled.Check, uiString(R.string.l10n_today_screen_sync_chip_live_98aadb37), Palette.textSecondary,
-            uiString(R.string.l10n_today_screen_sync_chip_experimental_desc_3de06a70),
-            onClick = tap)
-        SyncChipState.Hidden -> Unit
-        // cold start — render nothing; the building-scores note covers it.
     }
 }
 
@@ -2840,119 +2779,122 @@ private fun SyncProgressLine(chunks: Int, pagesBehind: Int?, modifier: Modifier 
 /** Thickness of the header catch-up line: a hairline that reads as status, not as a control. */
 private val SyncLineThickness = 3.dp
 
-/** The shared sync-chip capsule (icon + terse label). Twin of the iOS `SyncStatusChip.chip`. */
+/** The Today header's strap pill: a small battery glyph, the device and its charge ("Strap 11%"), and
+ *  the sync state ("synced 3m ago", "catching up", "tap to reconnect"), all decided by
+ *  [StrapStatusPill.resolve]. It replaces the separate battery ring and sync chip. Content-sized and
+ *  start-aligned under the title, so it never takes width from the day title. */
 @Composable
-private fun ChipCapsule(
-    icon: ImageVector,
-    text: String,
-    tint: Color,
-    desc: String,
-    // #2169: a second way to the same action as the disc, on the one header element that already
-    // reports sync state and took no tap at all. Costs no width, and null leaves the pill inert.
-    onClick: (() -> Unit)? = null,
-) {
+private fun StrapPill(model: StrapStatusPill.Model, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val battery = model.battery
+    val levelColor = when (battery) {
+        is StrapStatusPill.Battery.Charge -> when (battery.level) {
+            StrapStatusPill.Level.Critical -> Palette.statusCritical
+            StrapStatusPill.Level.Low -> Palette.statusWarning
+            StrapStatusPill.Level.Ok -> Palette.chargeColor
+        }
+        else -> Palette.textTertiary
+    }
+    val lead: String? = when (battery) {
+        StrapStatusPill.Battery.None -> null
+        StrapStatusPill.Battery.Offline -> uiString(R.string.strap_pill_offline)
+        StrapStatusPill.Battery.Pending -> uiString(R.string.strap_pill_strap)
+        is StrapStatusPill.Battery.Charge -> uiString(
+            if (battery.isRing) R.string.strap_pill_ring_pct else R.string.strap_pill_strap_pct, battery.pct,
+        )
+    }
+    val status: String? = when (val st = model.status) {
+        StrapStatusPill.Status.None -> null
+        StrapStatusPill.Status.CatchingUp -> uiString(R.string.strap_pill_catching_up)
+        is StrapStatusPill.Status.Synced -> uiString(R.string.strap_pill_synced_ago, st.agoText)
+        StrapStatusPill.Status.Live -> uiString(R.string.strap_pill_live)
+        StrapStatusPill.Status.Looking -> uiString(R.string.strap_pill_looking)
+        StrapStatusPill.Status.TapToReconnect -> uiString(R.string.strap_pill_tap_to_reconnect)
+    }
+    val clickLabel = uiString(
+        if (model.tap == StrapStatusPill.Tap.Reconnect) R.string.l10n_today_screen_scan_and_connect_40157030
+        else R.string.strap_pill_open_devices,
+    )
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier
-            // Match the round header controls' height so the pill sits the same size in the cluster
-            // (#1207 follow-up); width stays content-driven. Content centres via the fixed height.
-            .height(HeaderClusterControl)
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space6),
+        modifier = modifier
+            .heightIn(min = StrapPillHeight)
             .clip(RoundedCornerShape(50))
             .background(Palette.surfaceInset)
-            // After the clip, so the ripple stays inside the capsule.
-            // onClickLabel rather than a contentDescription: the icon already describes the STATE
-            // ("synced 3 minutes ago"), and overriding that would trade the information for the action.
-            // A click label names the action alongside it instead of in place of it.
-            .then(
-                if (onClick != null) {
-                    Modifier.clickable(
-                        onClickLabel = uiString(R.string.l10n_today_screen_scan_and_connect_40157030),
-                        onClick = onClick,
-                    )
-                } else {
-                    Modifier
-                }
-            )
-            .padding(horizontal = 10.dp),
+            .clickable(onClickLabel = clickLabel, onClick = onClick)
+            .semantics(mergeDescendants = true) {}
+            .padding(horizontal = Metrics.space12),
     ) {
-        Icon(icon, contentDescription = desc, tint = tint, modifier = Modifier.size(14.dp))
-        Text(text, style = NoopType.caption, color = tint)
-    }
-}
-
-/** The liquid header active-device battery ring: when connected + a reading exists it draws a trimmed
- *  ring in the charge/warning/critical hue plus the % inside, else a bolt-slash glyph. [isRing] names the
- *  device in the label — "Strap battery" over a ring's charge would be the #2208 misattribution again, in
- *  the label instead of the number. Tap → Devices. Mirrors the iOS liquid header battery ring. */
-@Composable
-private fun LiquidBatteryRing(batteryPct: Double?, isRing: Boolean, onClick: () -> Unit) {
-    val interaction = remember { MutableInteractionSource() }
-    val label = batteryPct?.let {
-        uiString(if (isRing) R.string.today_ring_battery_percent else R.string.today_strap_battery_percent, it.roundToInt())
-    } ?: uiString(R.string.today_strap_battery)
-    Box(
-        modifier = Modifier
-            .size(HeaderClusterControl)
-            .liquidPress(interaction)
-            .clip(CircleShape)
-            // Calm: the same inset disc as the rest of the header cluster, no rim.
-            .background(Palette.surfaceInset)
-            .clickable(
-                interactionSource = interaction,
-                indication = null,
-                onClick = onClick,
+        if (battery != StrapStatusPill.Battery.None) {
+            BatteryGlyph(
+                fraction = (battery as? StrapStatusPill.Battery.Charge)?.pct?.div(100f),
+                color = levelColor,
             )
-            .semantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) {
-        if (batteryPct != null) {
-            val pct = batteryPct.coerceIn(0.0, 100.0)
-            val ringColor = when {
-                pct < 15 -> Palette.statusCritical
-                pct < 35 -> Palette.statusWarning
-                else -> Palette.chargeColor
-            }
-            Canvas(modifier = Modifier.size(HeaderClusterControl).padding(2.5.dp)) {
-                val strokePx = 3.dp.toPx()
-                val d = size.minDimension - strokePx
-                val topLeft = Offset((size.width - d) / 2f, (size.height - d) / 2f)
-                // Track.
-                drawArc(
-                    color = Color.White.copy(alpha = 0.10f),
-                    startAngle = -90f,
-                    sweepAngle = 360f,
-                    useCenter = false,
-                    topLeft = topLeft,
-                    size = Size(d, d),
-                    style = Stroke(width = strokePx, cap = StrokeCap.Round),
-                )
-                // Fill arc (min 2% so a near-flat battery still shows a cap), clockwise from 12 o'clock.
-                drawArc(
-                    color = ringColor,
-                    startAngle = -90f,
-                    sweepAngle = (360f * (pct / 100.0).coerceIn(0.02, 1.0)).toFloat(),
-                    useCenter = false,
-                    topLeft = topLeft,
-                    size = Size(d, d),
-                    style = Stroke(width = strokePx, cap = StrokeCap.Round),
-                )
-            }
+        }
+        if (lead != null) {
             Text(
-                uiString(R.string.l10n_today_screen_pct_roundtoint_05ba4549, pct.roundToInt()),
-                style = NoopType.number(9f, weight = FontWeight.Bold),
+                lead,
+                style = NoopType.caption,
                 color = Palette.textPrimary,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
             )
-        } else {
-            Icon(
-                Icons.AutoMirrored.Filled.BatteryUnknown,
-                contentDescription = null,
-                tint = Palette.textTertiary,
-                modifier = Modifier.size(15.dp),
+        }
+        if (lead != null && status != null) {
+            Text("·", style = NoopType.caption, color = Palette.textTertiary)
+        }
+        if (status != null) {
+            Text(
+                status,
+                style = NoopType.caption,
+                color = Palette.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
 }
+
+/** A small horizontal battery: an outline, a nub, and a fill for [fraction] (null draws the outline
+ *  only, for an offline or not-yet-read strap). A drawn glyph rather than an icon set, so the fill tracks
+ *  the real charge instead of snapping to a few bars. */
+@Composable
+private fun BatteryGlyph(fraction: Float?, color: Color) {
+    Canvas(modifier = Modifier.size(width = 18.dp, height = 10.dp).clearAndSetSemantics { }) {
+        val stroke = 1.5.dp.toPx()
+        val nub = 2.dp.toPx()
+        val bodyW = size.width - nub
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(stroke / 2f, stroke / 2f),
+            size = Size(bodyW - stroke, size.height - stroke),
+            cornerRadius = CornerRadius(2.dp.toPx()),
+            style = Stroke(width = stroke),
+        )
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(bodyW, size.height * 0.3f),
+            size = Size(nub, size.height * 0.4f),
+            cornerRadius = CornerRadius(1.dp.toPx()),
+        )
+        if (fraction != null) {
+            val inset = stroke + 1.dp.toPx()
+            val fullW = bodyW - inset * 2
+            // At least a sliver, so a near-flat battery still shows something.
+            val w = fullW * fraction.coerceIn(0.08f, 1f)
+            drawRoundRect(
+                color = color,
+                topLeft = Offset(inset, inset),
+                size = Size(w, size.height - inset * 2),
+                cornerRadius = CornerRadius(1.dp.toPx()),
+            )
+        }
+    }
+}
+
+/** Minimum height of the strap pill: a comfortable tap target that still reads as a caption. */
+private val StrapPillHeight = 32.dp
+
 
 // MARK: - Zoop wordmark (centred, with a tap easter egg)
 //
