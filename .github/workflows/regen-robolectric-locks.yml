@@ -29,14 +29,10 @@ jobs:
         working-directory: android
         run: |
           set -o pipefail
-          # Lock state is only written by a build that succeeds, so lock in its own invocation first.
-          ./gradlew --no-daemon --write-locks --write-verification-metadata sha256 \
-            :app:dependencies > "$RUNNER_TEMP/locks.log" 2>&1 || { tail -80 "$RUNNER_TEMP/locks.log"; exit 1; }
-          ./gradlew --no-daemon --continue --write-verification-metadata sha256 \
-            testFullDebugUnitTest testDemoDebugUnitTest 2>&1 | tee "$RUNNER_TEMP/regen.log" || true
-          git diff --stat
-          # Print the first lines of every failure so a red test is diagnosable from the job log.
-          grep -rh -A12 '<failure' app/build/test-results/ | head -120 || true
+          # Diagnose run: only the JaCoCo budget test, printing every cause in its stack trace.
+          ./gradlew --no-daemon testFullDebugUnitTest \
+            --tests 'com.noop.analytics.IntelligenceEngineJacocoBudgetTest' 2>&1 | tail -20 || true
+          grep -rh -E 'Caused by|LimitExceeded|Exception:' app/build/test-results/ | sort -u | head -40 || true
       - uses: actions/upload-artifact@v7
         if: always()
         with:
