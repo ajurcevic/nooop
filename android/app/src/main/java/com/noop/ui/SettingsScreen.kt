@@ -726,16 +726,6 @@ fun SettingsScreen(
     var stressAutoNudge by remember { mutableStateOf(BiofeedbackPrefs.autoNudge(context)) }
     var rhythmEnabled by remember { mutableStateOf(RhythmConsent.isEnabled(context)) }
     var autoDetectWorkouts by remember { mutableStateOf(NoopPrefs.autoDetectWorkouts(context)) }
-    var journalReminder by remember { mutableStateOf(NoopPrefs.journalReminderEnabled(context)) }
-    // Keep the screen on during a manual workout recording (#703), default OFF. The live-workout
-    // screen reads this same "workoutKeepScreenOn" key. String shared verbatim with the iOS/Mac twin
-    // (AppStorage "workoutKeepScreenOn"). Read/written inline against the shared prefs store.
-    var workoutKeepScreenOn by remember {
-        mutableStateOf(NoopPrefs.of(context).getBoolean("workoutKeepScreenOn", false))
-    }
-    // Live Sessions (beta) — gates the Today "Start session" entry. Unlike its section-mates this is a
-    // BETA feature flag, default ON (`live_sessions_beta`, see LiveSessionPrefs); off hides the entry.
-    var liveSessionsBeta by remember { mutableStateOf(LiveSessionPrefs.enabled(context)) }
 
     // Display preferences. The original system remains the body choice; exercise distance/pace has an
     // independent override. SharedPreferences isn't reactive, so both mirror into local state.
@@ -2709,38 +2699,6 @@ fun SettingsScreen(
                     onCheckedChange = {
                         autoDetectWorkouts = it
                         NoopPrefs.setAutoDetectWorkouts(context, it)
-                    },
-                )
-                SettingsRowDivider()
-                SettingsToggleRow(
-                    title = uiString(R.string.l10n_journal_reminder_journal_reminder_0fdc0d9c),
-                    detail = uiString(R.string.l10n_journal_reminder_show_a_today_card_reminding_you_to_log_your_journal_8228bc77),
-                    checked = journalReminder,
-                    onCheckedChange = {
-                        journalReminder = it
-                        NoopPrefs.setJournalReminderEnabled(context, it)
-                    },
-                )
-                SettingsRowDivider()
-                SettingsToggleRow(
-                    title = uiString(R.string.l10n_settings_screen_keep_screen_on_during_a_workout_42d27284),
-                    detail = "Holds the screen awake while you're recording a workout, so your live heart rate stays visible without the phone dimming. Only applies during a recording. The screen sleeps normally the rest of the time. Leaving it on does use a bit more battery, and means your unlocked screen stays visible for the whole workout, so flip it off if that's a concern.",
-                    checked = workoutKeepScreenOn,
-                    onCheckedChange = {
-                        workoutKeepScreenOn = it
-                        NoopPrefs.of(context).edit().putBoolean("workoutKeepScreenOn", it).apply()
-                    },
-                )
-                SettingsRowDivider()
-                // BETA + default ON (the one exception to this section's off-by-default rule): the flag
-                // gates the Today entry so anyone can wave the beta away here with one flip.
-                SettingsToggleRow(
-                    title = uiString(R.string.l10n_settings_screen_live_sessions_beta_2ca3a97f),
-                    detail = "Silence-first strap coaching during workouts.",
-                    checked = liveSessionsBeta,
-                    onCheckedChange = {
-                        liveSessionsBeta = it
-                        LiveSessionPrefs.setEnabled(context, it)
                     },
                 )
                 SettingsRowDivider()

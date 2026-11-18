@@ -320,15 +320,9 @@ fun TodayScreen(
     // Optional Coupled view card (task #43): a tap-through to the WHOOP-style day screen. Defaulted to a
     // no-op so the call site stays compiling; AppRoot binds it to nav.navigate(CoupledView).
     onOpenCoupled: () -> Unit = {},
-    // The "workout in progress" indicator card routes to Live and re-opens the in-exercise overlay. Defaulted
-    // to a no-op so the call site stays compiling; AppRoot binds it to openActiveWorkout() + nav.navigate(Live).
-    onOpenActiveWorkout: () -> Unit = {},
     // The liquid header battery ring taps through to Devices (iOS parity: the battery ring → router.openDevices()).
     // Defaulted to fall back to Settings so the call site stays compiling; AppRoot binds it to the Devices route.
     onOpenDevices: () -> Unit = onOpenSettings,
-    // The #627 journal-reminder card links straight to the journal (Insights). Defaulted to a no-op so
-    // the call site stays compiling; AppRoot binds it to nav.navigateTopLevel(Insights), same as Sleep.
-    onOpenJournal: () -> Unit = {},
     // HOME is the bottom-bar Today tab: live heart rate, the three scores and the three recovery vitals,
     // sized to fit one screen. METRICS is the Metrics tab: every other Today section, still arrangeable.
     mode: TodayMode = TodayMode.HOME,
@@ -355,7 +349,6 @@ fun TodayScreen(
     // The in-flight manual workout (single source of truth, survives an app kill via rehydration), so the
     // indicator card auto-appears/clears off this alone. Null↔non-null + the start drive the card; the
     // per-second clock ticks inside the card's own LaunchedEffect, never recomposing the Today body.
-    val activeWorkout by viewModel.activeWorkout.collectAsStateWithLifecycle()
     // PERF (#scroll-jank): the BLE live state ticks the heart rate roughly once a second. Reading the raw
     // `live` object directly in this top-level body would recompose the ENTIRE Today tree (rings, cards,
     // scene-positioning) on every bpm change, visible as scroll stutter on real devices. The body only
@@ -752,20 +745,6 @@ fun TodayScreen(
     // #1694: the Latest-Workouts tile that was tapped. Held HERE, not inside the section: the Today
     // sections are LazyColumn items, and a disposed item would take an open sheet down with it.
     var selectedWorkoutRow by remember { mutableStateOf<WorkoutRow?>(null) }
-    // LIVE SESSIONS (beta, default ON): the "Start session" entry under the hero + its full-screen Dialog
-    // (the same presentation the live-workout overlay / Charge breakdown use — deliberately NOT a nav
-    // destination, so dismissing it leaves the session's runner coaching and this entry is the way back
-    // in). Gated on the Settings `live_sessions_beta` flag; SharedPreferences isn't reactive, so it's read
-    // once into local state like the hydration/day-cycle gates above. The ACTIVE runner is also collected
-    // here (null ↔ runner only — the per-second snapshot is scoped inside the entry card) so a running
-    // session keeps its way-back-in card even if the beta flag was just switched off.
-    var showLiveSession by remember { mutableStateOf(false) }
-    val liveSessionsEnabled = remember { LiveSessionPrefs.enabled(context) }
-    val activeLiveSession by LiveSessionRunner.active.collectAsStateWithLifecycle()
-    // The journal widget's own opt-out (default ON). Read here too so its reorderable section emits no
-    // item when disabled — an always-present zero-height slot would leave a blank draggable gap. Same
-    // remember-once idiom the card uses; a resume/recompose re-reads it. (#656)
-    val journalReminderOn = remember { NoopPrefs.journalReminderEnabled(context) }
     // S5: the Data Sources footer collapses to a single "Synced from: ..." line. It defaults collapsed and
     // is NOT persisted, so the screen reopens compact. Mirrors iOS.
     var sourcesExpanded by remember { mutableStateOf(false) }
@@ -1534,25 +1513,6 @@ fun TodayScreen(
         }
         }
 
-        // A "workout in progress" indicator whenever a manual workout is active (iOS parity: the Today
-        // ActiveWorkoutIndicator). A tap routes to Live and re-opens the in-exercise overlay. Gated purely on
-        // `activeWorkout`, so it auto-appears/clears with no extra lifecycle wiring. Its per-second clock
-        // ticks inside the card's own LaunchedEffect, never recomposing the Today body.
-        //
-        // STARTING a workout is deliberately not offered here, and that is the whole of #2467's first part
-        // being held back until its other four exist. #2467 asked for Today's Start to come WITH the merge
-        // of recording and heart-rate coaching into one session: one Start/Pause/End pair, one screen, one
-        // saved summary. Only the button was built, so Today ended up carrying both of the entry points the
-        // report opened about, "Start session" for coaching and "Start workout" for recording, which is more
-        // of the confusion it described rather than less. It also drew as a full-width primary slab above the
-        // scores, because the Start-beside-Add row it belongs to collapses to a single weighted child when
-        // Today passes no Add. Starting stays on Workouts, the centre FAB and Live meanwhile.
-        activeWorkout?.let { w ->
-            item {
-                WorkoutInProgressCard(workout = w, onReturn = onOpenActiveWorkout)
-            }
-        }
-
         // Design Reset (iOS parity): the "New here?" first-run card is off the Today dashboard for the
         // clean look, the scoring guide stays reachable from the i on each score and in Settings.
 
@@ -1725,15 +1685,11 @@ fun TodayScreen(
                     it != DashboardCard.HYDRATION || hydrationEnabled
             }
             val sectionVisible = when (section) {
-                TodaySection.LIVE_SESSION ->
-                    selectedDayOffset == 0 && (liveSessionsEnabled || activeLiveSession != null)
                 TodaySection.YOUR_CARDS ->
                     selectedDayOffset == 0 && visibleDashboardCards.isNotEmpty()
                 TodaySection.MENSTRUAL_CYCLE ->
                     selectedDayOffset == 0 && !cycleHidden &&
                         (cycleOptInApplies(profileStore.sex) || cycleEnabled || periodStarts.isNotEmpty())
-                TodaySection.JOURNAL ->
-                    selectedDayOffset == 0 && journalReminderOn
                 TodaySection.ADDED_CARDS ->
                     selectedDayOffset == 0 && enabledHostedCards.isNotEmpty()
                 else -> true
@@ -1818,23 +1774,6 @@ fun TodayScreen(
                                 }
                             }
                         }
-                        // LIVE SESSIONS (beta): the compact "Start session · BETA" entry. Today only
-                        // (offset 0 — a session is a now-thing), gated on the Settings beta flag; a RUNNING
-                        // session keeps the card visible regardless (it is the designed way back into the
-                        // dismissed session dialog, see LiveSessionRunner's lifetime note). The gate lives
-                        // at the loop level (sectionVisible) so a gated-off section emits no item.
-                        TodaySection.LIVE_SESSION -> LiveSessionEntryCard(
-                            onOpen = {
-                                // Only BEGIN when nothing is in flight: an active runner (running, or ended
-                                // and holding its unseen summary) is simply re-presented, never displaced —
-                                // so a tap can't silently discard a running session or a summary awaiting
-                                // its "Done".
-                                if (LiveSessionRunner.active.value == null) {
-                                    startOrResumeLiveSession(viewModel, context)
-                                }
-                                showLiveSession = true
-                            },
-                        )
                         // The plain-English read-out: the Synthesis word and line, the readiness pill, and
                         // the chips that drove it. Carries the last scored day's read at the rollover (#543).
                         TodaySection.SYNTHESIS -> Box(modifier = Modifier.fillMaxWidth().staggeredAppear(stagger)) {
@@ -1927,15 +1866,6 @@ fun TodayScreen(
                             },
                             onOpen = { showCycleTracker = true },
                             onLogToday = { viewModel.logPeriodStart() },
-                        )
-                        // #656: the persistent journal widget (last-7-days strip + tap-through). Now a
-                        // reorderable section like the others — hold-drag or Arrange moves it. Today-only
-                        // and enabled-gated at the loop level (sectionVisible) so it never leaves a blank
-                        // draggable slot. Twin of iOS LiquidTodayView's `.journal` arm.
-                        TodaySection.JOURNAL -> JournalReminderCard(
-                            viewModel = viewModel,
-                            days = days,
-                            onOpenJournal = onOpenJournal,
                         )
                         // #today-hosted-cards: the Trends/Sleep cards the user pulled into Today, in
                         // arranged order. Each is the SAME card its home tab renders (a mirror).
@@ -2055,20 +1985,6 @@ fun TodayScreen(
         WorkoutDetailSheet(vm = viewModel, row = row, onDismiss = { selectedWorkoutRow = null })
     }
 
-    // LIVE SESSIONS (beta): the full-screen session dialog — the same presentation the live-workout
-    // overlay uses on Live (Dialog, usePlatformDefaultWidth = false). Dismissing it only HIDES the
-    // screen: the runner (held in LiveSessionRunner.active, ticking on the app-wide viewModelScope)
-    // keeps guarding, and the entry card above re-opens the same session. Only "End session" + the
-    // summary's "Done" (inside the screen) actually finish and clear it.
-    if (showLiveSession) {
-        Dialog(
-            onDismissRequest = { showLiveSession = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false),
-        ) {
-            LiveSessionScreen(vm = viewModel, onClose = { showLiveSession = false })
-        }
-    }
-
     // Key-Metrics layout editor (#251), a Today-local dialog (no new nav destination). Saves the layout
     // and re-reads it into local state so the grid updates immediately and survives relaunch.
     if (showMetricsEditor) {
@@ -2143,193 +2059,6 @@ fun TodayScreen(
  * accent fill with a hairline rim, the "+" glyph in crisp white. Mirrors the iOS quick-action + (a glyph on
  * Circle().fill(StrandPalette.accent)).
  */
-/**
- * Today "workout in progress" indicator (iOS parity: ActiveWorkoutIndicatorCard). A metricRose-tinted card
- * with a decorative live dot + "WORKOUT IN PROGRESS" overline, a live H:MM:SS clock, the sport label, and a
- * "Return to workout" button. The whole card is tappable; [onReturn] routes to Live and re-opens the
- * in-exercise overlay. The clock ticks in this card's OWN LaunchedEffect (reading [ActiveWorkout.startMs]),
- * so the per-second update recomposes only this card, never the Today body. Design tokens only, no glow.
- */
-@Composable
-private fun WorkoutInProgressCard(
-    workout: AppViewModel.ActiveWorkout,
-    onReturn: () -> Unit,
-) {
-    // Live clock: re-read wall-clock every second and recompute elapsed off the workout's start. Keyed on
-    // startMs so a fresh session restarts the loop. Mirrors the iOS TimelineView(.periodic(by: 1)).
-    var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(workout.startMs) {
-        while (true) {
-            nowMs = System.currentTimeMillis()
-            kotlinx.coroutines.delay(1000)
-        }
-    }
-    val elapsedS = ActiveWorkoutClock.activeElapsedSeconds(
-        startMs = workout.startMs, pausedAtMs = workout.pausedAtMs,
-        pausedDurationMs = workout.pausedDurationMs, nowMs = nowMs,
-    )
-    val elapsed = elapsedClock(elapsedS)
-    val sportLabel = workout.sport.name
-    // The card below sets ONE contentDescription on a merged node, which REPLACES its children's
-    // semantics — so the visible "Paused" tag would be invisible to TalkBack unless it is folded in
-    // here. A frozen clock the screen reader cannot explain is worse than a running one.
-    val pausedSuffix =
-        if (workout.pausedAtMs != null) ", " + uiString(R.string.workout_action_paused) else ""
-
-    // liquidPress on the whole tappable "return to workout" card (same interactionSource on clickable + press).
-    val interaction = remember { MutableInteractionSource() }
-    NoopCard(
-        tint = Palette.metricRose,
-        // Combine into ONE actionable element so TalkBack reads "Workout in progress, $sport, $elapsed,
-        // Return to workout" as a single Button, not five stops; the decorative dot is omitted by clearing
-        // child semantics. The whole card is the tap target.
-        modifier = Modifier
-            .liquidPress(interaction)
-            .clickable(interactionSource = interaction, indication = null, onClick = onReturn)
-            .semantics(mergeDescendants = true) {
-                contentDescription = uiString(R.string.l10n_today_screen_workout_in_progress_sportlabel_elapsed_return_95ce4bda, sportLabel, elapsed, pausedSuffix)
-            },
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space12)) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                // Decorative "live" dot, hidden from TalkBack (the merged card reads the full state).
-                Box(
-                    modifier = Modifier
-                        .size(Metrics.space8)
-                        .clip(CircleShape)
-                        .background(Palette.metricRose)
-                        .clearAndSetSemantics {},
-                )
-                Spacer(Modifier.width(Metrics.space8))
-                Text(
-                    uiString(R.string.l10n_today_screen_workout_in_progress_af2322c9),
-                    style = NoopType.overline,
-                    color = Palette.metricRose,
-                )
-                // A frozen clock alone is ambiguous with a STALLED one, so say which it is. Reuses the
-                // string #1533 already localized rather than minting new copy for a tag.
-                if (workout.pausedAtMs != null) {
-                    Spacer(Modifier.width(Metrics.space8))
-                    Text(
-                        uiString(R.string.workout_action_paused),
-                        style = NoopType.overline,
-                        color = Palette.textSecondary,
-                    )
-                }
-                Spacer(Modifier.weight(1f))
-                Text(elapsed, style = NoopType.number(15f), color = Palette.textPrimary)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    sportLabel,
-                    style = NoopType.headline,
-                    color = Palette.textPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    // Take the free space (and ellipsize a long sport name) so the button stays its intrinsic
-                    // width on the trailing edge, mirroring the iOS ViewThatFits label + trailing button.
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(Metrics.space8))
-                Button(
-                    onClick = onReturn,
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Palette.accent, contentColor = Palette.surfaceBase,
-                    ),
-                ) {
-                    Text(uiString(R.string.l10n_today_screen_return_to_workout_30dc5509), style = NoopType.captionNumber)
-                    Spacer(Modifier.width(Metrics.space6))
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(Metrics.iconSmall),
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * The compact Live Sessions entry under the hero ("Start session · BETA"). Three honest states off the
- * process-wide [LiveSessionRunner.active]: no session → start affordance; session running → the way back
- * into the dismissed session dialog (with a live elapsed clock); session ended but its summary not yet
- * Done-dismissed → "See the summary". The runner's 1 Hz snapshot is collected INSIDE this card only, so
- * the per-second tick recomposes this card, never the Today body (the WorkoutInProgressCard idiom).
- * The whole card is one tap target; [onOpen] begins/re-presents the session dialog.
- */
-@Composable
-private fun LiveSessionEntryCard(onOpen: () -> Unit) {
-    val active by LiveSessionRunner.active.collectAsStateWithLifecycle()
-    val runner = active
-    var running = false
-    var summaryWaiting = false
-    var elapsed = ""
-    if (runner != null) {
-        val snap by runner.snapshot.collectAsStateWithLifecycle()
-        running = !snap.ended
-        summaryWaiting = snap.ended
-        elapsed = elapsedClock(snap.elapsedSec.toLong())
-    }
-    val teal = Palette.metricCyan
-    val title = when {
-        running -> uiString(R.string.today_live_session_running)
-        summaryWaiting -> uiString(R.string.today_live_session_ended)
-        else -> uiString(R.string.today_live_session_start)
-    }
-    val detail = when {
-        running -> uiString(R.string.today_live_session_guarding)
-        summaryWaiting -> uiString(R.string.today_live_session_summary)
-        else -> uiString(R.string.today_live_session_explanation)
-    }
-
-    // liquidPress on the whole tappable card (same interactionSource on clickable + press), matching the
-    // workout-in-progress card above. Merged semantics so TalkBack reads one Button, not four stops.
-    val interaction = remember { MutableInteractionSource() }
-    NoopCard(
-        tint = teal,
-        modifier = Modifier
-            .liquidPress(interaction)
-            .clickable(interactionSource = interaction, indication = null, onClick = onOpen)
-            .semantics(mergeDescendants = true) {
-                contentDescription = uiString(R.string.l10n_today_screen_title_beta_detail_6b39ae21, title, detail)
-            },
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space12),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(
-                Icons.Filled.TrackChanges,
-                contentDescription = null,
-                tint = teal,
-                modifier = Modifier.size(20.dp),
-            )
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space8),
-                ) {
-                    Text(title, style = NoopType.headline, color = Palette.textPrimary)
-                    StatePill(uiString(R.string.today_beta), tone = StrandTone.Accent, showsDot = false)
-                }
-                Text(detail, style = NoopType.footnote, color = Palette.textTertiary)
-            }
-            if (running) {
-                Text(elapsed, style = NoopType.number(15f), color = Palette.textPrimary)
-            }
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = Palette.textTertiary,
-                modifier = Modifier.size(Metrics.iconSmall),
-            )
-        }
-    }
-}
-
 /**
  * A small top-trailing × for a Today info-card that has no built-in dismiss control (the shared
  * [DataPendingNote]). Matches the "New here?" card's × styling. Dismisses the card into the inbox.
@@ -5507,11 +5236,6 @@ private fun TodayLayoutEditorDialog(
                     shown = shown,
                     hidden = hidden,
                     itemTitle = { uiString(it.titleRes) },
-                    itemSubtitle = {
-                        if (it == TodaySection.LIVE_SESSION) {
-                            stringResource(R.string.today_customize_live_session_availability)
-                        } else null
-                    },
                 )
 
                 // #today-hosted-cards: hand-off to the editor that chooses WHICH Trends/Sleep cards the

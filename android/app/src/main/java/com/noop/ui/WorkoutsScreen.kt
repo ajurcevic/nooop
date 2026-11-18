@@ -273,10 +273,10 @@ fun WorkoutsScreen(vm: AppViewModel) {
         // down (Today / Trends / Sleep / metric-detail parity - same two prefs, same two behaviours).
         fullBleedBackground = screenBackdropFullBleed(showDayCycleBackground, skyBehindCards),
     ) {
-        // Start (or stop) a workout right here, not only on Live — mirrors the Live control (#115).
-        // Start + Add sit side-by-side as an action row when a strap is bonded (EXP-018 parity).
+        // Log a workout tracked elsewhere. Workouts are not started or timed in the app; the strap's own
+        // detection and imports supply the rest.
         item {
-        WorkoutStartSection(vm, onAdd = { dialog = DialogTarget(null) })
+        AddWorkoutButton(onAdd = { dialog = DialogTarget(null) }, modifier = Modifier.fillMaxWidth())
         }
 
         if (allRows.isEmpty()) {
@@ -400,8 +400,7 @@ private data class WorkoutRecoveryTrendPoint(
 
 @Composable
 private fun EmptyWorkouts() {
-    // Add lives in the action row above (WorkoutStartSection provides it in every idle state), so the
-    // empty state is just the note — no second Add button here.
+    // Add sits above the list, so the empty state is just the note — no second Add button here.
     DataPendingNote(
         title = uiString(R.string.l10n_workouts_screen_no_workouts_yet_85a92042),
         body = "No workouts yet. They come from your WHOOP and Apple Health history. " +
@@ -439,13 +438,8 @@ private fun PostLogNoteBanner(text: String) {
 }
 
 /** The manual workout action, kept on an opaque design-system surface so the daytime scene cannot
- *  wash out its fill or label (#1625).
- *
- *  [kind] is a parameter rather than a constant because this composable is BOTH halves of a pair and
- *  a lone action, depending on the strap. Beside a live Start it is genuinely secondary. On the
- *  unbonded branch it is the only thing on the screen and the whole reason that branch exists, so
- *  pinning it to Secondary everywhere would render the emptiest state's single call to action as the
- *  most de-emphasised control the design system has. The caller knows which it is; this does not.
+ *  wash out its fill or label (#1625). Secondary by default: it is the screen's only action, but one
+ *  for the occasional workout the strap missed, so it stays quieter than the data below it.
  */
 @Composable
 internal fun AddWorkoutButton(
@@ -473,8 +467,7 @@ private fun RangeBar(
     onSelect: (WorkoutRange) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Add moved up beside Start in WorkoutStartSection (glanceable action row), so the range pill
-        // now owns this row alone — no more Add-vs-5-segment-pill width fight (#234/#339).
+        // Add sits in its own row above, so the range pill owns this row alone (#234/#339).
         SegmentedPillControl(
             items = WorkoutRange.entries,
             selection = range,
@@ -667,8 +660,7 @@ private fun MergeSportDialog(onDismiss: () -> Unit, onPick: (String) -> Unit) {
             val context = LocalContext.current
             TextButton(onClick = {
                 if (sport.isNotBlank()) {
-                    // #297: naming a merge is a real selection too — parity with the macOS/iOS sheet,
-                    // whose reused StartWorkoutSheet records on its action button.
+                    // #297: naming a merge is a real selection too, so it joins the recent sports.
                     RecentSportsPrefs.record(context, sport.trim())
                     onPick(sport.trim())
                 }

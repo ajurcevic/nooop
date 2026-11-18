@@ -110,9 +110,6 @@ fun AutomationsScreen(viewModel: AppViewModel) {
     // cue they find noisy. Ambient cues (inactivity / calls / notifications) keep their own opt-in sections;
     // double-tap is gated by its action picker, not here. SharedPreferences isn't reactive → read into state.
     var breathingHaptic by remember { mutableStateOf(HapticPrefs.enabled(ctx, HapticPrefs.BREATHING)) }
-    var intervalsHaptic by remember { mutableStateOf(HapticPrefs.enabled(ctx, HapticPrefs.INTERVALS)) }
-    var liveSessionHaptic by remember { mutableStateOf(HapticPrefs.enabled(ctx, HapticPrefs.LIVE_SESSION)) }
-    var workoutHaptic by remember { mutableStateOf(HapticPrefs.enabled(ctx, HapticPrefs.WORKOUT)) }
 
     // PERF (#707): lazy scaffold — each settings section is an unconditional top-level child, so each
     // becomes one `item { }` in the same order. No standalone Spacers (the eager `spacedBy(20.dp)` is
@@ -128,35 +125,14 @@ fun AutomationsScreen(viewModel: AppViewModel) {
         SettingsSection(
             icon = Icons.Filled.Vibration,
             title = uiString(R.string.haptics_section_title),
-            blurb = "Choose which in-session cues buzz your wrist during a breathing session, timer, or workout.",
-            active = breathingHaptic || intervalsHaptic || liveSessionHaptic || workoutHaptic,
+            blurb = "Choose whether in-session cues buzz your wrist during a breathing session.",
+            active = breathingHaptic,
         ) {
             ToggleRow(
                 label = uiString(R.string.haptics_breathing_label),
                 help = "Buzz each inhale and exhale during a breathing or resonance session.",
                 checked = breathingHaptic,
                 onChange = { breathingHaptic = it; HapticPrefs.setEnabled(ctx, HapticPrefs.BREATHING, it) },
-            )
-            RowDivider()
-            ToggleRow(
-                label = uiString(R.string.haptics_intervals_label),
-                help = "Buzz on each interval change.",
-                checked = intervalsHaptic,
-                onChange = { intervalsHaptic = it; HapticPrefs.setEnabled(ctx, HapticPrefs.INTERVALS, it) },
-            )
-            RowDivider()
-            ToggleRow(
-                label = uiString(R.string.haptics_live_session_label),
-                help = "Coaching buzzes during a live workout session.",
-                checked = liveSessionHaptic,
-                onChange = { liveSessionHaptic = it; HapticPrefs.setEnabled(ctx, HapticPrefs.LIVE_SESSION, it) },
-            )
-            RowDivider()
-            ToggleRow(
-                label = uiString(R.string.haptics_workout_label),
-                help = "A buzz confirms a workout starting and saving.",
-                checked = workoutHaptic,
-                onChange = { workoutHaptic = it; HapticPrefs.setEnabled(ctx, HapticPrefs.WORKOUT, it) },
             )
         }
         }

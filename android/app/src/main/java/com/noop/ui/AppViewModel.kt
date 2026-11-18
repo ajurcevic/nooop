@@ -21,15 +21,10 @@ import com.noop.analytics.CircadianEngine
 import com.noop.analytics.V5HealthSignals
 import com.noop.analytics.RegistryDayOwnerSource
 import com.noop.analytics.RestScorer
-import com.noop.analytics.RouteMath
 import com.noop.analytics.SleepMark
 import com.noop.analytics.SleepMarkType
-import com.noop.analytics.Sport
-import com.noop.analytics.Calories
-import com.noop.analytics.StrainScorer
 import com.noop.analytics.UserProfile
 import com.noop.analytics.WorkoutSport
-import com.noop.location.GpsSession
 import kotlinx.coroutines.Job
 import com.noop.ble.HrBroadcaster
 import com.noop.ble.LiveState
@@ -39,7 +34,6 @@ import com.noop.ble.WhoopModel
 import androidx.health.connect.client.HealthConnectClient
 import com.noop.data.DailyMetric
 import com.noop.data.CycleTrackingStore
-import com.noop.data.HrSample
 import com.noop.data.WhoopRepository
 import com.noop.data.WorkoutRow
 import com.noop.ingest.ActivityFileImporter
@@ -293,12 +287,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      *  The wizard observes this directly so its pick list updates as straps appear. */
     val discoveredWhoops: StateFlow<List<com.noop.ble.WhoopBleClient.DiscoveredWhoop>> = ble.discoveredWhoops
 
-    /** #656: a journal day-offset (daysBack; -1 = Tomorrow) the Today journal widget asks the journal
-     *  (Insights) to open at, so tapping a SPECIFIC day's bar lands on THAT day instead of always today.
-     *  InsightsScreen consumes it on open and clears it via [requestJournalDay]`(null)`. */
-    private val _pendingJournalDayOffset = kotlinx.coroutines.flow.MutableStateFlow<Long?>(null)
-    val pendingJournalDayOffset: StateFlow<Long?> = _pendingJournalDayOffset
-    fun requestJournalDay(offset: Long?) { _pendingJournalDayOffset.value = offset }
 
     /**
      * Point the WHOOP scan at a specific family, then present nearby straps WITHOUT auto-connecting (the
@@ -1397,356 +1385,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         while (hrWindow.size > hrWindowSize) hrWindow.removeFirst()
         val sorted = hrWindow.sorted()
         _bpm.value = sorted[sorted.size / 2]
-        captureWorkoutSample(_bpm.value!!)
-    }
-
-    // MARK: - Manual workout tracking
-    //
-    // Lets a user start/stop a workout themselves rather than relying on auto-detection (a top request).
-    // Holds the start time + the live HR collected since; on End the window is scored via StrainScorer
-    // and saved as a WorkoutRow (source "manual"), which then shows in the Workouts screen. The day's
-    // strain already counts this HR (same live stream the store persists), so it's a per-session
-    // annotation, not a double-count. Mirrors macOS AppModel.
-
-    /** A manual workout in progress. [samples] accumulate from the smoothed live bpm; [liveStrain] is
-     *  recomputed as the window grows so the active card shows strain building in real time. */
-    data class ActiveWorkout(
-        val startMs: Long,
-        val sport: Sport,
-        val gpsEnabled: Boolean,
-        val samples: List<HrSample> = emptyList(),
-        val track: List<RouteMath.LatLng> = emptyList(),
-        val distanceM: Double = 0.0,
-        val paceSecPerKm: Double? = null,
-        val liveStrain: Double = 0.0,
-        val avgHr: Int = 0,
-        val peakHr: Int = 0,
-        val pausedAtMs: Long? = null,
-        val pausedDurationMs: Long = 0L,
-    )
-
-    private val _activeWorkout = MutableStateFlow<ActiveWorkout?>(null)
-    val activeWorkout: StateFlow<ActiveWorkout?> = _activeWorkout.asStateFlow()
-    private val _lastWorkout = MutableStateFlow<WorkoutRow?>(null)
-    val lastWorkout: StateFlow<WorkoutRow?> = _lastWorkout.asStateFlow()
-
-    /** One-shot: the Today "workout in progress" indicator card raises this (via [openActiveWorkout]) so the
-     *  Live screen presents the in-exercise overlay for an ALREADY-RUNNING workout. The overlay normally only
-     *  opens at workout start (StartWorkoutSheet), so this is the single path that re-opens it for a session
-     *  already in flight, the Android analogue of iOS NavRouter.presentActiveWorkout. LiveScreen consumes it
-     *  on appear via [consumeActiveWorkoutRequest]; a normal Live visit never raises it, so it is inert. */
-    private val _presentActiveWorkout = MutableStateFlow(false)
-    val presentActiveWorkout: StateFlow<Boolean> = _presentActiveWorkout.asStateFlow()
-
-    /** Raise the one-shot so the Live screen opens the in-exercise overlay on its next appearance. AppRoot
-     *  also navigates to the Live destination; together that is one tap from the Today indicator card. */
-    fun openActiveWorkout() { _presentActiveWorkout.value = true }
-
-    /** Consume the one-shot (called by LiveScreen on appear). Returns true exactly once per raise, and ONLY
-     *  while a workout is actually active, so a stale flag can never open an empty overlay. */
-    fun consumeActiveWorkoutRequest(): Boolean {
-        if (!_presentActiveWorkout.value) return false
-        _presentActiveWorkout.value = false
-        return _activeWorkout.value != null
-    }
-
-    /** Durable store for an in-flight NON-GPS workout (#529). The GPS path is already process-durable via
-     *  [GpsSession] + the foreground service; a non-GPS session lived only in [_activeWorkout], so an OS
-     *  kill mid-session lost it. We snapshot non-GPS sessions to SharedPreferences on start + each sample
-     *  and rehydrate on launch so an interrupted session can still be ended and saved. */
-    private val activeWorkoutStore = ActiveWorkoutStore.from(appContext)
-
-    /** Mirrors the process-level [GpsSession] route into [_activeWorkout] for live display. The route
-     *  itself is collected by [WhoopConnectionService], not here, so it survives the screen turning off
-     *  (#215) — this observer just republishes it to the UI while the ViewModel is alive. */
-    private var gpsJob: Job? = null
-
-    /** Emit one Workouts & GPS test-mode line tagged .workouts iff the mode is on. The cheap
-     *  TestCentre.active(WORKOUTS) gate is read here, so nothing is built when the mode is off. The line
-     *  is built lazily by the caller (already a short String, no heavy work). Diagnostic only. */
-    private fun emitWorkoutsTrace(build: () -> String) {
-        if (com.noop.testcentre.TestCentre.from(appContext)
-                .active(com.noop.testcentre.TestDomain.WORKOUTS)
-        ) {
-            ble.externalLog(build(), com.noop.testcentre.TestDomain.WORKOUTS)
-        }
-    }
-
-    /** Begin a workout for [sport]; start GPS route tracking when [gpsEnabled]. Single buzz confirms. */
-    fun startWorkout(sport: Sport = WorkoutSport.default, gpsEnabled: Boolean = false) {
-        if (_activeWorkout.value != null) return
-        _lastWorkout.value = null
-        val startMs = System.currentTimeMillis()
-        _activeWorkout.value = ActiveWorkout(startMs = startMs, sport = sport, gpsEnabled = gpsEnabled)
-        buzz(1, HapticPrefs.WORKOUT)
-        // Workouts & GPS test mode (Test Centre): one session-start line tagged .workouts. Zero-cost when off.
-        emitWorkoutsTrace {
-            com.noop.analytics.WorkoutsTrace.sessionLine(
-                event = "start", sportKey = WorkoutEditing.traceSportKey(sport.name), hrSamples = 0,
-            )
-        }
-        if (gpsEnabled) {
-            // Hand the route to the process-level session and make sure the foreground service is up to
-            // collect it — even if the user hasn't opted into background connection, the route must keep
-            // tracking with the screen off (#215). Then mirror the shared route back into the UI state.
-            GpsSession.start(startMs, sport.name)
-            WhoopConnectionService.start(appContext)
-            observeGpsSession()
-        } else {
-            // A non-GPS session has no process-level GpsSession backing it, so make it durable: snapshot
-            // it now (and on every captured sample) so an OS kill mid-session can be rehydrated + ended
-            // on relaunch (#529). GPS sessions are already covered by GpsSession's process durability.
-            persistNonGpsWorkout(_activeWorkout.value)
-        }
-    }
-
-    /** Snapshot the in-flight NON-GPS workout to durable storage (#529). No-op for a GPS session (the
-     *  process-level [GpsSession] already makes that durable) or when nothing is running. */
-    private fun persistNonGpsWorkout(w: ActiveWorkout?) {
-        if (w == null || w.gpsEnabled) return
-        runCatching {
-            activeWorkoutStore.save(
-                ActiveWorkoutPersistence.Snapshot(
-                    startMs = w.startMs,
-                    sportName = w.sport.name,
-                    deviceId = deviceId,
-                    samples = w.samples,
-                    avgHr = w.avgHr,
-                    peakHr = w.peakHr,
-                    liveStrain = w.liveStrain,
-                    pausedAtMs = w.pausedAtMs,
-                    pausedDurationMs = w.pausedDurationMs,
-                ),
-            )
-        }
-    }
-
-    /** Mirror the process-level [GpsSession] route into [_activeWorkout] while the ViewModel is alive.
-     *  Re-attachable: also used by [rehydrateActiveGpsWorkout] after a VM/process restart. */
-    private fun observeGpsSession() {
-        gpsJob?.cancel()
-        gpsJob = viewModelScope.launch {
-            GpsSession.state.collect { s ->
-                val w = _activeWorkout.value ?: return@collect
-                _activeWorkout.value = w.copy(track = s.track, distanceM = s.distanceM, paceSecPerKm = s.paceSecPerKm)
-            }
-        }
-    }
-
-    /**
-     * If a GPS workout is still tracking in the background (process kept alive by the foreground
-     * service) but this ViewModel was recreated, rebuild the active-workout card from [GpsSession] so
-     * reopening the app doesn't hide an in-flight ride. HR samples that elapsed while the UI was gone
-     * aren't recoverable here (they stream live), but the route — the thing #215 was about — is intact.
-     */
-    private fun rehydrateActiveGpsWorkout() {
-        val s = GpsSession.state.value
-        if (!s.active || _activeWorkout.value != null) return
-        val sport = WorkoutSport.all.firstOrNull { it.name == s.sportName } ?: WorkoutSport.default
-        _activeWorkout.value = ActiveWorkout(
-            startMs = s.startMs, sport = sport, gpsEnabled = true,
-            track = s.track, distanceM = s.distanceM, paceSecPerKm = s.paceSecPerKm,
-            pausedAtMs = s.pausedAtMs, pausedDurationMs = s.pausedDurationMs,
-        )
-        observeGpsSession()
-    }
-
-    /**
-     * If a NON-GPS manual workout was in flight when the OS killed the process, rebuild its active-workout
-     * card from the durable snapshot so reopening the app doesn't lose it — the session can still be ended
-     * and saved (#529). The non-GPS analogue of [rehydrateActiveGpsWorkout], lighter: there's no route /
-     * foreground service to reattach, just the persisted HR window + running stats. A GPS session takes
-     * the GPS rehydrate path instead and is never persisted here, so the two never collide. No-op if a
-     * workout is already live (a live session wins over a stale snapshot) or nothing is stored.
-     */
-    private fun rehydrateActiveNonGpsWorkout() {
-        if (_activeWorkout.value != null) return
-        val snap = activeWorkoutStore.load() ?: return
-        val sport = WorkoutSport.all.firstOrNull { it.name == snap.sportName } ?: WorkoutSport.default
-        _activeWorkout.value = ActiveWorkout(
-            startMs = snap.startMs, sport = sport, gpsEnabled = false,
-            samples = snap.samples, avgHr = snap.avgHr, peakHr = snap.peakHr, liveStrain = snap.liveStrain,
-            pausedAtMs = snap.pausedAtMs, pausedDurationMs = snap.pausedDurationMs,
-        )
-    }
-
-    fun toggleWorkoutPause() {
-        val w = _activeWorkout.value ?: return
-        val now = System.currentTimeMillis()
-        val updated = if (w.pausedAtMs == null) {
-            if (w.gpsEnabled) GpsSession.pause()
-            w.copy(pausedAtMs = now)
-        } else {
-            if (w.gpsEnabled) GpsSession.resume()
-            w.copy(pausedAtMs = null, pausedDurationMs = w.pausedDurationMs + (now - w.pausedAtMs))
-        }
-        _activeWorkout.value = updated
-        persistNonGpsWorkout(updated)
-    }
-
-    /** Abort the active workout and discard all in-flight data. */
-    fun discardWorkout() {
-        val w = _activeWorkout.value ?: return
-        _activeWorkout.value = null
-        gpsJob?.cancel(); gpsJob = null
-        activeWorkoutStore.clear()
-        if (w.gpsEnabled) {
-            GpsSession.stop()
-            if (!NoopPrefs.backgroundConnection(appContext)) WhoopConnectionService.stop(appContext)
-        }
-        _lastWorkout.value = null
-    }
-
-    /** Finish the active workout: score the captured HR window + finalize the GPS route, save a
-     *  WorkoutRow, and (opt-in) write it to Health Connect. A session with no HR AND no track is
-     *  discarded quietly. Double-buzz confirms the save. */
-    fun endWorkout() {
-        val w = _activeWorkout.value ?: return
-        _activeWorkout.value = null
-        gpsJob?.cancel(); gpsJob = null
-        // Drop the durable non-GPS snapshot the instant the session ends — whether it saves below or is
-        // discarded as too-short — so a relaunch never rehydrates an already-finished session (#529).
-        activeWorkoutStore.clear()
-        // The process-level session is authoritative for the route: it kept accumulating even if this
-        // ViewModel was cleared mid-ride (screen off), so [w.track] may be stale. Stop it and take its
-        // final track. A non-GPS workout has nothing in the session, so fall back to the local track. (#215)
-        val track = if (w.gpsEnabled) GpsSession.stop() else w.track
-        val distanceM = if (w.gpsEnabled) RouteMath.totalMeters(track) else w.distanceM
-        // If we promoted the foreground service ONLY to keep GPS tracking alive (the user hasn't opted
-        // into the background connection), drop it now the route is finished — otherwise a lingering
-        // "Connected" notification would outlive the workout. With background-connection on, leave it
-        // up. Done here (before the discard early-return) so an empty GPS session tears down too. (#215)
-        if (w.gpsEnabled && !NoopPrefs.backgroundConnection(appContext)) {
-            WhoopConnectionService.stop(appContext)
-        }
-        val samples = w.samples
-        if (samples.size < 2 && track.size < 2) {
-            // Workouts & GPS test mode: record WHY a session vanished (too short / no track), tagged .workouts.
-            emitWorkoutsTrace {
-                com.noop.analytics.WorkoutsTrace.sessionLine(
-                    event = "discarded", sportKey = WorkoutEditing.traceSportKey(w.sport.name),
-                    hrSamples = samples.size, gpsPoints = if (w.gpsEnabled) track.size else null,
-                )
-            }
-            _lastWorkout.value = null
-            return
-        }
-        val endMs = System.currentTimeMillis()
-        // A session under a minute is a start/stop nobody meant to keep. Twin of Swift
-        // `AppModel.endWorkout`, and the same floor the manual doors enforce, so a workout is treated
-        // identically whether it was tracked or typed in. Discarded at SAVE rather than pruned later:
-        // nothing that ever held training data is removed.
-        val elapsedSeconds = (endMs - w.startMs) / 1000L
-        if (elapsedSeconds < WorkoutEditing.MIN_MANUAL_SPAN_SECONDS) {
-            emitWorkoutsTrace {
-                com.noop.analytics.WorkoutsTrace.sessionLine(
-                    event = "discarded", sportKey = WorkoutEditing.traceSportKey(w.sport.name),
-                    hrSamples = samples.size, durationSec = elapsedSeconds.toInt(),
-                    gpsPoints = if (w.gpsEnabled) track.size else null,
-                )
-            }
-            _lastWorkout.value = null
-            return
-        }
-        val pausedMs = w.pausedDurationMs + (w.pausedAtMs?.let { endMs - it } ?: 0L)
-        val activeDurationMs = (endMs - w.startMs - pausedMs).coerceAtLeast(0L)
-        val avg = if (samples.isNotEmpty()) samples.sumOf { it.bpm } / samples.size else null
-        // `w.peakHr` can exceed every sample: a repeated second's higher reading is folded into it, not recorded.
-        val peak = if (samples.isNotEmpty()) maxOf(samples.maxOf { it.bpm }, w.peakHr) else null
-        // #983: score the SAVED workout with the wearer's measured resting HR, not the hardcoded
-        // default of 60. %HRR is (bpm - resting) / (max - resting), so the default moves every zone
-        // boundary — at 136 bpm with maxHR 190 it is the difference between zone 1 and zone 2. Today's
-        // Effort and the manual rescore (#972) already thread this, so the stored number used to
-        // disagree with its own re-score. Read once here, at save time; the live readout during the
-        // session is a transient running estimate and deliberately left alone.
-        val restingHR = _today.value?.restingHr?.toDouble() ?: StrainScorer.defaultRestingHR
-        val strain = if (samples.size >= 2)
-            StrainScorer.strain(samples, maxHR = profileStore.hrMax.toDouble(),
-                restingHR = restingHR, method = NoopPrefs.effortMethod(appContext),
-                sex = profileStore.sex) else null
-        // Estimate calories from the captured HR window (same Keytel/Harris–Benedict model the
-        // auto-detector uses) so a manual session shows energy too, not just duration/strain. (#117)
-        val energyKcal = if (samples.size >= 2)
-            // #983: same measured resting HR as the strain above, not null. The calories model's
-            // active-vs-resting threshold sits at resting + 30% HRR, so the default silently shifts what
-            // counts as active — and #972 already threads it in the rescore path, so leaving it null here
-            // meant a saved workout's kcal disagreed with its own re-score just as its Effort did.
-            Calories.estimateBoutCalories(samples, currentProfile(), profileStore.hrMax.toDouble(), restingHR)
-                .first.takeIf { it > 0 }
-        else null
-        val row = WorkoutRow(
-            deviceId = deviceId, startTs = w.startMs / 1000, endTs = endMs / 1000,
-            sport = w.sport.name, source = "manual", durationS = activeDurationMs / 1000.0,
-            energyKcal = energyKcal,
-            avgHr = avg, maxHr = peak, strain = strain,
-            distanceM = distanceM.takeIf { it > 0 },
-            routePolyline = if (track.size >= 2) RouteMath.encode(track) else null,
-        )
-        _lastWorkout.value = row
-        // Workouts & GPS test mode: one session-end summary tagged .workouts (the lastSessionSummary readout
-        // source) carrying the captured HR window size, the duration, and the accepted GPS point count (the
-        // final track), so the lifecycle of a saved session is visible end to end. Zero-cost when off.
-        emitWorkoutsTrace {
-            com.noop.analytics.WorkoutsTrace.sessionLine(
-                event = "end", sportKey = WorkoutEditing.traceSportKey(w.sport.name), hrSamples = samples.size,
-                durationSec = (activeDurationMs / 1000L).toInt(),
-                gpsPoints = if (w.gpsEnabled) track.size else null,
-            )
-        }
-        buzz(2, HapticPrefs.WORKOUT)
-        viewModelScope.launch {
-            val saved = runCatching { repository.upsertWorkouts(listOf(row)) }.isSuccess
-            // #528: persist the live 1 Hz workout HR into hrSample so it can export to Health Connect
-            // at full resolution NOW (the HR export keeps workout-window samples un-decimated), instead
-            // of only after the next strap offload sync. IGNORE-on-conflict makes a later sync of the
-            // same seconds a no-op.
-            runCatching { if (samples.isNotEmpty()) repository.insertHr(samples) }
-            // The Workouts screen collects this list even while the live capture sheet is open. Refresh
-            // after the row and HR are persisted so its sessions, stats and first-workout empty state
-            // update without leaving and re-entering the screen.
-            if (saved) loadWorkouts()
-            if (_hcWriteback.value) {
-                runCatching { HealthConnectWriter.writeExercise(appContext, row, w.sport.exerciseType) }
-                // #528: export the just-captured HR series now (workout row already upserted above, so
-                // the export's window logic keeps these samples at full 1 Hz rather than ~1/30 s).
-                writebackHealthConnectNow()
-            }
-        }
-    }
-
-    /** Append the current smoothed bpm to the active workout and recompute its running strain. Called
-     *  from ingestHr on every fresh sample; a no-op when no workout is running. */
-    private fun captureWorkoutSample(bpm: Int) {
-        // `_activeWorkout` (declared further down) can still be null HERE: the HR collector in the first
-        // init block can fire ingestHr -> captureWorkoutSample INLINE during construction (a StateFlow
-        // replays its current value to a new collector), before this field's initializer has run — the
-        // JVM field-init footgun. The safe-call tolerates that one-shot race; once constructed it is
-        // never null. (Fixes the NPE in @maddognik's ADB: captureWorkoutSample -> getValue on null.)
-        @Suppress("UNNECESSARY_SAFE_CALL")
-        val w = _activeWorkout?.value ?: return
-        if (w.pausedAtMs != null) return
-        // One sample a second. This runs on every LiveState emission that carries a heart rate — any field
-        // changing, not only the rate — so a second often arrives more than once with one `ts`, and Effort
-        // credits a zero gap with a full second (`StrainScorer.sampleDurationsMinutes`): each repeat counted
-        // as another second of effort, live and in the saved workout. A refused reading still reaches the peak: the
-        // rate moving is often why this ran, so it can be a within-second high; only the peak is published for it,
-        // with no rescore and no snapshot. Twin of iOS `ActiveWorkout.recordSample`.
-        val ts = System.currentTimeMillis() / 1000
-        if (w.samples.lastOrNull()?.ts == ts) {
-            if (bpm > w.peakHr) _activeWorkout.value = w.copy(peakHr = bpm)
-            return
-        }
-        val s = w.samples + HrSample(deviceId = deviceId, ts = ts, bpm = bpm)
-        val strain = StrainScorer.strain(
-            s, maxHR = profileStore.hrMax.toDouble(),
-            method = NoopPrefs.effortMethod(appContext), sex = profileStore.sex) ?: 0.0
-        val updated = w.copy(
-            // Grown by comparison, not recomputed from `s`, so a peak folded in from a repeated second is kept.
-            samples = s, avgHr = s.sumOf { it.bpm } / s.size, peakHr = maxOf(w.peakHr, bpm), liveStrain = strain,
-        )
-        _activeWorkout.value = updated
-        // Re-snapshot the durable non-GPS session so a process kill keeps the latest accumulated HR (#529).
-        persistNonGpsWorkout(updated)
     }
 
     // MARK: - Workouts screen (load + manual edit · relabel · dismiss · delete) (#107)
@@ -2124,10 +1762,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             // No-ops when there's no strap HR for the window; never overrides a value the user typed.
             rescoreAfterEdit()
             loadWorkouts()
-            // #1195 follow-up: a manually added/edited workout writes back to Health Connect too, mirroring
-            // the live endWorkout path (iOS already syncs manual workouts to HealthKit via its query-based
-            // export). Opt-in; writes the same session + distance the live path does, under the same
-            // "noop-workout-*" client id (so a re-import skips it, no double-count). On ANY edit, delete the
+            // #1195 follow-up: a manually added/edited workout writes back to Health Connect too (iOS
+            // already syncs manual workouts to HealthKit via its query-based export). Opt-in; writes the
+            // session + distance under the "noop-workout-*" client id (so a re-import skips it, no double-count). On ANY edit, delete the
             // OLD workout's records first, then write fresh — matching iOS's delete-before-write. Deleting
             // only when the start MOVED would leave a stale distance record when a same-start edit clears or
             // drops the distance (writeExercise upserts the session but writes no distance record to
@@ -2446,16 +2083,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // background-health permission and is unreliable on Android 14+, and opening the app regularly
         // is enough for a personal health app.
         syncHealthConnectIfStale()
-
-        // If a GPS workout is still tracking in the background (the screen was off and this VM was
-        // recreated on reopen), rebuild its active-workout card from the process-level session. Placed
-        // in THIS init — not the first one above — because it reads _activeWorkout, which is declared
-        // below the first init block and would still be null there (JVM field init order). (#215)
-        rehydrateActiveGpsWorkout()
-        // Then, if no GPS session claimed the card, rehydrate a NON-GPS manual workout from its durable
-        // snapshot so an OS kill mid-session can still be ended + saved (#529). Order matters: a live GPS
-        // session wins; the non-GPS path only fills in when [_activeWorkout] is still null.
-        rehydrateActiveNonGpsWorkout()
     }
 
     /** Flip auto-sync. Persists and, on enable, kicks an immediate import; thereafter it catches up on
@@ -3218,29 +2845,6 @@ internal fun earliestStrapAlarmEpochSec(smartEpoch: Long?, buzzEpoch: Long?): Lo
         buzzEpoch == null -> smartEpoch
         else -> minOf(smartEpoch, buzzEpoch)
     }
-
-/**
- * Elapsed-workout clock from a whole-second count: M:SS up to an hour, H:MM:SS once an hour has passed (so a
- * 90-minute session reads "1:30:00", not "90:00"). Negative inputs clamp to zero ("0:00"). Pure so every
- * surface showing an in-flight workout — the Today card, the Live card, the Workouts-tab banner and the
- * full-screen live screen — shares ONE format, and the iOS-parity H:MM:SS roll-over is unit-testable
- * without composing any UI.
- *
- * Twin of Swift `ActiveWorkoutClock.clock`. (It used to name ActiveWorkoutIndicatorModel.elapsed, which
- * no longer owns the formatting — that now delegates, like everything else, so the reference moved with
- * the code rather than being left pointing at a caller.)
- */
-internal fun elapsedClock(elapsedS: Long): String {
-    val total = elapsedS.coerceAtLeast(0)
-    val h = total / 3600
-    val m = (total % 3600) / 60
-    val s = total % 60
-    return if (h > 0) {
-        java.lang.String.format(java.util.Locale.US, "%d:%02d:%02d", h, m, s)
-    } else {
-        java.lang.String.format(java.util.Locale.US, "%d:%02d", m, s)
-    }
-}
 
 /**
  * Which strap family the picker should sit on, given the two things the app remembers.

@@ -101,14 +101,8 @@ fun LiveScreen(viewModel: AppViewModel, onManageDevices: () -> Unit = {}) {
     val selectedModel by viewModel.selectedModel.collectAsStateWithLifecycle()
     // Active band name (MW-6) — names the band whose live data the console shows; falls back to "WHOOP".
     val activeDeviceName by viewModel.activeDeviceName.collectAsStateWithLifecycle()
-    val activeWorkout by viewModel.activeWorkout.collectAsStateWithLifecycle()
-    val lastWorkout by viewModel.lastWorkout.collectAsStateWithLifecycle()
 
-    // Exercise-distance preference (#1913). Stored workout data remains SI.
     val context = LocalContext.current
-    val unitSystem = UnitPrefs.distanceSystem(context)
-    // Effort display scale (#268) — routes the live + saved workout Effort read-outs. Display-only.
-    val effortScale = UnitPrefs.effortScale(context)
     // Same day-cycle gate as the liquid Today (LiquidScreenSky.kt): the time-of-day sky settles behind the
     // top content when the user hasn't opted out; otherwise the scaffold paints the plain dark canvas.
     val showDayCycleBackground = remember { NoopPrefs.showDayCycleBackground(context) }
@@ -153,25 +147,7 @@ fun LiveScreen(viewModel: AppViewModel, onManageDevices: () -> Unit = {}) {
     // top-level child becomes one `item { }` in the SAME order/spacing, so only on-screen sections compose
     // and semanticize. The live/bpm body reads are intentionally LEFT as-is (this screen's whole purpose is
     // the live readout); see the report note.
-    var showSportPicker by remember { mutableStateOf(false) }
     var showHrvSnapshot by remember { mutableStateOf(false) }
-    // Live workout mode (#238): the full-screen in-exercise overlay. Normally opened at workout START
-    // (StartWorkoutSheet); this lets the Today "workout in progress" indicator re-open it for a session
-    // already in flight by consuming the ViewModel's one-shot on appear (iOS parity:
-    // LiveView.consumeActiveWorkoutRequest). Closing just hides it; the workout keeps recording.
-    var showLiveWorkout by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        // consumeActiveWorkoutRequest() returns true exactly once per raise, and only while a workout is
-        // active, so a stale flag can never open an empty overlay.
-        if (viewModel.consumeActiveWorkoutRequest()) showLiveWorkout = true
-    }
-
-    // GPS workout sport picker — the shared sheet (also used on the Workouts screen, #115). Rendered at
-    // body level so it floats over Live as an overlay regardless of list position (unchanged behaviour).
-    if (showSportPicker) {
-        StartWorkoutSheet(vm = viewModel, onDismiss = { showSportPicker = false })
-    }
-
     // Manual HRV snapshot (#127) — a still, seated 60s R-R reading. A plain full-screen Dialog so it floats
     // over Live; gated on a bonded connection (the reading needs the live R-R stream).
     if (showHrvSnapshot) {
@@ -191,19 +167,6 @@ fun LiveScreen(viewModel: AppViewModel, onManageDevices: () -> Unit = {}) {
                 source = hrvSource,
                 onClose = { showHrvSnapshot = false },
             )
-        }
-    }
-
-    // The full-screen live-workout overlay (#238). A plain full-screen Dialog so it floats over Live, the
-    // same idiom WorkoutStartSection uses; opened by the Today indicator's one-shot above (or a future
-    // in-screen re-open). Guarded on an active workout so it never shows an empty overlay. Dismiss hides it;
-    // End (inside) stops the workout.
-    if (showLiveWorkout && activeWorkout != null) {
-        Dialog(
-            onDismissRequest = { showLiveWorkout = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false),
-        ) {
-            LiveWorkoutScreen(vm = viewModel, onClose = { showLiveWorkout = false })
         }
     }
 
@@ -361,113 +324,14 @@ fun LiveScreen(viewModel: AppViewModel, onManageDevices: () -> Unit = {}) {
         SectionHeader(title = uiString(R.string.l10n_live_screen_session_f7f1997c), overline = "Record or inspect the current stream")
         }
 
-        // Manual workout — start/stop a session yourself; records HR + strain until you end it.
-        // This block emits MULTIPLE siblings in its `else` branch (the actions Row, the last-workout note,
-        // the HRV button), which in the old eager scaffold were spaced by the column's `spacedBy(20.dp)`.
-        // Wrapping the whole block in one lazy item, they'd lose that inter-child spacing — so an explicit
-        // `Column(spacedBy(20.dp))` inside the item reproduces the exact gaps (the if-branch's single card
-        // is unaffected). Spacing to the neighbouring items is the LazyColumn's own `spacedBy(20.dp)`.
+        // Session tools: refresh the strap battery and take a seated HRV reading. Two siblings, so an
+        // inner `Column(spacedBy(20.dp))` keeps the gap the old eager column gave them.
         item {
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        val w = activeWorkout
-        if (w != null) {
-            var confirmingEnd by remember(w.startMs) { mutableStateOf(false) }
-            var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
-            LaunchedEffect(w.startMs) {
-                while (true) { nowMs = System.currentTimeMillis(); delay(1000) }
-            }
-            val elapsedS = ActiveWorkoutClock.activeElapsedSeconds(
-                startMs = w.startMs, pausedAtMs = w.pausedAtMs,
-                pausedDurationMs = w.pausedDurationMs, nowMs = nowMs,
-            )
-            NoopCard(tint = Palette.effortColor) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        Text(uiString(R.string.l10n_live_screen_w_sport_name_uppercase_e59bc678, w.sport.name.uppercase()), style = NoopType.overline, color = Palette.statusCritical)
-                        // A frozen clock alone is ambiguous with a STALLED one, so say which it is. Reuses
-                        // the string #1533 already localized rather than minting new copy for a tag.
-                        if (w.pausedAtMs != null) {
-                            Spacer(Modifier.width(Metrics.space8))
-                            Text(uiString(R.string.workout_action_paused), style = NoopType.overline, color = Palette.textSecondary)
-                        }
-                        Spacer(Modifier.weight(1f))
-                        Text(
-                            // Shared clock: M:SS up to an hour, H:MM:SS past it (so a long session reads
-                            // "1:30:00", not "90:00"), the same format the Today indicator uses.
-                            elapsedClock(elapsedS),
-                            style = NoopType.number(22f), color = Palette.textPrimary,
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-                        StatTile(modifier = Modifier.weight(1f), label = uiString(R.string.l10n_live_screen_hr_f187928f), value = bpm?.toString() ?: "—",
-                            accent = if (bpm == null) Palette.textPrimary else Palette.metricRose)
-                        StatTile(modifier = Modifier.weight(1f), label = uiString(R.string.l10n_live_screen_avg_cdc93143), value = if (w.avgHr > 0) "${w.avgHr}" else "—")
-                        StatTile(modifier = Modifier.weight(1f), label = uiString(R.string.l10n_live_screen_peak_c83dbbd3), value = if (w.peakHr > 0) "${w.peakHr}" else "—")
-                        StatTile(modifier = Modifier.weight(1f), label = uiString(R.string.l10n_live_screen_effort_8c974bc6), value = UnitFormatter.effortDisplay(w.liveStrain, effortScale),
-                            accent = Palette.strainColor(w.liveStrain))
-                    }
-                    if (w.gpsEnabled) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-                            StatTile(modifier = Modifier.weight(1f), label = uiString(R.string.l10n_live_screen_distance_42320809), value = liveDistance(w.distanceM, unitSystem))
-                            StatTile(modifier = Modifier.weight(1f), label = uiString(R.string.l10n_live_screen_pace_7a9a6226), value = w.paceSecPerKm?.let { livePace(it, unitSystem) } ?: "—")
-                        }
-                    }
-                    // The card used to offer End and nothing else, so the only IRREVERSIBLE control was the
-                    // one reachable without opening the live overlay, while Pause — the reversible one —
-                    // was not. One toggle: a paused session has exactly one sensible next action.
-                    Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap), modifier = Modifier.fillMaxWidth()) {
-                        Button(
-                            onClick = { viewModel.toggleWorkoutPause() },
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-                        ) {
-                            Text(
-                                if (w.pausedAtMs != null) uiString(R.string.workout_action_resume)
-                                else uiString(R.string.workout_action_pause),
-                                style = NoopType.captionNumber,
-                            )
-                        }
-                        Button(
-                            onClick = { confirmingEnd = true },
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Palette.statusCritical, contentColor = Palette.surfaceBase,
-                            ),
-                        ) { Text(uiString(R.string.l10n_live_screen_end_workout_3e8d6238), style = NoopType.captionNumber) }
-                    }
-                }
-            }
-            if (confirmingEnd) {
-                EndWorkoutConfirmationDialog(
-                    onConfirm = {
-                        confirmingEnd = false
-                        viewModel.endWorkout()
-                    },
-                    onDismiss = { confirmingEnd = false },
-                )
-            }
-        } else {
-            // Start-workout + a Refresh-battery action, gated on a live link (parity with the macOS
-            // sessionActions). The Refresh button re-reads strap battery / connection on demand.
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.gap), modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = { showSportPicker = true },
-                    modifier = Modifier.weight(1f),
-                    enabled = activeConnection,
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Palette.accent, contentColor = Palette.surfaceBase,
-                    ),
-                ) {
-                    Text(
-                        uiString(R.string.l10n_live_screen_start_workout_d0f3f2cd), style = NoopType.captionNumber,
-                        maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
-                    )
-                }
                 OutlinedButton(
                     onClick = { viewModel.getBattery() },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = activeConnection,
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Palette.accent),
@@ -483,23 +347,8 @@ fun LiveScreen(viewModel: AppViewModel, onManageDevices: () -> Unit = {}) {
                     )
                 }
             }
-            lastWorkout?.let { row ->
-                val mins = ((row.durationS ?: 0.0) / 60).toInt()
-                val parts = listOfNotNull(
-                    "$mins min",
-                    row.distanceM?.let { liveDistance(it, unitSystem) },
-                    row.avgHr?.let { "$it avg bpm" },
-                    row.strain?.let { "strain ${UnitFormatter.effortDisplay(it, effortScale)}" },
-                )
-                Text(
-                    uiString(R.string.live_workout_saved_summary, row.sport, parts.joinToString(" · ")),
-                    style = NoopType.footnote, color = Palette.textSecondary,
-                )
-                row.routePolyline?.let { RouteCanvas(it, modifier = Modifier.padding(top = 8.dp)) }
-            }
-
             // Manual HRV snapshot (#127) — a still, seated 60s R-R reading. Needs the live R-R stream,
-            // so it's gated on a bonded connection just like the workout/refresh actions above.
+            // so it's gated on a bonded connection just like the refresh action above.
             OutlinedButton(
                 onClick = { showHrvSnapshot = true },
                 modifier = Modifier.fillMaxWidth(),
@@ -517,7 +366,6 @@ fun LiveScreen(viewModel: AppViewModel, onManageDevices: () -> Unit = {}) {
                     maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
                 )
             }
-        }
         }
         }
 
@@ -1342,19 +1190,4 @@ internal fun relativeAgo(epochSec: Long, nowSec: Long = System.currentTimeMillis
         d < 86_400L -> "${d / 3600L} h ago"
         else -> "${d / 86_400L} d ago"
     }
-}
-
-/** Live workout distance from metres, 2-decimal precision, re-labelled to the active system (km / mi). */
-private fun liveDistance(distanceM: Double, system: UnitSystem): String = when (system) {
-    UnitSystem.METRIC -> java.lang.String.format(java.util.Locale.US, "%.2f km", distanceM / 1000.0)
-    UnitSystem.IMPERIAL ->
-        java.lang.String.format(java.util.Locale.US, "%.2f mi", UnitFormatter.kmToMiles(distanceM / 1000.0))
-}
-
-/** Live pace from seconds-per-km, re-labelled to minutes per km / per mile. A per-mile pace is per-km
- *  divided by miles-per-km (a mile is longer, so the time per unit is larger). */
-private fun livePace(secPerKm: Double, system: UnitSystem): String {
-    val sec = if (system == UnitSystem.IMPERIAL) secPerKm / UnitFormatter.MILES_PER_KILOMETER else secPerKm
-    val unit = if (system == UnitSystem.IMPERIAL) "/mi" else "/km"
-    return java.lang.String.format(java.util.Locale.US, "%d:%02d %s", (sec / 60).toInt(), (sec % 60).toInt(), unit)
 }

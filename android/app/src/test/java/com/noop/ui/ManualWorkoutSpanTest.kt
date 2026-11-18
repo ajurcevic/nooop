@@ -138,9 +138,8 @@ class ManualWorkoutFloorTest {
     }
 
     @Test
-    fun `the floor matches the live session gate`() {
-        // One rule whether a session was tracked or typed in. AppViewModel.endWorkout reads this same
-        // constant, so a change to one cannot leave the two doors disagreeing.
+    fun `the floor is one minute`() {
+        // The Add/Edit sheet's floor: a start and end under a minute apart is refused.
         assertEquals(60L, WorkoutEditing.MIN_MANUAL_SPAN_SECONDS)
     }
 }

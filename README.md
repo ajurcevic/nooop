@@ -53,10 +53,10 @@ locally. There is no Zoop-operated server, no account, no cloud dependency and n
 | **Today** | Home dashboard: recovery, strain and sleep at a glance, stat tiles with sparklines, live strap battery and heart rate, recent workouts. |
 | **Live** | Real-time heart rate and signal readout from the connected strap. |
 | **Sleep** | Sleep sessions with a hypnogram, stage breakdown, efficiency, resting HR and HRV, computed on-device. |
-| **Workouts** | Detected and manual exercise sessions with strain, HR zones and an HR curve. |
+| **Workouts** | Detected exercise sessions (plus ones you add by hand afterwards) with strain, HR zones and an HR curve. |
 | **Trends / Explore / Compare** | Long-range trends, single-metric exploration and two-metric comparison. |
 | **Health / Stress** | Biometric overview (HR, HRV, SpO₂, skin temperature, respiratory rate) and day-level stress. |
-| **Breathe / Intervals** | Haptic breathing biofeedback and a silent haptic interval timer, driven by the strap's motor. |
+| **Breathe** | Haptic breathing biofeedback, driven by the strap's motor. |
 | **Data Sources** | Import a WHOOP CSV export, Health Connect data or a nutrition CSV. |
 | **Devices** | Pair and manage WHOOP straps (5.0 / MG by default, 4.0 also supported). |
 | **Widgets** | Home-screen widgets for the day's summary, heart rate and stress. |
