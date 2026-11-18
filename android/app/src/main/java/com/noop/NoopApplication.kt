@@ -194,6 +194,26 @@ class NoopApplication : Application() {
         )
     }
 
+    /**
+     * Bring the saved strap's background link back without any screen open: promote the connection
+     * service, then reconnect to the remembered address on its remembered family. Does nothing (and
+     * returns false) when "Stay connected in the background" is off or no strap has been saved yet.
+     *
+     * The ONE rule for resuming the link, shared by the app launch in `AppViewModel` and by
+     * [com.noop.ble.StrapRestartReceiver] after a phone restart or an app update, so the two paths
+     * cannot drift apart. [WhoopBleClient.reconnectToAddress] itself no-ops while already connected
+     * or without the Bluetooth permission.
+     */
+    fun resumeSavedStrapConnection(): Boolean {
+        val saved = NoopPrefs.lastDevice(this) ?: return false
+        if (!NoopPrefs.backgroundConnection(this)) return false
+        // The PAIR, deliberately: `setLastDevice` writes address and family in one call, so
+        // `saved.second` describes THIS address (see AppViewModel.autoReconnectOnLaunch).
+        com.noop.ble.WhoopConnectionService.start(this)
+        ble.reconnectToAddress(saved.first, saved.second)
+        return true
+    }
+
     /** The WHOOP family last seen advertising, persisted by [WhoopBleClient.persistSelectedModel] under
      *  "noop.selectedWhoopModel" in the shared noop_prefs store. Defaults to [WhoopModel.WHOOP5_MG] when
      *  unset or unparseable (the historical connect() default), so a fresh install is unchanged. Used to

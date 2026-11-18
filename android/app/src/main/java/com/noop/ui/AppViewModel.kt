@@ -1349,7 +1349,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * BLE client itself no-ops if already connected or the runtime permission isn't granted yet.
      */
     private fun autoReconnectOnLaunch() {
-        val saved = NoopPrefs.lastDevice(appContext) ?: return
         // No picker restore here any more. This used to assign `_selectedModel` from `saved.second`,
         // which is what let a wrong family survive every restart and re-store itself. `_selectedModel`
         // is now seeded from the recorded family at construction, and this runs from the tail of the
@@ -1359,11 +1358,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // for a user with background connection off AND for one with no saved strap at all, which is
         // exactly the 5/MG case, since a strap that cannot bond (#1635) never becomes the saved device
         // and so never reached this line in the first place.
-        if (!NoopPrefs.backgroundConnection(appContext)) return
         // APK updates tear down the old foreground service along with the old process. Re-promote it
         // on the first launch after update/restart before reconnecting, so the persistent notification
         // and long-lived connection both come back without the user toggling the setting again.
-        WhoopConnectionService.start(appContext)
+        // NoopApplication.resumeSavedStrapConnection holds the rule (background setting on, service
+        // first, then the saved pair); StrapRestartReceiver runs the same call after a phone restart.
         // The PAIR, deliberately, not the seeded picker value. `setLastDevice` writes address and family
         // in one call, so `saved.second` describes THIS address; the recorded family describes whatever
         // advertised last, which need not be the same strap. `reconnectToAddress` assigns the client's
@@ -1371,7 +1370,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // `connectedFamily` instead), so a family borrowed from the other source would stick. A household
         // with a 4.0 and a 5/MG makes them disagree routinely: the 5/MG cannot bond (#1635) so it never
         // becomes the saved device, while every attempt at it re-records WHOOP5_MG.
-        ble.reconnectToAddress(saved.first, saved.second)
+        noopApp.resumeSavedStrapConnection()
     }
 
     /** Snapshot the user's body profile from SharedPreferences as an analytics [UserProfile]. */

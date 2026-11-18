@@ -340,6 +340,18 @@
             </intent-filter>
         </receiver>
 
+        <!-- Resume the saved strap's background link after a phone restart or an app update, so syncing
+             doesn't wait for the app to be opened. No-op when background connection is off. -->
+        <receiver
+            android:name="com.noop.ble.StrapRestartReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Wind-down nudge (non-critical): the daily evening reminder fires this receiver, which
              raises a low-key notification. Not exported. -->
         <receiver
