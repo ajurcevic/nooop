@@ -607,17 +607,8 @@ fun SettingsScreen(
     // denied/revoked (issue #1). Shared with Live's Connect via the one rememberRequestScan gate.
     val requestScan = rememberRequestScan { vm.connect() }
 
-    // "What's New" changelog sheet, reachable any time from About (mirrors the macOS
-    // Settings → About "What's new" button). Persistence/gating lives in NoopRoot; this
-    // is a manual re-open and writes nothing.
-    var showWhatsNew by remember { mutableStateOf(false) }
-
     // "How your scores work" explainer sheet, reachable any time from About (macOS/iOS parity).
     var showScoringGuide by remember { mutableStateOf(false) }
-
-    // "How NOOP works" primer sheet (COMPONENT 5 of the explainability layer), reachable any time
-    // from About — the plain-English tour of sleep sorting, scores, recording and provenance.
-    var showHowNoopWorks by remember { mutableStateOf(false) }
 
     // "WHOOP 4.0 vs 5.0/MG: what each can read and why" explainer (FI-2 / #490), reachable from the
     // Strap section by BOTH model owners. Clears up which features each strap supports — e.g. why the
@@ -3331,45 +3322,6 @@ fun SettingsScreen(
                     color = Palette.textSecondary,
                 )
 
-                // What's new — re-open the changelog sheet any time (macOS About parity).
-                val whatsNewInteraction = remember { MutableInteractionSource() }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .liquidPress(whatsNewInteraction)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Palette.surfaceInset)
-                        .border(1.dp, Palette.hairline, RoundedCornerShape(10.dp))
-                        .clickable(
-                            interactionSource = whatsNewInteraction,
-                            indication = null,
-                        ) { showWhatsNew = true }
-                        .padding(horizontal = 14.dp, vertical = 12.dp)
-                        .semantics { contentDescription = uiString(R.string.l10n_settings_screen_what_s_new_in_noop_appchangelog_d26fb453, AppChangelog.CURRENT_VERSION) },
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Icon(
-                            Icons.Filled.Campaign,
-                            contentDescription = null,
-                            tint = Palette.accent,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(uiString(R.string.l10n_settings_screen_what_s_new_4d8dc5fe), style = NoopType.headline, color = Palette.textPrimary)
-                            Text(
-                                uiString(R.string.l10n_settings_screen_recent_changes_and_what_to_expect_3ceb660b),
-                                style = NoopType.footnote,
-                                color = Palette.textSecondary,
-                            )
-                        }
-                        Text("›", style = NoopType.title2, color = Palette.accent)
-                    }
-                }
-
                 // How your scores work — the honest explainer for Charge/Effort/Rest + the
                 // confidence labels, opened any time (macOS/iOS About parity).
                 val scoringGuideInteraction = remember { MutableInteractionSource() }
@@ -3409,94 +3361,16 @@ fun SettingsScreen(
                         Text("›", style = NoopType.title2, color = Palette.accent)
                     }
                 }
-
-                // How NOOP works — the plain-English primer (COMPONENT 5 of the explainability layer):
-                // how sleep is sorted, how scores + calibration work, what recording means, and where
-                // each number comes from. The one "?" entry point into the primer (macOS/iOS parity).
-                val howNoopWorksInteraction = remember { MutableInteractionSource() }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .liquidPress(howNoopWorksInteraction)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Palette.surfaceInset)
-                        .border(1.dp, Palette.hairline, RoundedCornerShape(10.dp))
-                        .clickable(
-                            interactionSource = howNoopWorksInteraction,
-                            indication = null,
-                        ) { showHowNoopWorks = true }
-                        .padding(horizontal = 14.dp, vertical = 12.dp)
-                        .semantics { contentDescription = uiString(R.string.l10n_settings_screen_how_noop_works_3396b27a) },
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.MenuBook,
-                            contentDescription = null,
-                            tint = Palette.accent,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(uiString(R.string.l10n_settings_screen_how_noop_works_3396b27a), style = NoopType.headline, color = Palette.textPrimary)
-                            Text(
-                                uiString(R.string.l10n_settings_screen_sleep_sorting_scores_recording_and_where_832378b5),
-                                style = NoopType.footnote,
-                                color = Palette.textSecondary,
-                            )
-                        }
-                        Text("›", style = NoopType.title2, color = Palette.accent)
-                    }
-                }
-
-                // Medical disclaimer — inset well with a warning-tinted hairline.
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Palette.surfaceInset)
-                        .border(1.dp, Palette.statusWarning.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Icon(
-                        Icons.Filled.Info,
-                        contentDescription = null,
-                        tint = Palette.statusWarning,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Text(
-                        uiString(R.string.l10n_settings_screen_noop_is_not_a_medical_device_ab32ef7e),
-                        style = NoopType.footnote,
-                        color = Palette.textSecondary,
-                    )
-                }
-
-                SettingsRowDivider()
-
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Overline("Built on")
-                    SettingsAttributionRow(repo = "my-whoop", note = "WHOOP 4.0 protocol")
-                    SettingsAttributionRow(repo = "goose", note = "WHOOP 5.0 protocol")
-                }
-                Text(
-                    uiString(R.string.l10n_settings_screen_open_source_ble_reverse_engineering_work_40062271),
-                    style = NoopType.footnote,
-                    color = Palette.textTertiary,
-                )
             }
         }
 
         // Lower-frequency sections collapse behind a single default-closed disclosure (S3) so the
         // screen opens at the everyday handful instead of the full wall of cards. Nothing is removed;
-        // the experimental probes, diagnostics, raw-capture export and Trends report all stay one tap
+        // the experimental probes, diagnostics and raw-capture export all stay one tap
         // away. Mirrors the iOS SettingsView "Advanced" disclosure and the Test Centre Advanced group.
         SettingsDisclosureGroup(
             title = uiString(R.string.l10n_settings_screen_advanced_4d064726),
-            subtitle = "Experimental probes, diagnostics, raw-sensor export, and the Trends report. Tucked away to keep the everyday screen tidy.",
+            subtitle = "Experimental probes, diagnostics and raw-sensor export. Tucked away to keep the everyday screen tidy.",
             expanded = advancedOpen,
             onToggle = { advancedOpen = !advancedOpen; SettingsDisclosurePrefs.write(NoopPrefs.of(context), advancedOpen) },
         ) {
@@ -4112,25 +3986,8 @@ fun SettingsScreen(
                 )
             }
         }
-
-        // --- Trends report (#436) — shareable offline PDF over a date range. Self-contained
-        // card (its own NoopCard + range picker + CTA), so it drops in without a SettingsSection wrapper.
-        TrendsReportExportSection(vm)
         } // end Advanced disclosure content Column
         } // end SettingsDisclosureGroup("Advanced")
-        }
-
-        // What's new sheet, opened from the About row above. Full-screen Dialog so it
-        // covers the whole screen like the macOS .sheet; closing just hides it.
-        if (showWhatsNew) {
-            Dialog(
-                onDismissRequest = { showWhatsNew = false },
-                properties = DialogProperties(usePlatformDefaultWidth = false),
-            ) {
-                Surface(modifier = Modifier.fillMaxSize(), color = Palette.surfaceBase) {
-                    WhatsNewSheet(onClose = { showWhatsNew = false })
-                }
-            }
         }
 
         // Scoring guide sheet, opened from the About row above. Same full-screen Dialog idiom.
@@ -4141,18 +3998,6 @@ fun SettingsScreen(
             ) {
                 Surface(modifier = Modifier.fillMaxSize(), color = Palette.surfaceBase) {
                     ScoringGuideScreen(onClose = { showScoringGuide = false })
-                }
-            }
-        }
-
-        // "How NOOP works" primer sheet, opened from the About row above. Same full-screen Dialog idiom.
-        if (showHowNoopWorks) {
-            Dialog(
-                onDismissRequest = { showHowNoopWorks = false },
-                properties = DialogProperties(usePlatformDefaultWidth = false),
-            ) {
-                Surface(modifier = Modifier.fillMaxSize(), color = Palette.surfaceBase) {
-                    HowNoopWorksScreen(onClose = { showHowNoopWorks = false })
                 }
             }
         }
