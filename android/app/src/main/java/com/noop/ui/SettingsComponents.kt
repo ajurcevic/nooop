@@ -219,22 +219,3 @@ internal fun SettingsNoteRow(icon: ImageVector, iconTint: Color, text: String) {
         Text(text, style = NoopType.footnote, color = Palette.textSecondary)
     }
 }
-
-@Composable
-internal fun SettingsAttributionRow(repo: String, note: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.semantics {
-            contentDescription = uiString(R.string.l10n_settings_screen_repo_note_0a694b50, repo, note)
-        },
-    ) {
-        Text("›", style = NoopType.headline, color = Palette.accent)
-        Text(repo, style = NoopType.mono(12f), color = Palette.textPrimary)
-        Text(
-            uiString(R.string.l10n_settings_screen_note_a2481d6c, note),
-            style = NoopType.footnote,
-            color = Palette.textTertiary,
-        )
-    }
-}

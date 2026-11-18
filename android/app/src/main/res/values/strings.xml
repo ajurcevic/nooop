@@ -630,13 +630,6 @@
     <string name="l10n_health_screen_value_8dce170d">Value</string>
     <string name="l10n_health_screen_vo_max_vo2max_roundtoint_c32a04b3">VO₂max %1$s</string>
     <string name="l10n_health_screen_your_data_fused_a740fd4a">Your Data, Fused</string>
-    <string name="l10n_how_noop_works_screen_close_bbfa773e">Close</string>
-    <string name="l10n_how_noop_works_screen_got_it_5b8027fa">Got it</string>
-    <string name="l10n_how_noop_works_screen_how_noop_works_3396b27a">How Zoop works</string>
-    <string name="l10n_how_noop_works_screen_noop_never_makes_up_a_number_da29aca5">Zoop never makes up a number. When it can\'t compute one honestly it tells you what\'s missing and what to do, rather than showing a fake value.</string>
-    <string name="l10n_how_noop_works_screen_noop_never_shows_you_a_number_d1db9958">Zoop never shows you a number it had to make up. If a score isn\'t ready, it tells you why and what to do next. Everything here runs on your device, from your strap.</string>
-    <string name="l10n_how_noop_works_screen_section_title_section_body_efb1a999">%1$s. %2$s</string>
-    <string name="l10n_how_noop_works_screen_sleep_scores_recording_where_your_numbers_1b3e981f">Sleep · scores · recording · where your numbers come from</string>
     <string name="l10n_hrv_snapshot_screen_an_hrv_reading_needs_the_live_11b70bff">An HRV reading needs the live R-R stream. Open the Live screen and connect your strap, then come back.</string>
     <string name="l10n_hrv_snapshot_screen_beats_12aafda0">Beats</string>
     <string name="l10n_hrv_snapshot_screen_hrvdial_4c244c45">hrvDial</string>
@@ -853,8 +846,6 @@
     <string name="l10n_settings_screen_bottom_bar_overlay_f257c96f">Bottom bar overlay</string>
     <string name="l10n_settings_screen_clock_04f6b3ea">Clock</string>
     <string name="l10n_settings_screen_hide_bar_when_scrolling_b077d9f3">Hide bar when scrolling</string>
-    <string name="l10n_settings_screen_note_a2481d6c">· %1$s</string>
-    <string name="l10n_settings_screen_repo_note_0a694b50">%1$s, %2$s</string>
     <string name="l10n_skin_temp_cards_screen_cycle_awareness_ffb94783">Cycle awareness</string>
     <string name="l10n_skin_temp_cards_screen_noop_can_read_a_coarse_menstrual_c79e4b85">Zoop can read a coarse menstrual-cycle phase from your nightly skin temperature, entirely on your device. It is awareness only: not contraception, not a fertility predictor, not a medical service.</string>
     <string name="l10n_skin_temp_cards_screen_turn_on_cycle_awareness_7c2d328f">Turn on cycle awareness</string>
@@ -1464,11 +1455,6 @@
     <string name="l10n_health_screen_vitality_be320b06">Vitality</string>
     <string name="l10n_health_screen_vo2max_21214fb6">VO₂ Max</string>
     <string name="l10n_health_screen_weight_height_and_waist_add_a_fd2699f5">Weight, height and waist add a VO₂max estimate. They don\'t change the Fitness Age itself.</string>
-    <string name="l10n_how_noop_works_screen_how_your_scores_are_computed_1b2d6c30">How your scores are computed</string>
-    <string name="l10n_how_noop_works_screen_how_your_scores_work_21a0e2be">How your scores work</string>
-    <string name="l10n_how_noop_works_screen_how_your_sleep_is_sorted_6a8e82e0">How your sleep is sorted</string>
-    <string name="l10n_how_noop_works_screen_what_recording_means_b896c422">What "recording" means</string>
-    <string name="l10n_how_noop_works_screen_where_your_numbers_come_from_e169963a">Where your numbers come from</string>
     <string name="l10n_hrv_snapshot_screen_a_60_second_snapshot_of_your_35f03f7c">A 60-second snapshot of your beat-to-beat (R-R) intervals from the strap, cleaned (range and ectopic-beat filtering) before computing RMSSD the same way your overnight HRV is computed.</string>
     <string name="l10n_hrv_snapshot_screen_close_hrv_reading_a29a99a1">Close HRV reading</string>
     <string name="l10n_hrv_snapshot_screen_hrv_reading_a2cf71f3">HRV Reading</string>
@@ -1553,7 +1539,6 @@
     <string name="l10n_settings_screen_github_code_releases_issues_and_the_50b41e25">GitHub: code, releases, issues and the wiki.</string>
     <string name="l10n_settings_screen_health_wellness_93475778">Health &amp; wellness</string>
     <string name="l10n_settings_screen_height_3f608b49">Height</string>
-    <string name="l10n_settings_screen_how_noop_works_3396b27a">How Zoop works</string>
     <string name="l10n_settings_screen_how_see_through_the_cards_heart_436105b9">How see-through the cards (Heart Rate, Key Metrics, Recovery Vitals, …) are. Left = solid, right = clear.</string>
     <string name="l10n_settings_screen_how_your_scores_work_21a0e2be">How your scores work</string>
     <string name="l10n_settings_screen_hrv_window_e74320b8">HRV window</string>
@@ -1572,10 +1557,8 @@
     <string name="l10n_settings_screen_max_heart_rate_3d4ed858">Max heart rate</string>
     <string name="l10n_settings_screen_measurement_system_701d765d">Measurement system</string>
     <string name="l10n_settings_screen_motion_aware_wake_refinement_67a91e47">Motion-aware wake refinement</string>
-    <string name="l10n_settings_screen_noop_is_not_a_medical_device_ab32ef7e">Zoop is not a medical device. It is for informational and personal-insight purposes only and is not intended to diagnose, treat, cure or prevent any condition. Talk to a clinician for medical advice.</string>
     <string name="l10n_settings_screen_offer_a_breath_automatically_6c709dee">Offer a breath automatically</string>
     <string name="l10n_settings_screen_on_a_5_mg_connection_noop_4557c8f8">On a 5/MG connection Zoop will send a puffin realtime-stream request after the handshake, and log what comes back. If you have a 5/MG strap, turning this on and sharing your strap log helps map the protocol. No effect on WHOOP 4.0.</string>
-    <string name="l10n_settings_screen_open_source_ble_reverse_engineering_work_40062271">Open-source BLE reverse-engineering work. Thank you.</string>
     <string name="l10n_settings_screen_open_test_centre_a7fbe4e9">Open Test Centre</string>
     <string name="l10n_settings_screen_overnight_only_05747985">Overnight only</string>
     <string name="l10n_settings_screen_profile_ff4fc027">Profile</string>
@@ -1585,7 +1568,6 @@
     <string name="l10n_settings_screen_recalibrate_aaa989ea">Recalibrate</string>
     <string name="l10n_settings_screen_recalibrate_charge_baseline_52a05a26">Recalibrate Charge baseline</string>
     <string name="l10n_settings_screen_recalibrate_your_charge_baseline_018e3846">Recalibrate your Charge baseline?</string>
-    <string name="l10n_settings_screen_recent_changes_and_what_to_expect_3ceb660b">Recent changes and what to expect</string>
     <string name="l10n_settings_screen_record_5_mg_raw_capture_9354fe89">Record 5/MG raw capture</string>
     <string name="l10n_settings_screen_record_5_mg_raw_capture_research_1d966bbf">Record 5/MG raw capture (research)</string>
     <string name="l10n_settings_screen_records_the_raw_frames_of_each_98a284df">Records the raw frames of each 5/MG history sync to a file on this phone, so you can share them and help Zoop learn to decode 5/MG sleep, recovery and strain. The file contains raw biometric frames (heart rate, R-R, skin temperature, motion) and the strap\'s own diagnostic text. Nothing leaves the phone unless you share it. Off by default.</string>
@@ -1605,7 +1587,6 @@
     <string name="l10n_settings_screen_share_strap_log_for_bug_reports_b9802500">Share strap log (for bug reports)</string>
     <string name="l10n_settings_screen_shows_a_soft_sunrise_day_dusk_2d20b417">Shows a soft sunrise, day, dusk and night scene behind the Today screen. Turn it off for a plain dark canvas. Your cards stay exactly as readable.</string>
     <string name="l10n_settings_screen_sky_behind_cards_efbe5cb8">Sky behind cards</string>
-    <string name="l10n_settings_screen_sleep_sorting_scores_recording_and_where_832378b5">Sleep sorting, scores, recording, and where your numbers come from.</string>
     <string name="l10n_settings_screen_sleep_staging_v2_3a007e4a">Sleep staging V2</string>
     <string name="l10n_settings_screen_sleep_staging_v2_a4176770">Sleep staging (V2)</string>
     <string name="l10n_settings_screen_some_phones_also_need_auto_start_79b7147b">Some phones also need auto-start enabled — open that screen</string>
@@ -1635,8 +1616,6 @@
     <string name="l10n_settings_screen_weight_from_health_connect_caption_5ca6ea7d">From Health Connect · %1$s</string>
     <string name="l10n_settings_screen_weight_from_health_connect_none_dd3f4884">From Health Connect · no weight yet</string>
     <string name="l10n_settings_screen_what_each_strap_can_read_and_51e7d3fc">What each strap can read, and why some features differ.</string>
-    <string name="l10n_settings_screen_what_s_new_4d8dc5fe">What\'s new</string>
-    <string name="l10n_settings_screen_what_s_new_in_noop_appchangelog_d26fb453">What\'s new in Zoop %1$s</string>
     <string name="l10n_settings_screen_whole_night_is_noop_s_default_fbfff434">Whole night is Zoop\'s default measure; Deep sleep pools HRV over slow-wave sleep only, reading lower and matching WHOOP. Switching re-scores your recent nights over the new window and takes effect right away once you have a few nights of data.</string>
     <string name="l10n_settings_screen_whoop_4_0_versus_5_0_a54c5504">WHOOP 4.0 versus 5.0: what each can read and why</string>
     <string name="l10n_settings_screen_whoop_4_0_vs_5_0_2babb05a">WHOOP 4.0 vs 5.0/MG</string>
