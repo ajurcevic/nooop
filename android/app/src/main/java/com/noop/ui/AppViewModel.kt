@@ -134,6 +134,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val activeStrapId: String get() = noopApp.sourceCoordinator.activeDeviceId.value ?: noopApp.activeDeviceId
     val activeStrapIdFlow: StateFlow<String?> get() = noopApp.sourceCoordinator.activeDeviceId
 
+    /** The Rest SCORE (0-100) by day: the resolved `sleep_performance` series (imported-wins over the
+     *  on-device composite), the same read Home's Rest ring uses. Empty when nothing is scored yet. */
+    suspend fun restScoreByDay(): Map<String, Double> = runCatching {
+        repository.resolvedSeries("sleep_performance", "my-whoop", "0000-00-00", "9999-99-99",
+            strapDeviceId = activeStrapId)
+            .values.associate { it.first to it.second }
+    }.getOrDefault(emptyMap())
+
     // MARK: - Devices screen (multi-source Phase 1B)
     //
     // The Devices screen is a thin UI over the process-wide [DeviceRegistry]. Every mutation goes
