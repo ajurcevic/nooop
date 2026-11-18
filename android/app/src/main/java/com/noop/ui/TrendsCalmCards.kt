@@ -32,6 +32,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -368,7 +370,12 @@ private fun WeekScoreColumn(score: WeekScoreUi, modifier: Modifier = Modifier) {
 @Composable
 private fun WeekBars(daily: List<Double?>, barColor: (Double) -> Color) {
     val stub = Palette.hairlineStrong
-    Canvas(modifier = Modifier.fillMaxWidth().height(WeekBarHeight)) {
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(WeekBarHeight)
+            .trendSummary(daily.filterNotNull()) { it.roundToInt().toString() },
+    ) {
         val gap = Metrics.space4.toPx()
         val slots = daily.size.coerceAtLeast(1)
         val barWidth = minOf(WeekBarWidth.toPx(), (size.width - gap * (slots - 1)) / slots).coerceAtLeast(1f)
@@ -432,6 +439,7 @@ internal fun ChargeLineChart(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(top = PlotInset, bottom = PlotInset, end = AxisGutter)
+                    .trendSummary(line.map { it.second }) { it.roundToInt().toString() }
                     .pickAlongX(line) { at ->
                         selected = nearestIndex(days, axis.startDay + at.toDouble() * (axis.endDay - axis.startDay))
                     },
@@ -552,7 +560,7 @@ private fun TrendMini(mini: TrendMiniUi, axis: TrendAxis, modifier: Modifier = M
         }
         Spacer(Modifier.weight(1f))
         if (mini.points.isNotEmpty()) {
-            TrendSparkline(mini.points, axis, mini.band, mini.lineColor, mini.maxGapDays)
+            TrendSparkline(mini.points, axis, mini.band, mini.lineColor, mini.maxGapDays, mini.formatDelta)
             Row(modifier = Modifier.fillMaxWidth()) {
                 Text(axis.startLabel, style = NoopType.footnote, color = Palette.textTertiary, maxLines = 1)
                 Spacer(Modifier.weight(1f))
@@ -570,6 +578,7 @@ private fun TrendSparkline(
     band: Pair<Double, Double>?,
     color: Color,
     maxGapDays: Int,
+    format: (Double) -> String,
 ) {
     val runs = remember(points, maxGapDays) { contiguousRuns(points.map { it.first }, maxGapDays) }
     val values = points.map { it.second } + listOfNotNull(band?.first, band?.second)
@@ -579,7 +588,7 @@ private fun TrendSparkline(
     val yMin = low - span * 0.2
     val yMax = high + span * 0.2
     val ring = Palette.surfaceRaised
-    Canvas(modifier = Modifier.fillMaxWidth().height(SparkHeight)) {
+    Canvas(modifier = Modifier.fillMaxWidth().height(SparkHeight).trendSummary(points.map { it.second }, format)) {
         val width = size.width
         val height = size.height
         fun x(day: Long): Float = axis.fraction(day) * width
@@ -630,7 +639,7 @@ internal fun RestPeriodBars(
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
         Box(modifier = Modifier.fillMaxWidth().height(BarChartHeight + PlotInset * 2)) {
             val plot = Modifier.fillMaxSize().padding(top = PlotInset, bottom = PlotInset, end = AxisGutter)
-            Canvas(modifier = plot) {
+            Canvas(modifier = plot.trendSummary(bars.map { it.average }, format)) {
                 val width = size.width
                 val height = size.height
                 val dayWidth = width / span
@@ -703,7 +712,10 @@ internal fun EffortDayBars(
                 maxValue = scaleMax,
                 height = BarChartHeight,
                 barColor = { color },
-                modifier = Modifier.align(Alignment.Center).padding(end = AxisGutter),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(end = AxisGutter)
+                    .trendSummary(points.map { it.second }, format),
                 band = band,
                 grid = grid,
                 dimBefore = axis.endDay - (TRENDS_ROLLING_DAYS - 1),
@@ -806,7 +818,8 @@ private fun LoadChart(load: TrainingLoadUi, axis: TrendAxis) {
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = PlotInset, bottom = PlotInset, end = AxisGutter),
+                    .padding(top = PlotInset, bottom = PlotInset, end = AxisGutter)
+                    .trendSummary(load.fitness.map { it.second }) { it.roundToInt().toString() },
             ) {
                 val width = size.width
                 val height = size.height
@@ -1075,6 +1088,24 @@ private fun Modifier.pickAlongX(key: Any?, onPick: (Float) -> Unit): Modifier =
             },
         )
     }
+
+/** Latest, lowest and highest of [values], or null with none to describe. Pure, so the summary is testable. */
+internal fun trendSeriesSummary(values: List<Double>): Triple<Double, Double, Double>? {
+    val clean = values.filter { it.isFinite() }
+    if (clean.isEmpty()) return null
+    return Triple(clean.last(), clean.min(), clean.max())
+}
+
+/**
+ * Gives a Trends chart ONE spoken summary for TalkBack (latest, lowest, highest), in place of the nothing a
+ * bare Canvas says. One node per chart, never one per bar or point, the same rule Charts.kt keeps.
+ */
+private fun Modifier.trendSummary(values: List<Double>, format: (Double) -> String): Modifier {
+    val text = trendSeriesSummary(values)?.let { (latest, low, high) ->
+        uiString(R.string.trends_chart_summary, format(latest), format(low), format(high))
+    } ?: uiString(R.string.trends_chart_no_data)
+    return clearAndSetSemantics { contentDescription = text }
+}
 
 /** "Tue 3 Nov" for a picked day, in the reader's language. */
 private fun pointDate(epochDay: Long): String =
