@@ -14,7 +14,7 @@ import kotlin.math.pow
  *
  * The trap worth remembering: clamping each band to 3:1 on its own drives Oura `rem` to #1E9EDD and `light`
  * to #239FD5 — 1.00:1 apart, two adjacent stages the same colour. A uniform per-ramp lightness scale is
- * used instead (Oura x0.575, Garmin x0.912).
+ * used instead (Oura x0.575).
  */
 class BrandSleepRampTest {
 
@@ -38,7 +38,6 @@ class BrandSleepRampTest {
 
     private val ramps = listOf(
         Triple("Oura/Ribbon", BrandSleepRamp.ouraLight, BrandSleepRamp.ouraDark),
-        Triple("Garmin/Filled", BrandSleepRamp.garminLight, BrandSleepRamp.garminDark),
     )
 
     /** Sanity-check the metric before trusting anything built on it. */
@@ -69,7 +68,6 @@ class BrandSleepRampTest {
     @Test
     fun darkRampIsUnchangedAndStillClearsTwoToOneOnTheDarkCard() {
         assertEquals(listOf(0xFFEAE3D3, 0xFF90D0F0, 0xFF40B0E0, 0xFF206080), BrandSleepRamp.ouraDark)
-        assertEquals(listOf(0xFFF26FE8, 0xFFE22DD0, 0xFF4AA6F2, 0xFF2472D8), BrandSleepRamp.garminDark)
         for ((name, _, dark) in ramps) {
             dark.forEachIndexed { i, argb ->
                 val c = contrast(argb, darkSurface)
@@ -93,7 +91,7 @@ class BrandSleepRampTest {
      * per-band clamp fails while still passing the 3:1 test. RELATIVE (no pair loses more than 30%) catches
      * a ramp squashed flat; ABSOLUTE (a pair distinguishable in dark stays distinguishable) catches one pair
      * collapsing while the rest looks healthy. The 1.20 floor is grandfathered against the SHIPPED dark
-     * ramp, so pairs already luminance-close there (Garmin awake vs light, 1.02:1 — separated by hue, not
+     * ramp, so pairs already luminance-close there (separated by hue, not
      * lightness) are not held to a bar the original never met.
      */
     @Test
@@ -127,6 +125,5 @@ class BrandSleepRampTest {
     @Test
     fun lightHexesArePinnedForSwiftParity() {
         assertEquals(listOf(0xFFAD9153, 0xFF1A8AC2, 0xFF176B8E, 0xFF12374A), BrandSleepRamp.ouraLight)
-        assertEquals(listOf(0xFFEF52E3, 0xFFD91EC7, 0xFF3099F0, 0xFF2168C5), BrandSleepRamp.garminLight)
     }
 }

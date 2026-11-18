@@ -87,7 +87,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.noop.R
-import com.noop.analytics.FusionSource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -179,7 +178,6 @@ internal enum class Destination(
     VitalSignsDetail("vital_detail/{key}", R.string.nav_vital_signs, Icons.Filled.HealthAndSafety),
     LabBook("lab_book", R.string.nav_lab_book, Icons.Filled.HealthAndSafety),
     Rhythm("rhythm", R.string.nav_rhythm, Icons.Filled.MonitorHeart),
-    AppleHealth("apple_health", R.string.nav_apple_health, Icons.Filled.HealthAndSafety),
 
     // Group: System
     Automations("automations", R.string.nav_automations, Icons.Filled.Bolt),
@@ -193,7 +191,6 @@ internal enum class Destination(
     NoopLimitations("noop_limitations", R.string.nav_noop_limitations, Icons.AutoMirrored.Filled.Rule),
     DataSources("data_sources", R.string.nav_data_sources, Icons.Filled.Storage),
     BackupSync("backup_sync", R.string.nav_backup_sync, Icons.Filled.CloudSync),
-    FusedRecord("fused_record", R.string.nav_fused_record, Icons.AutoMirrored.Filled.CompareArrows),
     Notifications("notifications", R.string.nav_notifications, Icons.Filled.Notifications),
     PowerSaving("power_saving", R.string.nav_power_saving, Icons.Filled.BatteryStd),
     Settings("settings", R.string.nav_settings, Icons.Filled.Settings),
@@ -251,8 +248,7 @@ internal val drawerGroups: List<DrawerGroup> = listOf(
         Destination.Rhythm,
     ), defaultExpanded = true),
     DrawerGroup("Data", R.string.more_group_data, listOf(
-        Destination.FusedRecord, Destination.AppleHealth, Destination.DataSources,
-        Destination.BackupSync, Destination.Devices, Destination.NoopLimitations,
+        Destination.DataSources, Destination.BackupSync, Destination.Devices, Destination.NoopLimitations,
     ), defaultExpanded = false),
     DrawerGroup("App", R.string.more_group_app, listOf(
         Destination.Automations, Destination.SmartAlarm, Destination.Notifications,
@@ -685,7 +681,6 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                         vm = viewModel,
                         onVitalClick = { nav.navigate("vital_detail/$it") },
                         onOpenLabBook = { nav.navigateTopLevel(Destination.LabBook.route) },
-                        onOpenFusedRecord = { nav.navigateTopLevel(Destination.FusedRecord.route) },
                         onOpenSettings = { nav.navigateTopLevel(Destination.Settings.route) },
                     )
                 }
@@ -708,8 +703,6 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 composable(Destination.Rhythm.route) {
                     RhythmRoute(viewModel)
                 }
-                composable(Destination.FusedRecord.route) { FusedRecordRoute(viewModel) }
-                composable(Destination.AppleHealth.route) { AppleHealthScreen(viewModel) }
                 composable(Destination.Devices.route) {
                     DevicesScreen(
                         viewModel,
@@ -1255,22 +1248,6 @@ private fun NavHostController.navigateTopLevel(route: String) {
         launchSingleTop = true
         restoreState = true
     }
-}
-
-/**
- * Loader for the v5 "Your Data, Fused" screen: assembles today's [FusedRecord] off the repository via
- * [AppViewModel.fusedRecordForToday] (the pure FusionResolver per metric) and hands the pure
- * [FusedRecordScreen] its read-model. Keeps the screen itself I/O-free + previewable. Re-loads on entry.
- */
-@Composable
-private fun FusedRecordRoute(viewModel: AppViewModel) {
-    var record by remember {
-        mutableStateOf(FusedRecord(rows = emptyList(), dayOwner = null as FusionSource?, contributingSourceCount = 0))
-    }
-    LaunchedEffect(Unit) {
-        record = runCatching { viewModel.fusedRecordForToday() }.getOrDefault(record)
-    }
-    FusedRecordScreen(record = record)
 }
 
 /**
