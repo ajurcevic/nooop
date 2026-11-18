@@ -486,8 +486,24 @@ internal enum class InsightsOutcome(
 ) {
     Recovery("Charge", "Charge", "recovery", true, DomainTheme.Charge, { it.recovery }, { "${it.roundToInt()}%" }),
     Hrv("HRV", "HRV", "hrv", true, DomainTheme.Rest, { it.avgHrv }, { "${it.roundToInt()} ms" }),
-    Sleep("Rest", "Rest", "sleep_performance", true, DomainTheme.Rest, { it.efficiency }, { "${it.roundToInt()}%" }),
+    // The Rest SCORE comes from the resolved `sleep_performance` series in load(), not a DailyMetric column.
+    Sleep("Rest", "Rest", "sleep_performance", true, DomainTheme.Rest, { null }, { "${it.roundToInt()}%" }),
     Rhr("RHR", "Resting HR", "rhr", false, DomainTheme.Stress, { it.restingHr?.toDouble() }, { "${it.roundToInt()} bpm" }),
+}
+
+/** One outcome's value per day over [days]. Rest reads [restScoreByDay] (the Rest score Home shows),
+ *  never sleep efficiency; a day with no scored night is left out rather than filled. */
+internal fun insightsOutcomeDays(
+    outcome: InsightsOutcome,
+    days: List<DailyMetric>,
+    restScoreByDay: Map<String, Double>,
+): Map<String, Double> {
+    val out = LinkedHashMap<String, Double>()
+    for (d in days) {
+        val v = if (outcome == InsightsOutcome.Sleep) restScoreByDay[d.day] else outcome.pick(d)
+        if (v != null) out[d.day] = v
+    }
+    return out
 }
 
 // MARK: - Dose card view-data
@@ -588,12 +604,12 @@ internal class InsightsHubViewModel {
         val behaviours = byBehaviour.mapValues { it.value.toSet() }
         val controls = controlsByBehaviour.mapValues { it.value.toSet() }
 
-        // Outcome series straight off the cached DailyMetric rows (the guaranteed Android source).
+        // Outcome series off the cached DailyMetric rows (the guaranteed Android source), except Rest,
+        // which is the resolved Rest score so it matches Home and the Sleep tab.
         val outcomeByKey = HashMap<String, Map<String, Double>>()
+        val restScoreByDay = vm.restScoreByDay()
         for (o in InsightsOutcome.entries) {
-            val dict = HashMap<String, Double>()
-            for (d in days) o.pick(d)?.let { dict[d.day] = it }
-            outcomeByKey[o.key] = dict
+            outcomeByKey[o.key] = insightsOutcomeDays(o, days, restScoreByDay)
         }
 
         // Dose rows per dosed behaviour, under the dedicated dose source; logged "yes" days

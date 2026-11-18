@@ -83,7 +83,7 @@ import com.noop.analytics.EffectRanker
 // (BehaviorInsights / CorrelationEngine) over a metricSeries store. On Android the
 // analytics package isn't ported, and the guaranteed outcome source is the cached
 // DailyMetric rows (vm.recentDays). So the outcome series here are read straight off
-// those rows (recovery / avgHrv / sleep-efficiency / restingHr) and the simple, honest
+// those rows (recovery / avgHrv / restingHr; Rest is the resolved Rest score) and the simple, honest
 // math (group means + Cohen's d, Pearson r) is computed inline below. No fabricated
 // values: a behaviour or relationship only appears when there is real overlapping data.
 
@@ -112,7 +112,9 @@ private enum class Outcome(
     ),
     Sleep(
         label = uiString(R.string.l10n_insights_screen_rest_b79e5f48), outcomeName = "Rest", higherIsBetter = true, domain = DomainTheme.Rest,
-        pick = { it.efficiency }, format = { "${it.roundToInt()}%" },
+        // The Rest SCORE is not a DailyMetric column; buildModel reads it from the resolved
+        // `sleep_performance` series (AppViewModel.restScoreByDay), the number Home and Sleep show.
+        pick = { null }, format = { "${it.roundToInt()}%" },
     ),
     Rhr(
         label = uiString(R.string.l10n_insights_screen_rhr_04edf9b3), outcomeName = "Resting HR", higherIsBetter = false, domain = DomainTheme.Stress,
@@ -205,8 +207,10 @@ fun InsightsScreen(vm: AppViewModel, onOpenInsightsHub: () -> Unit = {}) {
 
     // Build outcome day-maps + ordered series off the cached daily metrics. Cheap and
     // recomputed only when `days` changes (not on every recomposition).
-    val model = remember(days, behaviours, controls, numericJournalSeries) {
-        buildModel(days, behaviours, controls, numericJournalSeries)
+    var restScoreByDay by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
+    androidx.compose.runtime.LaunchedEffect(days) { restScoreByDay = vm.restScoreByDay() }
+    val model = remember(days, restScoreByDay, behaviours, controls, numericJournalSeries) {
+        buildModel(days, restScoreByDay, behaviours, controls, numericJournalSeries)
     }
 
     // Ranked behaviour effects for the current outcome (recomputed when outcome/data change).
@@ -774,6 +778,7 @@ private fun RBar(r: Double, color: Color) {
 /** Build the per-outcome day maps + ordered series from cached daily metrics. */
 private fun buildModel(
     days: List<DailyMetric>,
+    restScoreByDay: Map<String, Double>,
     behaviours: Map<String, Set<String>>,
     controls: Map<String, Set<String>>,
     numericJournalSeries: Map<String, Map<String, Double>> = emptyMap(),
@@ -782,7 +787,10 @@ private fun buildModel(
     val seriesByOutcome = mutableMapOf<Outcome, List<Pair<String, Double>>>()
     for (o in Outcome.entries) {
         // Oldest → newest; one value per day (DailyMetric PK is (deviceId, day)).
-        val series = days.mapNotNull { d -> o.pick(d)?.let { d.day to it } }
+        val series = days.mapNotNull { d ->
+            val v = if (o == Outcome.Sleep) restScoreByDay[d.day] else o.pick(d)
+            v?.let { d.day to it }
+        }
         seriesByOutcome[o] = series
         outcomeByDay[o] = series.toMap()
     }
