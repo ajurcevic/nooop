@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Sync
 import android.widget.Toast
@@ -57,7 +56,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -113,7 +111,6 @@ import kotlinx.coroutines.flow.StateFlow
 fun HealthScreen(
     vm: AppViewModel,
     onVitalClick: (String) -> Unit = {},
-    onOpenLabBook: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -231,14 +228,6 @@ fun HealthScreen(
             // labelled progress bars in the shared stage/zone bar style, mirroring Today's section.
             item { Spacer(Modifier.height(Metrics.selectorTopUp)) }
             item { HealthContributorsSection(today) }
-            // RECORDS (Swift parity) — a deep-link row into the local Lab Book, so it is discoverable
-            // from Health, not just the drawer.
-            item { Spacer(Modifier.height(Metrics.selectorTopUp)) }
-            item {
-                RecordsAndSourcesSection(
-                    onOpenLabBook = onOpenLabBook,
-                )
-            }
         }
     }
 
@@ -367,80 +356,6 @@ private fun syncHelperText(live: LiveState): String = when {
     !live.historyReady ->
         "Finishing the pairing handshake. Sync now becomes available once the strap is paired."
     else -> "Syncs your strap's stored history right away, instead of waiting for the next automatic sync."
-}
-
-// MARK: - Records & sources (Swift parity) — discoverable deep-links into the on-device records
-//
-// Mirrors the Swift Health screen's "Records & sources" section, now a single clickable row that routes
-// into the Lab Book (your own bloods / BP / body numbers). It lives entirely on this phone, so the
-// overline says so. A plain navigation row in the house NoopCard style with an icon, a title/subtitle
-// and a trailing chevron, carrying a single combined contentDescription for screen readers.
-
-@Composable
-private fun RecordsAndSourcesSection(
-    onOpenLabBook: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Records & sources", overline = "On this phone")
-        RecordRow(
-            icon = Icons.AutoMirrored.Filled.MenuBook,
-            tint = Palette.metricCyan,
-            title = uiString(R.string.l10n_health_screen_lab_book_f966c140),
-            subtitle = "Your bloods, BP and body numbers. Kept private here.",
-            onClick = onOpenLabBook,
-        )
-    }
-}
-
-/** One navigation row in the Records & sources section: a tinted glyph, a title + subtitle, and a
- *  trailing chevron, wrapped in a clickable NoopCard with a combined accessibility label. */
-@Composable
-private fun RecordRow(
-    icon: ImageVector,
-    tint: Color,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-) {
-    // liquidPress on the whole tappable row — the SAME interactionSource drives the clickable + the press
-    // so the card settles inward on tap (the pilot LiquidPressStyle feel). Nav route is unchanged.
-    val interaction = remember { MutableInteractionSource() }
-    NoopCard(
-        modifier = Modifier
-            .liquidPress(interaction)
-            .clickable(
-                interactionSource = interaction,
-                indication = null,
-                onClick = onClick,
-            )
-            .semantics { contentDescription = uiString(R.string.l10n_health_screen_title_subtitle_8d9004e8, title, subtitle) },
-        padding = Metrics.space16,
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space12),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(RoundedCornerShape(Metrics.cornerSm))
-                    .background(tint.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
-            }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                Text(title, style = NoopType.headline, color = Palette.textPrimary)
-                Text(subtitle, style = NoopType.footnote, color = Palette.textTertiary)
-            }
-            Icon(
-                Icons.Filled.ChevronRight,
-                contentDescription = null,
-                tint = Palette.textTertiary,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-    }
 }
 
 // MARK: - Skin-temperature suite (v5 pillar) — a Health section
