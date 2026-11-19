@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,7 +52,7 @@ import kotlin.math.roundToInt
 // This week (Charge, Effort and Rest against the week before, browsable week by week) and four sections:
 // Recovery, Sleep, Training and Body. A section's numbers are averages for the period with an arrow against
 // the same span just before it, and its charts shade the owner's normal range. The maths lives in
-// TrendsInsight.kt and the drawing in TrendsCalmCards.kt; the Trends report export stays at the end.
+// TrendsInsight.kt and the drawing in TrendsCalmCards.kt.
 //
 // Data: full history is loaded once via repo.daysMerged; until it arrives the reactive recentDays flow backs
 // the screen, so it is never empty when data exists. Rest is the sleep_performance composite (the number the
@@ -90,7 +89,6 @@ fun TrendsScreen(vm: AppViewModel) {
     val skyBehindCards = remember { NoopPrefs.skyBehindCards(context) }
 
     var range by remember { mutableStateOf(TrendsRange.Quarter) }
-    var showExport by remember { mutableStateOf(false) }
 
     // #710: browse earlier weeks on the This-week card. 0 = the week containing today; each step back is one
     // Monday-to-Sunday week earlier, clamped so it never runs past the earliest day we hold.
@@ -394,24 +392,6 @@ fun TrendsScreen(vm: AppViewModel) {
                         axis = model.axis,
                     )
                 }
-            }
-        }
-
-        // --- Export trends report (#436), the shareable offline PDF exporter, behind one quiet button. The
-        // same composable Settings hosts, so both surfaces offer it. ---
-        item {
-            Column(
-                modifier = Modifier.staggeredAppear(index = 6),
-                verticalArrangement = Arrangement.spacedBy(Metrics.gap),
-            ) {
-                NoopButton(
-                    text = uiString(R.string.trends_export_report),
-                    leadingIcon = Icons.Filled.Download,
-                    kind = NoopButtonKind.Secondary,
-                    fullWidth = true,
-                    onClick = { showExport = !showExport },
-                )
-                if (showExport) TrendsReportExportSection(vm)
             }
         }
     }

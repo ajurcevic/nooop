@@ -14,8 +14,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 
 /**
- * Share the weekly-recap card as a PNG. The image sibling of [RouteExportShare] / [TrendsReportShare]; the
- * Swift twin is `TrendsReportRenderer.exportPNG`.
+ * Share the weekly-recap card as a PNG. The image sibling of [RouteExportShare].
  *
  * Capture uses the app's established [com.noop.testcentre.DisplayScreenshot] technique — draw the Compose
  * host [View] into a software Bitmap (no Compose-1.7 `GraphicsLayer` API, which this Compose 1.6.8 build

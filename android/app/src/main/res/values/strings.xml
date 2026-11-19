@@ -267,7 +267,6 @@
     <string name="trends_body_skin_steady">Skin temperature is steady.</string>
     <string name="trends_body_skin_average">Skin temperature has averaged %1$s over this period.</string>
     <string name="trends_body_empty">Weight and skin temperature show up here once they\'re recorded.</string>
-    <string name="trends_export_report">Export report</string>
     <string name="trends_last_week">Last week</string>
     <string name="trends_previous_week">Previous week</string>
     <string name="trends_next_week">Next week</string>
@@ -1695,10 +1694,6 @@
     <string name="l10n_trends_explore_screen_resting_hr_26677094">Resting HR</string>
     <string name="l10n_trends_explore_screen_sleep_3cac34e6">Sleep</string>
     <string name="l10n_trends_explore_screen_sleep_efficiency_b4b5c293">Sleep Efficiency</string>
-    <string name="l10n_trends_report_a_clean_shareable_one_page_pdf_a3c4f889">A clean, shareable one-page PDF of your recovery, sleep, HRV, resting heart rate and strain over a date range. Built and saved on your phone - nothing leaves the device.</string>
-    <string name="l10n_trends_report_export_pdf_3dd7d56a">Export PDF</string>
-    <string name="l10n_trends_report_the_share_sheet_can_save_the_ecddbca7">The share sheet can save the PDF to Files, or send it on.</string>
-    <string name="l10n_trends_report_trends_report_pdf_481e8a5f">Trends report (PDF)</string>
     <string name="l10n_weekly_digest_card_digest_dayswithdata_7_days_182e6a18">%1$s/7 days</string>
     <string name="l10n_weekly_digest_card_digest_dayswithdata_of_7_days_had_8068f0ee">%1$s of 7 days had data this week</string>
     <string name="l10n_weekly_digest_card_informational_only_not_medical_advice_593feb77">Informational only, not medical advice.</string>
