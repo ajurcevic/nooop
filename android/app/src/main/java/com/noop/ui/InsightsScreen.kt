@@ -4,9 +4,6 @@ import com.noop.R
 import androidx.compose.ui.res.stringResource
 import android.content.Context
 import androidx.compose.foundation.border
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,11 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Stop
@@ -167,7 +161,7 @@ private data class InsightModel(
  * numbers, matching the macOS data-display contract.
  */
 @Composable
-fun InsightsScreen(vm: AppViewModel, onOpenInsightsHub: () -> Unit = {}) {
+fun InsightsScreen(vm: AppViewModel) {
     val days by vm.recentDays.collectAsStateWithLifecycle()
 
     // Journal answers (all history, read-only): imported "my-whoop" rows UNIONED with the native
@@ -255,13 +249,6 @@ fun InsightsScreen(vm: AppViewModel, onOpenInsightsHub: () -> Unit = {}) {
         fullBleedBackground = screenBackdropFullBleed(showDayCycleBackground, skyBehindCards),
     ) {
 
-        // --- "What moves you" deep-link into the v5 Insights Hub (ranked, lag-aware ranked-effect feed +
-        //     personal alcohol/caffeine dose-response). The honest in-Insights entry point; the hub is its
-        //     own destination too. Mirrors the Swift InsightsView.whatMovesYouLink. ---
-        item { WhatMovesYouLink(onOpen = onOpenInsightsHub) }
-
-        item { Spacer(Modifier.height(Metrics.sectionGap - 20.dp)) }
-
         // --- Behaviour effects -------------------------------------------------
         // (Always emits one of three branches → one unconditional item, never empty.)
         item {
@@ -298,68 +285,6 @@ fun InsightsScreen(vm: AppViewModel, onOpenInsightsHub: () -> Unit = {}) {
 
         // --- Metric relationships ---------------------------------------------
         item { RelationshipsSection(relationships) }
-    }
-}
-
-// MARK: - "What moves you" deep-link
-//
-// A single NoopCard row into the v5 Insights Hub, the ranked, lag-aware "which of your habits actually
-// move your Charge" feed plus the personal alcohol/caffeine dose-response. Charge-world wash (chargeColor
-// tint), an accent auto_awesome glyph in a soft rounded chip, a short lag-aware blurb, and a trailing
-// chevron. One combined accessibility label so screen readers announce it as a single link. Mirrors the
-// Swift InsightsView.whatMovesYouLink.
-
-@Composable
-private fun WhatMovesYouLink(onOpen: () -> Unit) {
-    // liquidPress: the tappable card settles inward on press (the iOS LiquidPressStyle feel). The SAME
-    // interactionSource drives the clickable + the press, and indication is nulled so only the liquid
-    // settle reads (no ripple). Same onOpen nav + same combined accessibility label.
-    val interaction = remember { MutableInteractionSource() }
-    NoopCard(
-        tint = Palette.chargeColor,
-        modifier = Modifier
-            .clickable(interactionSource = interaction, indication = null, onClick = onOpen)
-            .liquidPress(interaction)
-            .semantics {
-                contentDescription =
-                    uiString(R.string.l10n_insights_screen_what_moves_you_ranked_patterns_in_7d89e628)
-            },
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(Palette.accent.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Filled.AutoAwesome,
-                    contentDescription = null,
-                    tint = Palette.accent,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                // WHOOP tappable-card title: UPPERCASE tracked WHITE label + a trailing "›" chevron
-                // glyph (mirrors the iOS "WHAT MOVES YOU ›" overline). The descriptive line sits beneath.
-                Overline("What moves you ›", color = Palette.textPrimary)
-                Text(
-                    uiString(R.string.l10n_insights_screen_ranked_lag_aware_which_of_your_e0e91b39),
-                    style = NoopType.footnote,
-                    color = Palette.textTertiary,
-                )
-            }
-            Icon(
-                Icons.Filled.ChevronRight,
-                contentDescription = null,
-                tint = Palette.accent,
-                modifier = Modifier.size(14.dp),
-            )
-        }
     }
 }
 

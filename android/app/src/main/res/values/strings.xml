@@ -31,14 +31,12 @@
     <string name="nav_stress">Stress</string>
     <string name="nav_workouts">Workouts</string>
     <string name="nav_trends">Trends</string>
-    <string name="nav_insights_hub">What Moves You</string>
     <string name="nav_insights">Insights</string>
     <string name="nav_explore">Explore</string>
     <string name="nav_compare">Compare</string>
     <string name="nav_health">Health</string>
     <string name="nav_hydration">Hydration</string>
     <string name="nav_vital_signs">Vital Signs</string>
-    <string name="nav_lab_book">Lab Book</string>
     <string name="nav_rhythm">Rhythm</string>
     <string name="nav_apple_health">Apple Health</string>
     <string name="nav_automations">Automations</string>
@@ -269,7 +267,6 @@
     <string name="trends_body_skin_steady">Skin temperature is steady.</string>
     <string name="trends_body_skin_average">Skin temperature has averaged %1$s over this period.</string>
     <string name="trends_body_empty">Weight and skin temperature show up here once they\'re recorded.</string>
-    <string name="trends_export_report">Export report</string>
     <string name="trends_last_week">Last week</string>
     <string name="trends_previous_week">Previous week</string>
     <string name="trends_next_week">Next week</string>
@@ -613,7 +610,6 @@
     <string name="l10n_health_screen_how_accurate_is_this_dae653a8">How accurate is this?</string>
     <string name="l10n_health_screen_how_accurate_is_this_fitness_age_935c9a6d">How accurate is this Fitness Age?</string>
     <string name="l10n_health_screen_item_label_item_detail_5985e927">%1$s: %2$s</string>
-    <string name="l10n_health_screen_lab_book_f966c140">Lab Book</string>
     <string name="l10n_health_screen_loading_33ce4174">Loading…</string>
     <string name="l10n_health_screen_longer_ranges_unlock_as_more_history_d7da5fee">Longer ranges unlock as more history builds.</string>
     <string name="l10n_health_screen_no_biometrics_yet_7c594a6c">No biometrics yet</string>
@@ -626,7 +622,6 @@
     <string name="l10n_health_screen_resting_hr_26677094">Resting HR</string>
     <string name="l10n_health_screen_sleep_3cac34e6">Sleep</string>
     <string name="l10n_health_screen_source_6da13add">Source</string>
-    <string name="l10n_health_screen_title_subtitle_8d9004e8">%1$s. %2$s</string>
     <string name="l10n_health_screen_value_8dce170d">Value</string>
     <string name="l10n_health_screen_vo_max_vo2max_roundtoint_c32a04b3">VO₂max %1$s</string>
     <string name="l10n_health_screen_your_data_fused_a740fd4a">Your Data, Fused</string>
@@ -659,26 +654,14 @@
     <string name="l10n_hydration_screen_sip_hydrationgoal_sip_ml_ml_cup_287647f5">Sip %1$s ml · Cup %2$s ml · Bottle %3$s ml</string>
     <string name="l10n_hydration_screen_totalml_toint_ml_522b262a">%1$s ml</string>
     <string name="l10n_hydration_screen_undo_last_last_ml_330befc5">Undo last (%1$s ml)</string>
-    <string name="l10n_insights_hub_screen_dose_here_is_timing_later_in_1b1e9326">“Dose” here is timing (later in the day = stronger), not milligrams.</string>
-    <string name="l10n_insights_hub_screen_everything_here_is_a_pattern_in_ed2162a6">Everything here is a pattern in your own logged days: an association with an effect size and confidence, never a cause or a diagnosis. Population patterns are shown as “typical” and are always overridden by your own data once you have enough of it. Approximations, not WHOOP’s scores; not a medical device.</string>
-    <string name="l10n_insights_hub_screen_insights_b4510362">Insights</string>
-    <string name="l10n_insights_hub_screen_log_alcohol_or_late_caffeine_with_dec9dadf">Log alcohol or late caffeine with an amount and Zoop fits a personal dose curve: how much each extra unit tends to move your numbers. Until then it shows typical patterns, clearly labelled as not yet yours.</string>
-    <string name="l10n_insights_hub_screen_not_enough_overlap_between_your_journal_0ebdd7a2">Not enough overlap between your journal answers and %1$s yet. Keep logging. Each behaviour needs days both with and without it before Zoop can read its effect.</string>
-    <string name="l10n_insights_hub_screen_per_extra_card_unitnoun_a92a5e91">Per extra %1$s</string>
-    <string name="l10n_insights_hub_screen_reading_your_journal_and_outcomes_4a59af69">Reading your journal and outcomes…</string>
-    <string name="l10n_insights_hub_screen_tomorrow_s_card_outcomename_ad70b7f9">Tomorrow’s %1$s</string>
-    <string name="l10n_insights_hub_screen_with_564f8c6e">With</string>
-    <string name="l10n_insights_hub_screen_without_cb735356">Without</string>
     <string name="l10n_insights_screen_baseline_e6ab7982">Baseline</string>
     <string name="l10n_insights_screen_bounce_back_be2d66a4">Bounce back</string>
     <string name="l10n_insights_screen_next_morning_61d1ea83">Next morning</string>
     <string name="l10n_insights_screen_not_enough_overlap_between_your_journal_0ebdd7a2">Not enough overlap between your journal answers and %1$s to measure an effect yet. Keep logging. Effects need days both with and without each behaviour.</string>
     <string name="l10n_insights_screen_not_enough_overlapping_history_to_correlate_a552dbd4">Not enough overlapping history to correlate your metrics yet.</string>
-    <string name="l10n_insights_screen_ranked_lag_aware_which_of_your_e0e91b39">Ranked, lag-aware: which of your habits actually move your Charge, plus your personal alcohol/caffeine dose-response.</string>
     <string name="l10n_insights_screen_rest_baseline_b3ac52a5">Rest baseline</string>
     <string name="l10n_insights_screen_sessions_e11e37a9">Sessions</string>
     <string name="l10n_insights_screen_tag_a_few_sessions_of_the_97927401">Tag a few sessions of the same activity and Zoop will learn its personal recovery cost.</string>
-    <string name="l10n_insights_screen_what_moves_you_ranked_patterns_in_7d89e628">What moves you. Ranked patterns in your own data, and your dose-response.</string>
     <string name="l10n_insights_screen_with_564f8c6e">With</string>
     <string name="l10n_insights_screen_without_cb735356">Without</string>
     <string name="l10n_intelligence_screen_0_unitformatter_effortscalemax_effortscale_scale_b5c43f56">0 - %1$s scale</string>
@@ -692,30 +675,7 @@
     <string name="l10n_intelligence_screen_no_scored_days_in_this_window_03f1165b">No scored days in this window. Widen the range or import more history.</string>
     <string name="l10n_intelligence_screen_no_scored_days_yet_sync_your_cdd47684">No scored days yet. Sync your strap to collect raw streams. Effort and Rest are scored once a day\'s data is in. Charge needs about four nights of sleep to learn your baseline (you\'ll see \"Calibrating\" until then), and keeps sharpening over your first couple of weeks. On a WHOOP 5 or MG the strap banks little history, so that night count can climb slowly or sit at 0 of 4 until you have worn it across a few nights. That\'s its sync limit, not a fault. Import your WHOOP export to skip the wait.</string>
     <string name="l10n_intelligence_screen_you_ll_likely_wake_around_charge_ed3abe2e">You\'ll likely wake around %1$s ± %2$s Charge if you sleep about %3$s tonight.</string>
-    <string name="l10n_lab_book_screen_a_private_notebook_not_a_medical_f63242cb">A private notebook, not a medical service.</string>
-    <string name="l10n_lab_book_screen_about_lab_book_37bf2691">About Lab Book</string>
-    <string name="l10n_lab_book_screen_all_stays_on_this_phone_nothing_9a966c1c">All stays on this phone. Nothing is sent anywhere.</string>
-    <string name="l10n_lab_book_screen_bring_in_a_markers_csv_date_1090bec2">Bring in a markers CSV (date, marker, value, unit). Names that match the catalog fold onto your existing markers; anything else comes in as a custom marker. Rows that can\'t be read are skipped and counted, never guessed. Everything you import stays on this phone.</string>
-    <string name="l10n_lab_book_screen_choose_a_wearable_signal_to_compare_05a4b2bc">Choose a wearable signal to compare</string>
     <string name="l10n_lab_book_screen_clear_719ea396">Clear</string>
-    <string name="l10n_lab_book_screen_delete_this_reading_b5c92bda">Delete this reading</string>
-    <string name="l10n_lab_book_screen_import_readings_7ad0d28f">Import readings</string>
-    <string name="l10n_lab_book_screen_it_s_a_notebook_not_a_45835e98">It\'s a notebook, not a lab. Zoop lines up the numbers you enter. It doesn\'t test, read, or judge them. Not medical advice.</string>
-    <string name="l10n_lab_book_screen_keep_your_own_numbers_here_1ca6c8ed">Keep your own numbers here</string>
-    <string name="l10n_lab_book_screen_lab_book_f966c140">Lab Book</string>
-    <string name="l10n_lab_book_screen_lab_book_is_a_private_notebook_d07380ca">Lab Book is a private notebook, not a medical service. Zoop stores and lines up the numbers you enter. It doesn\'t test, read, diagnose, or advise. Your records never leave this phone; there\'s no account or cloud, so it isn\'t \"HIPAA-covered.\" Always rely on your doctor or pharmacist to interpret results.</string>
-    <string name="l10n_lab_book_screen_lining_them_up_c59ee297">Lining them up…</string>
-    <string name="l10n_lab_book_screen_markername_signal_title_e9c07909">%1$s ↔ %2$s</string>
-    <string name="l10n_lab_book_screen_n_readings_line_up_but_there_27bfb506">%1$s readings line up, but there isn\'t enough variation to compute a relationship.</string>
-    <string name="l10n_lab_book_screen_n_readings_used_strengthword_r_directionword_298baf9e">%1$s readings used · %2$s %3$s association. This is your own data sitting side by side. It\'s not a medical finding, and it shows association, not cause.</string>
-    <string name="l10n_lab_book_screen_pick_a_wearable_signal_resting_hr_8d8b01a2">Pick a wearable signal (resting HR, HRV, sleep, Charge, weight…) to line it up against this marker. Zoop averages the signal over the %1$s before each reading.</string>
-    <string name="l10n_lab_book_screen_r_signedr_r_fb21be90">r = %1$s</string>
-    <string name="l10n_lab_book_screen_read_the_full_lab_book_note_3a250750">Read the full Lab Book note</string>
-    <string name="l10n_lab_book_screen_read_the_full_note_3fd0e4d1">Read the full note</string>
-    <string name="l10n_lab_book_screen_reading_your_logbook_e31992b0">Reading your logbook…</string>
-    <string name="l10n_lab_book_screen_these_are_your_own_numbers_shown_7667508d">These are your own numbers shown back to you. Zoop doesn\'t decide whether any value is normal, high or low.</string>
-    <string name="l10n_lab_book_screen_type_in_a_blood_pressure_reading_c276d418">Type in a blood-pressure reading or a cholesterol value from your last appointment. It stays on this phone, and over time you\'ll see how it lines up with your sleep, heart rate and recovery.</string>
-    <string name="l10n_lab_book_screen_what_lab_book_is_and_isn_f28686df">What Lab Book is (and isn\'t)</string>
     <string name="l10n_live_screen_manage_devices_e5c277ff">Manage devices</string>
     <string name="l10n_live_screen_max_hr_6acd9e07">Max HR</string>
     <string name="l10n_live_screen_rmssd_e240fd3c">RMSSD</string>
@@ -728,17 +688,6 @@
     <string name="l10n_live_workout_screen_cadence_68af11f0">Cadence</string>
     <string name="l10n_live_workout_screen_power_7548ab52">Power</string>
     <string name="l10n_live_workout_screen_speed_2d2cb022">Speed</string>
-    <string name="l10n_marker_editor_screen_add_a_reading_ed7708ee">Add a reading</string>
-    <string name="l10n_marker_editor_screen_date_taken_76edfcab">Date taken</string>
-    <string name="l10n_marker_editor_screen_def_displayname_def_canonicalunit_e86ef8de">%1$s, %2$s</string>
-    <string name="l10n_marker_editor_screen_entered_together_stored_as_two_markers_af8f3ba0">Entered together; stored as two markers so each lines up cleanly against your signals.</string>
-    <string name="l10n_marker_editor_screen_lab_book_keeps_your_own_numbers_9085ce2c">Lab Book keeps your own numbers - it doesn\'t test, read, or judge them, and it\'s not medical advice. Everything stays on this phone.</string>
-    <string name="l10n_marker_editor_screen_no_match_add_it_as_a_ad5c59ec">No match. Add it as a custom marker below.</string>
-    <string name="l10n_marker_editor_screen_noop_never_fills_this_in_it_7be9653b">Zoop never fills this in - it only shows back exactly what you type from your own report.</string>
-    <string name="l10n_marker_editor_screen_search_markers_103981e0">Search markers</string>
-    <string name="l10n_marker_editor_screen_search_markers_e_g_ldl_ferritin_66c17802">Search markers (e.g. LDL, ferritin)</string>
-    <string name="l10n_marker_editor_screen_stored_as_canonicalunit_0bf7f702">Stored as %1$s.</string>
-    <string name="l10n_marker_editor_screen_type_in_a_number_from_your_c2f4ffb8">Type in a number from your own report. It stays on this phone.</string>
     <string name="l10n_noop_compact_glance_widget_charge_49a8cb83">CHARGE</string>
     <string name="l10n_noop_compact_glance_widget_effort_660752e7">EFFORT</string>
     <string name="l10n_noop_compact_glance_widget_heart_rate_410aa15c">Heart rate</string>
@@ -1745,10 +1694,6 @@
     <string name="l10n_trends_explore_screen_resting_hr_26677094">Resting HR</string>
     <string name="l10n_trends_explore_screen_sleep_3cac34e6">Sleep</string>
     <string name="l10n_trends_explore_screen_sleep_efficiency_b4b5c293">Sleep Efficiency</string>
-    <string name="l10n_trends_report_a_clean_shareable_one_page_pdf_a3c4f889">A clean, shareable one-page PDF of your recovery, sleep, HRV, resting heart rate and strain over a date range. Built and saved on your phone - nothing leaves the device.</string>
-    <string name="l10n_trends_report_export_pdf_3dd7d56a">Export PDF</string>
-    <string name="l10n_trends_report_the_share_sheet_can_save_the_ecddbca7">The share sheet can save the PDF to Files, or send it on.</string>
-    <string name="l10n_trends_report_trends_report_pdf_481e8a5f">Trends report (PDF)</string>
     <string name="l10n_weekly_digest_card_digest_dayswithdata_7_days_182e6a18">%1$s/7 days</string>
     <string name="l10n_weekly_digest_card_digest_dayswithdata_of_7_days_had_8068f0ee">%1$s of 7 days had data this week</string>
     <string name="l10n_weekly_digest_card_informational_only_not_medical_advice_593feb77">Informational only, not medical advice.</string>
@@ -1806,10 +1751,6 @@
     <plurals name="intelligence_days_count">
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
-    </plurals>
-    <plurals name="lab_book_readings_count">
-        <item quantity="one">%1$d reading · your own entry</item>
-        <item quantity="other">%1$d readings · your own entries</item>
     </plurals>
     <plurals name="trends_weeks_ago">
         <item quantity="one">%1$d week ago</item>
