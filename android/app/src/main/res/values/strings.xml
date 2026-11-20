@@ -742,12 +742,10 @@
     <string name="l10n_onboarding_screen_health_connect_is_not_available_on_0336b16d">Health Connect is not available on this device.</string>
     <string name="l10n_onboarding_screen_height_3f608b49">Height</string>
     <string name="l10n_onboarding_screen_history_fills_the_dashboard_immediately_9728dde5">History fills the dashboard immediately</string>
-    <string name="l10n_onboarding_screen_import_apple_health_export_077b5624">Import Apple Health export</string>
     <string name="l10n_onboarding_screen_import_from_health_connect_35d55e21">Import from Health Connect</string>
     <string name="l10n_onboarding_screen_import_whoop_export_zip_16f4176b">Import WHOOP export (.zip)</string>
     <string name="l10n_onboarding_screen_light_a36ef8ab">Light</string>
     <string name="l10n_onboarding_screen_make_it_yours_54135155">Make it yours</string>
-    <string name="l10n_onboarding_screen_no_whoop_you_can_still_continue_ec58d88d">No WHOOP? You can still continue. Pair a heart-rate strap (Polar, Wahoo, Coospo, Garmin HRM…)</string>
     <string name="l10n_onboarding_screen_nothing_leaves_your_phone_502d5d0c">Nothing leaves your phone</string>
     <string name="l10n_onboarding_screen_onboardingprogress_6e1e5c29">onboardingProgress</string>
     <string name="l10n_onboarding_screen_own_your_data_offline_997fe15e">Own your data, offline</string>
@@ -1854,7 +1852,7 @@
     <string name="onboarding_cta_enter">Enter Zoop</string>
     <string name="onboarding_three_promises">Three quiet promises.</string>
     <string name="onboarding_recovery_body">A calm ring rolls HRV, resting heart rate and sleep into one read on whether to push or rest.</string>
-    <string name="onboarding_live_hr_body">Connect a WHOOP, a heart-rate strap or a gym machine and watch each beat in real time, with zones that match your profile. Already have history elsewhere? Import it from WHOOP, Apple Health, Oura, Fitbit or Garmin.</string>
+    <string name="onboarding_live_hr_body">Pair your WHOOP 4.0 or 5.0/MG and watch each beat in real time, with zones that match your profile. Already have history? Bring in your WHOOP export, or pull from Health Connect.</string>
     <string name="onboarding_local_data_body">Everything lives on this phone. No account, no sync, no cloud.</string>
     <string name="onboarding_expectations_subtitle">A few honest words, so nothing is a surprise.</string>
     <string name="onboarding_expectation_independent_body">Zoop is a personal, open project - not the WHOOP app, and not affiliated with WHOOP. It reads a strap you own, on your own device. Treat it as a capable work-in-progress rather than a finished product.</string>
@@ -1878,6 +1876,7 @@
     <string name="onboarding_state_searching">Searching</string>
     <string name="onboarding_state_ready_scan">Ready to scan</string>
     <string name="onboarding_rescan">Scan again</string>
+    <string name="onboarding_connect_later">Not ready to pair? No worries, keep going and connect your strap later.</string>
     <string name="onboarding_connect_background_body">If the strap is nearby, Zoop will keep the BLE link alive in the background. You can continue through profile and import while it bonds.</string>
     <string name="onboarding_strap_bonded_battery">Your strap is bonded · %1$d%% battery.</string>
     <string name="onboarding_strap_bonded_ready">Your strap is bonded and ready to stream.</string>
