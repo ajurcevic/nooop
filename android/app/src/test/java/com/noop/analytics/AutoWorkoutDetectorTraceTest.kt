@@ -308,10 +308,6 @@ class AutoWorkoutDetectorTraceTest {
             ),
         )
         assertEquals(
-            "gps rawFixes=250 accepted=240 distanceM=5013 (filter: accuracy+speed gate)",
-            WorkoutsTrace.gpsLine(rawFixes = 250, acceptedPoints = 240, distanceM = 5012.6),
-        )
-        assertEquals(
             "dedup sport=running kept=strap(richness=5) dropped=apple(richness=1) (same activity, richer kept)",
             WorkoutsTrace.dedupLine(
                 sportKey = "running", keptSource = "strap", droppedSource = "apple",

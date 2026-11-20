@@ -207,8 +207,6 @@ explicit, default-off network features (the AI Coach and Experimental self-hoste
   because we never derive physical location from scan results.
 - **`BLUETOOTH` / `BLUETOOTH_ADMIN`** (`maxSdkVersion=30`) — the legacy install-time perms for
   Android 8–11.
-- **`ACCESS_FINE_LOCATION`** (`maxSdkVersion=30`) — required to run a BLE scan on Android 6–11
-  only; not requested on API 31+.
 - **`FOREGROUND_SERVICE`** (+ `FOREGROUND_SERVICE_CONNECTED_DEVICE` on API 34) — to keep the
   link alive while collecting/offloading in the background.
 

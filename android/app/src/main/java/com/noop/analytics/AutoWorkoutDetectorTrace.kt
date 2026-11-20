@@ -376,18 +376,6 @@ object WorkoutsTrace {
         return sb.toString()
     }
 
-    /**
-     * A GPS-fix-progress line: raw fixes seen, how many the filter accepted, and the running distance.
-     *
-     * [rawFixes] is OPTIONAL: macOS sees the pre-filter raw stream and passes a real count so the line shows
-     * a true accept rate. Android's LocationTracker pre-filters upstream, so the raw count is NOT available
-     * at the GpsSession seam (every fix here is already accepted); it passes null and the line renders
-     * `rawFixes=n/a` rather than implying an accept rate the platform cannot measure. Mirrors Swift gpsLine.
-     */
-    fun gpsLine(rawFixes: Int?, acceptedPoints: Int, distanceM: Double): String =
-        "gps rawFixes=${rawFixes?.toString() ?: "n/a"} accepted=$acceptedPoints " +
-            "distanceM=${Math.round(distanceM)} (filter: accuracy+speed gate)"
-
     /** A cross-source dedup decision line: two same-activity rows collapsed to the richer one. */
     fun dedupLine(
         sportKey: String,

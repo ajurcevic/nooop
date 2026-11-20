@@ -33,20 +33,10 @@
         android:name="android.permission.BLUETOOTH_ADVERTISE"
         tools:targetApi="s" />
 
-    <!-- Fine location is needed for GPS-tracked workouts (route/distance/pace). It is requested at runtime right
-         before a GPS workout starts (see rememberRequestLocation, #101) — NOT for BLE, which stays
-         opted out of location via neverForLocation above. Capping this at API 30 made GPS workouts
-         crash on Android 12+ because the permission could never be held. -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-
     <!-- Keep the BLE link alive while collecting/offloading in the background. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission
         android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"
-        tools:targetApi="34" />
-    <!-- GPS-tracked workouts: the connection service keeps tracking the route while backgrounded. -->
-    <uses-permission
-        android:name="android.permission.FOREGROUND_SERVICE_LOCATION"
         tools:targetApi="34" />
 
     <!-- Android 13+ (API 33+): the ongoing "strap connected" notification is user-dismissable and
@@ -237,7 +227,7 @@
         <service
             android:name="com.noop.ble.WhoopConnectionService"
             android:exported="false"
-            android:foregroundServiceType="connectedDevice|location" />
+            android:foregroundServiceType="connectedDevice" />
 
         <!-- Wrist alerts: this is what makes NOOP appear in Android's Notification Access list. The
              system binds it (guarded by BIND_NOTIFICATION_LISTENER_SERVICE) only after the user grants

@@ -158,7 +158,7 @@ object RrEmissionStats {
         // NULL renders "n/a", never a number. Only the historical path can see what the store's conflict
         // key actually kept; the live paths census BEFORE the insert and have no such count. Echoing
         // `offered` there would print `offered=N inserted=N`, which reads as "the primary key absorbed
-        // nothing" — a measurement neither path made. Same reason GpsSession passes rawFixes = null.
+        // nothing" — a measurement neither path made.
         val ins = inserted?.toString() ?: "n/a"
         val rep = if (r.secondsWithRr > 0) r.sumRrMs / 1000.0 / r.secondsWithRr else 0.0
         val h = r.perSecond
