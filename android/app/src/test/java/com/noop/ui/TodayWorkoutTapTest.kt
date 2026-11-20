@@ -26,6 +26,7 @@ class TodayWorkoutTapTest {
     }
 
     private fun todayScreenKt() = File(repoRoot(), "android/app/src/main/java/com/noop/ui/TodayScreen.kt").readText()
+    private fun todaySectionsKt() = File(repoRoot(), "android/app/src/main/java/com/noop/ui/TodaySections.kt").readText()
 
     /**
      * The section body, from its declaration to the start of the next top-level composable, with `//`
@@ -33,7 +34,7 @@ class TodayWorkoutTapTest {
      * raw substring search matches the prose describing the code rather than the code.
      */
     private fun workoutsSectionBody(source: String): String {
-        val start = source.indexOf("private fun TodayWorkoutsSection(")
+        val start = source.indexOf("internal fun TodayWorkoutsSection(")
         assertTrue("TodayWorkoutsSection not found", start > 0)
         val next = source.indexOf("\n@Composable", start)
         val body = source.substring(start, if (next > start) next else source.length)
@@ -42,7 +43,7 @@ class TodayWorkoutTapTest {
 
     @Test
     fun tilesAreClickableAndReportTheTappedRow() {
-        val body = workoutsSectionBody(todayScreenKt())
+        val body = workoutsSectionBody(todaySectionsKt())
         assertTrue("the feed tiles must be clickable", body.contains(".clickable("))
         assertTrue("a tap must report the row it was on", body.contains("onSelect(workout)"))
         assertTrue(
@@ -60,7 +61,7 @@ class TodayWorkoutTapTest {
         )
         assertFalse(
             "hosting the sheet inside the section loses it when the LazyColumn disposes that item",
-            workoutsSectionBody(source).contains("WorkoutDetailSheet("),
+            workoutsSectionBody(todaySectionsKt()).contains("WorkoutDetailSheet("),
         )
     }
 

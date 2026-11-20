@@ -85,7 +85,7 @@ class GaugeNumeralStyleTest {
         )
     }
 
-    private fun todaySource(): String = read("android/app/src/main/java/com/noop/ui/TodayScreen.kt")
+    private fun todaySource(): String = read("android/app/src/main/java/com/noop/ui/TodayHero.kt")
     private fun backupSource(): String = read("android/app/src/main/java/com/noop/data/BackupSettings.kt")
 
     private fun read(relative: String): String {
