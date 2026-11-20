@@ -1454,7 +1454,7 @@
     <string name="l10n_settings_screen_noop_has_always_hoped_that_writing_19967036">Zoop has always hoped that writing to your 5.0/MG would make Android pair with it. It never does. This asks Android directly, so it may show a system pairing dialog. Live heart rate keeps working either way; turn it off if the dialog is a nuisance.</string>
     <string name="l10n_settings_screen_ask_android_to_pair_323fccbe">Ask Android to pair</string>
     <string name="l10n_settings_screen_broadcast_strap_hr_garmin_ant_a39d0654">Broadcast strap HR (Garmin/ANT)</string>
-    <string name="l10n_settings_screen_buzz_the_time_on_your_strap_06fc879d">Buzz the time on your strap</string>
+    <string name="l10n_settings_screen_buzz_the_time_on_your_strap_06fc879d">Buzz the time</string>
     <string name="l10n_settings_screen_cancel_77dfd213">Cancel</string>
     <string name="l10n_settings_screen_restore_3cbe6d6b">Restore</string>
     <string name="l10n_settings_screen_card_transparency_c5c7b4f3">Card transparency</string>
@@ -1478,7 +1478,7 @@
     <string name="l10n_settings_screen_export_0a116345">Export…</string>
     <string name="l10n_settings_screen_export_csv_6bce63a3">Export CSV…</string>
     <string name="l10n_settings_screen_export_raw_log_matched_pair_d65390bf">Export raw + log (matched pair)</string>
-    <string name="l10n_settings_screen_export_raw_sensor_data_csv_a171b81e">Export raw sensor data (CSV)</string>
+    <string name="l10n_settings_screen_export_raw_sensor_data_csv_a171b81e">Raw sensor data (CSV)</string>
     <string name="l10n_settings_screen_extends_the_sky_behind_the_whole_39bb82cc">Extends the sky behind the whole Today screen, so lowering Card transparency lets it show through every card. Needs the day-cycle background on.</string>
     <string name="l10n_settings_screen_feel_the_current_time_as_a_8ca41db1">Feel the current time as a sequence of buzzes (#460). Does nothing unless your strap is connected.</string>
     <string name="l10n_settings_screen_flags_accepted_but_the_enable_sequence_542b2595">Flags accepted, but the enable sequence doesn\'t start a separate live stream. The deep records arrive as part of the normal history sync (#494).</string>
@@ -1514,6 +1514,7 @@
     <string name="l10n_settings_screen_project_home_source_994627c1">Project home &amp; source</string>
     <string name="l10n_settings_screen_recalibrate_aaa989ea">Recalibrate</string>
     <string name="l10n_settings_screen_recalibrate_charge_baseline_52a05a26">Recalibrate Charge baseline</string>
+    <string name="settings_recalibrate_button">Recalibrate</string>
     <string name="l10n_settings_screen_recalibrate_your_charge_baseline_018e3846">Recalibrate your Charge baseline?</string>
     <string name="l10n_settings_screen_record_5_mg_raw_capture_9354fe89">Record 5/MG raw capture</string>
     <string name="l10n_settings_screen_record_5_mg_raw_capture_research_1d966bbf">Record 5/MG raw capture (research)</string>
@@ -1526,12 +1527,12 @@
     <string name="l10n_settings_screen_rhythm_experimental_12d357da">Rhythm (experimental)</string>
     <string name="l10n_settings_screen_runs_the_continuous_hrv_stream_only_3fed47c5">Runs the continuous HRV stream only during your quiet hours window (22:00–07:00 by default), roughly halving the battery cost. Daytime Stress readings will be sparser. Note: continuous background HRV capture (including daytime naps) is paused outside this window. For on-demand daytime HRV readings (including naps), use the \"Take an HRV reading\" button on the Live screen.</string>
     <string name="l10n_settings_screen_saves_the_last_24h_of_decoded_f7026f47">Saves the last 24h of decoded sensor samples (heart rate, R-R, motion, steps and any 5/MG deep streams you\'ve unlocked) as one CSV you can share, for tinkering with your own data. Nothing leaves the phone unless you share it.</string>
-    <string name="l10n_settings_screen_send_enable_sequence_to_strap_04ff8a22">Send enable sequence to strap</string>
+    <string name="l10n_settings_screen_send_enable_sequence_to_strap_04ff8a22">Send enable sequence</string>
     <string name="l10n_settings_screen_set_up_automatic_backups_00b4780c">Set up automatic backups</string>
     <string name="l10n_settings_screen_settings_c7f73bb5">Settings</string>
     <string name="l10n_settings_screen_sex_e301dd60">Sex</string>
     <string name="l10n_settings_screen_share_5_mg_capture_for_the_e41ac6bd">Share 5/MG capture (for the decode effort)</string>
-    <string name="l10n_settings_screen_share_strap_log_for_bug_reports_b9802500">Share strap log (for bug reports)</string>
+    <string name="l10n_settings_screen_share_strap_log_for_bug_reports_b9802500">Share strap log</string>
     <string name="l10n_settings_screen_shows_a_soft_sunrise_day_dusk_2d20b417">Shows a soft sunrise, day, dusk and night scene behind the Today screen. Turn it off for a plain dark canvas. Your cards stay exactly as readable.</string>
     <string name="l10n_settings_screen_sky_behind_cards_efbe5cb8">Sky behind cards</string>
     <string name="l10n_settings_screen_sleep_staging_v2_3a007e4a">Sleep staging V2</string>
@@ -2607,7 +2608,7 @@
     <string name="l10n_sleep_screen_low_confidence_99d4ceae">Low confidence</string>
     <string name="l10n_sleep_screen_this_night_scored_high_efficiency_but_a11d90eb">This night scored high efficiency but very little deep or REM, more likely a staging estimate miss than a real restorative shortfall. The totals are kept as-is; read the split with care.</string>
     <string name="l10n_health_screen_over_reports_r_r_so_no_9d050d53">Over-reports R-R, so no value is shown</string>
-    <string name="l10n_settings_screen_check_current_name_read_only_acb2f01a">Check current name (read-only)</string>
+    <string name="l10n_settings_screen_check_current_name_read_only_acb2f01a">Check current name</string>
     <string name="l10n_settings_screen_renaming_is_not_supported_on_a_02f7af2c">Renaming is not supported on a WHOOP 5.0 or MG yet. Zoop can ask the strap for its current name, which is the step that decides whether renaming is possible at all.</string>
     <string name="l10n_settings_screen_experimental_on_a_whoop_5_0_711d5341">Experimental on a WHOOP 5.0 or MG: this command has never been confirmed on this strap generation. It is reversible, so rename again if it misbehaves, and use Check current name to see whether it took.</string>
     <string name="l10n_smart_alarm_screen_alarm_in_1_s_688166e3">Alarm in %1$s</string>

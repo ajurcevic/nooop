@@ -29,9 +29,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.noop.R
 
@@ -168,31 +170,55 @@ internal fun SettingsToggleRow(
 /**
  * Label on the left, control on the right — the two-column form feel.
  *
- * KEEP THE CONTROL NARROW. Only the label is weighted, so Compose measures [control] FIRST against the
- * full row width and the label gets whatever is left. A control that wants the whole width (e.g. a
- * full-sentence helper text stacked under a stepper) starves the label to ~0 width, where it wraps one
- * character per line — rendering blank while inflating the row into a screen of dead space. Put
- * sentence-length copy in a sibling `Text` BELOW the row instead (see the Step-calibration and Waist
- * rows in SettingsScreen); a SHORT right-aligned sub-value under the control (e.g. "Auto · 173 bpm") is
- * fine.
+ * The control is measured first against the full row width. When the label's longest word still fits
+ * beside it, the two sit side by side with the control at the end. When it does not (a three-way pill
+ * such as Clock's "System default / 12-hour / 24-hour" on a narrow phone), the label moves above the
+ * control instead of being squeezed until it breaks mid-word or the pill clips its own labels.
+ *
+ * Keep sentence-length copy out of [control]: a control that wants the whole width always stacks. Put
+ * that copy in a sibling `Text` BELOW the row instead (see the Step-calibration and Waist rows in
+ * SettingsScreen); a SHORT right-aligned sub-value under the control (e.g. "Auto · 173 bpm") is fine.
  */
 @Composable
 internal fun SettingsFormRow(label: String, control: @Composable () -> Unit) {
-    Row(
+    Layout(
+        content = {
+            Text(label, style = NoopType.body, color = Palette.textPrimary)
+            Box { control() }
+        },
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 44.dp)
             .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(
-            label,
-            style = NoopType.body,
-            color = Palette.textPrimary,
-            modifier = Modifier.weight(1f),
-        )
-        control()
+    ) { measurables, constraints ->
+        val labelMeasurable = measurables[0]
+        val controlMeasurable = measurables[1]
+        val maxWidth = constraints.maxWidth
+        val gap = 16.dp.roundToPx()
+        val stackGap = 8.dp.roundToPx()
+
+        val control = controlMeasurable.measure(Constraints(maxWidth = maxWidth))
+        // The narrowest the label can go without breaking a word: its longest word.
+        val labelMinWidth = labelMeasurable.minIntrinsicWidth(Constraints.Infinity)
+        val sideBySide = labelMinWidth + gap + control.width <= maxWidth
+
+        if (sideBySide) {
+            val labelWidth = (maxWidth - control.width - gap).coerceAtLeast(0)
+            val labelPlaceable = labelMeasurable.measure(Constraints(maxWidth = labelWidth))
+            val height = maxOf(labelPlaceable.height, control.height, constraints.minHeight)
+            layout(maxWidth, height) {
+                labelPlaceable.placeRelative(0, (height - labelPlaceable.height) / 2)
+                control.placeRelative(maxWidth - control.width, (height - control.height) / 2)
+            }
+        } else {
+            val labelPlaceable = labelMeasurable.measure(Constraints(maxWidth = maxWidth))
+            val contentHeight = labelPlaceable.height + stackGap + control.height
+            val height = maxOf(contentHeight, constraints.minHeight)
+            layout(maxWidth, height) {
+                labelPlaceable.placeRelative(0, 0)
+                control.placeRelative(0, labelPlaceable.height + stackGap)
+            }
+        }
     }
 }
 
