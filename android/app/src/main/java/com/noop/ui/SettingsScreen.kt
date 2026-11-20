@@ -23,6 +23,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -526,6 +528,7 @@ class ProfileStore(private val prefs: SharedPreferences) {
 
 // MARK: - Screen
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     vm: AppViewModel,
@@ -961,25 +964,25 @@ fun SettingsScreen(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        NoopButton(
-                            text = if (ProfileAvatarStore.hasAvatar) "Change photo" else "Choose photo",
-                            kind = NoopButtonKind.Secondary,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                avatarPickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                                )
-                            },
-                        )
-                        if (ProfileAvatarStore.hasAvatar) {
-                            NoopButton(
-                                text = uiString(R.string.l10n_settings_screen_remove_photo_c8f5eda8),
-                                kind = NoopButtonKind.Tertiary,
-                                modifier = Modifier.weight(1f),
-                                onClick = { ProfileAvatarStore.clearAvatar(context) },
+                    // Stacked, not side by side: next to the 64dp avatar a half-width button is too
+                    // narrow for "Change photo" and the label was cut off.
+                    NoopButton(
+                        text = if (ProfileAvatarStore.hasAvatar) "Change photo" else "Choose photo",
+                        kind = NoopButtonKind.Secondary,
+                        fullWidth = true,
+                        onClick = {
+                            avatarPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                             )
-                        }
+                        },
+                    )
+                    if (ProfileAvatarStore.hasAvatar) {
+                        NoopButton(
+                            text = uiString(R.string.l10n_settings_screen_remove_photo_c8f5eda8),
+                            kind = NoopButtonKind.Tertiary,
+                            fullWidth = true,
+                            onClick = { ProfileAvatarStore.clearAvatar(context) },
+                        )
                     }
                 }
             }
@@ -1939,14 +1942,12 @@ fun SettingsScreen(
             blurb = "Optional. Use your own photo behind every tab, in place of the day-cycle sky. " +
                 "Stored only on this phone. Pair it with Transparent cards above to let it show through.",
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
+            // Stacked full width: at half width "Choose from Photos" did not fit and was cut off.
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 NoopButton(
                     text = if (BackgroundImageStore.hasImage) "Replace from Photos" else "Choose from Photos",
                     kind = NoopButtonKind.Secondary,
-                    modifier = Modifier.weight(1f),
+                    fullWidth = true,
                     onClick = {
                         backgroundPhotoLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
@@ -1956,7 +1957,7 @@ fun SettingsScreen(
                 NoopButton(
                     text = "Browse files",
                     kind = NoopButtonKind.Secondary,
-                    modifier = Modifier.weight(1f),
+                    fullWidth = true,
                     onClick = { backgroundFileLauncher.launch(arrayOf("image/*")) },
                 )
             }
@@ -2080,7 +2081,12 @@ fun SettingsScreen(
                     style = NoopType.subhead,
                     color = Palette.textSecondary,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                // FlowRow: "Searching…" plus "Disconnect" is wider than a narrow phone's card, so the
+                // second button wraps to its own line instead of being cut off.
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     NoopButton(
                         text = if (live.scanning) "Searching…" else "Re-scan",
                         leadingIcon = Icons.Filled.Refresh,
@@ -2141,7 +2147,10 @@ fun SettingsScreen(
                                     unfocusedContainerColor = Palette.surfaceInset,
                                 ),
                             )
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
                                 NoopButton(
                                     text = uiString(R.string.l10n_settings_screen_rename_d3f4cb89),
                                     leadingIcon = Icons.Filled.Edit,
@@ -2779,7 +2788,9 @@ fun SettingsScreen(
                     )
                 }
                 NoopButton(
-                    text = uiString(R.string.l10n_settings_screen_recalibrate_charge_baseline_52a05a26),
+                    // The title just above already says "Recalibrate Charge baseline"; the full phrase
+                    // did not fit on a narrow phone, so the button says the verb and TalkBack keeps the rest.
+                    text = uiString(R.string.settings_recalibrate_button),
                     leadingIcon = Icons.Filled.Autorenew,
                     kind = NoopButtonKind.Secondary,
                     fullWidth = true,
@@ -2937,9 +2948,9 @@ fun SettingsScreen(
             blurb = "Move all your Zoop data to another phone. Export saves everything (history, sleeps, workouts, settings) to a single file you can copy across; import replaces this phone's data with a backup.",
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // Three equal-width buttons share the row (each takes a third via weight) — mirrors the
-                // iOS Backup card's three fullWidth NoopButtonStyle buttons. The busy spinner sits BELOW
-                // the row (not inside it) so it never steals a button's share of the width.
+                // Export and Import share a row; Export CSV gets its own full-width row below. Three in
+                // one row left each about a third of the card, which cut "Export CSV…" off on every
+                // phone. The busy spinner sits BELOW the buttons so it never steals their width.
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -2965,18 +2976,18 @@ fun SettingsScreen(
                             importLauncher.launch(arrayOf("*/*"))
                         },
                     )
-
-                    NoopButton(
-                        text = uiString(R.string.l10n_settings_screen_export_csv_6bce63a3),
-                        kind = NoopButtonKind.Secondary,
-                        enabled = !backupBusy,
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            backupBusy = true
-                            csvExportLauncher.launch("noop-export-${java.time.LocalDate.now()}.zip")
-                        },
-                    )
                 }
+
+                NoopButton(
+                    text = uiString(R.string.l10n_settings_screen_export_csv_6bce63a3),
+                    kind = NoopButtonKind.Secondary,
+                    enabled = !backupBusy,
+                    fullWidth = true,
+                    onClick = {
+                        backupBusy = true
+                        csvExportLauncher.launch("noop-export-${java.time.LocalDate.now()}.zip")
+                    },
+                )
 
                 if (backupBusy) {
                     NoopBusyRow()
@@ -3604,7 +3615,10 @@ fun SettingsScreen(
                         style = NoopType.caption,
                         color = Palette.statusWarning,
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         NoopButton(
                             text = uiString(R.string.l10n_settings_screen_ecg_gate_turn_on),
                             kind = NoopButtonKind.Primary,
