@@ -2489,10 +2489,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Same-day confounder context for [IllnessSignalEngine] from the day's journal — alcohol / hard-or-late
-     * workout / "feeling unwell" suppress an anomaly so a hangover or a late session never reads as illness.
-     * Lightweight: derived from the latest day's exercise count + the cached "unwell" flag we can see here.
-     * (A fuller journal-tag read lands with the Mind pillar; this keeps the v5 pass honest without new I/O.)
+     * Same-day confounder context for [IllnessSignalEngine]. Only the hard-or-late-workout flag is set,
+     * from the latest day's exercise count, so a late session never reads as illness. Journal answers are
+     * not read: the app no longer logs them, so alcohol / stress / sauna / unwell stay at their defaults.
      */
     private fun illnessJournalContext(days: List<DailyMetric>): IllnessSignalEngine.Context {
         val latest = days.lastOrNull()

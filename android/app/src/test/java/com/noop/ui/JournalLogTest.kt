@@ -36,4 +36,29 @@ class JournalLogTest {
         assertEquals(listOf("A?", "B?", "A?"), merged.map { it.question })
         assertEquals(listOf("2026-06-09", "2026-06-09", "2026-06-10"), merged.map { it.day })
     }
+
+    @Test
+    fun coverageCaptionNamesFirstAndLastDay() {
+        val entries = listOf(
+            e("my-whoop", "2026-03-12", "A?", true),
+            e("noop-journal", "2025-01-03", "B?", false),
+            e("my-whoop", "2025-11-30", "A?", false),
+        )
+        assertEquals(
+            "Based on journal answers from 3 Jan 2025 to 12 Mar 2026.",
+            journalCoverageCaption(entries),
+        )
+    }
+
+    @Test
+    fun coverageCaptionSingleDay() {
+        val entries = listOf(e("my-whoop", "2026-03-12", "A?", true), e("my-whoop", "2026-03-12", "B?", false))
+        assertEquals("Based on journal answers from 12 Mar 2026.", journalCoverageCaption(entries))
+    }
+
+    @Test
+    fun coverageCaptionNullWhenEmptyOrUnparseable() {
+        assertEquals(null, journalCoverageCaption(emptyList()))
+        assertEquals(null, journalCoverageCaption(listOf(e("my-whoop", "not-a-day", "A?", true))))
+    }
 }

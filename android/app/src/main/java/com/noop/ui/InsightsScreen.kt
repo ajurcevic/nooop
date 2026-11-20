@@ -173,6 +173,8 @@ fun InsightsScreen(vm: AppViewModel) {
     // Map<String, Double> outcome), so "caffeine mg" / "alcohol units" can rank as a numeric outcome.
     var numericJournalSeries by remember { mutableStateOf<Map<String, Map<String, Double>>>(emptyMap()) }
     var journalLoaded by remember { mutableStateOf(false) }
+    // Journaling no longer adds answers, so the card says which dates its effects come from.
+    var journalCoverage by remember { mutableStateOf<String?>(null) }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         val imported = vm.repo.journal("my-whoop", "0000-01-01", "9999-12-31")
@@ -192,6 +194,7 @@ fun InsightsScreen(vm: AppViewModel) {
         behaviours = byBehaviour.mapValues { it.value.toSet() }
         controls = controlsByBehaviour.mapValues { it.value.toSet() }
         numericJournalSeries = numericByBehaviour.mapValues { it.value.toMap() }
+        journalCoverage = journalCoverageCaption(entries)
         journalLoaded = true
     }
 
@@ -272,6 +275,7 @@ fun InsightsScreen(vm: AppViewModel) {
                 outcome = outcome,
                 onOutcome = { outcome = it },
                 ranked = ranked,
+                coverage = journalCoverage,
             )
         }
         }
@@ -434,6 +438,7 @@ private fun BehaviourSection(
     outcome: Outcome,
     onOutcome: (Outcome) -> Unit,
     ranked: List<BehaviorEffect>,
+    coverage: String?,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
         Row(
@@ -452,6 +457,10 @@ private fun BehaviourSection(
                 label = { it.label },
                 onSelect = onOutcome,
             )
+        }
+
+        if (coverage != null) {
+            Text(coverage, style = NoopType.caption, color = Palette.textTertiary)
         }
 
         if (ranked.isEmpty()) {
