@@ -26,7 +26,7 @@ class StressPersonalBaselineSurfaceTest {
     fun `android detail and Today resolve and analyze the same selected lens`() {
         val detail = source("android/app/src/main/java/com/noop/ui/StressScreen.kt")
         val producer = source("android/app/src/main/java/com/noop/widget/StressWidgetProducer.kt")
-        val today = source("android/app/src/main/java/com/noop/ui/TodayScreen.kt")
+        val today = source("android/app/src/main/java/com/noop/ui/TodayDashboardCards.kt")
 
         assertTrue(
             "Stress detail must use the shared foreground mode resolver",

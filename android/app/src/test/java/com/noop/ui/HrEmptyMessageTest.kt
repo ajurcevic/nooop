@@ -79,7 +79,7 @@ class HrEmptyMessageTest {
         // The call site is what makes the day-count rule real: the function cannot see which list it
         // was handed, so a switch to the windowed subset would pass every case above while putting the
         // over-claim straight back on screen.
-        val todayScreen = source("android/app/src/main/java/com/noop/ui/TodayScreen.kt")
+        val todayScreen = source("android/app/src/main/java/com/noop/ui/TodayHeartRate.kt")
         assertTrue(
             "the card must judge the DAY's buckets, not the windowed subset",
             todayScreen.contains("dayBucketCount = buckets.size,"),
