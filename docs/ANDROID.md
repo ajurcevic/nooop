@@ -662,7 +662,6 @@ Selected permissions from the manifest (the manifest is the complete list):
 | `BLUETOOTH_SCAN` (`neverForLocation`) | 31+ | scan for the strap; opt out of location coupling |
 | `BLUETOOTH_CONNECT` | 31+ | connect / bond / GATT I/O |
 | `BLUETOOTH`, `BLUETOOTH_ADMIN` | ≤30 | legacy install-time BLE perms |
-| `ACCESS_FINE_LOCATION` | ≤30 | required for BLE scans on API 26–30 only |
 | `FOREGROUND_SERVICE` | all | keep the link alive while backgrounded |
 | `FOREGROUND_SERVICE_CONNECTED_DEVICE` | 34+ | typed foreground service for the GATT connection |
 | `<uses-feature bluetooth_le required="true">` | — | BLE is mandatory hardware |

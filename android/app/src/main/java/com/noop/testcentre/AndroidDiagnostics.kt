@@ -986,7 +986,6 @@ object AndroidDiagnostics {
         val checks = buildList {
             add("BLUETOOTH_CONNECT" to Manifest.permission.BLUETOOTH_CONNECT)
             add("POST_NOTIFICATIONS" to Manifest.permission.POST_NOTIFICATIONS)
-            add("LOCATION" to Manifest.permission.ACCESS_FINE_LOCATION)
         }
         return checks.joinToString(", ") { (label, perm) ->
             val granted = runCatching {

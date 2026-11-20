@@ -26,8 +26,6 @@ import com.noop.analytics.BatteryEstimator
 import com.noop.analytics.IllnessWatch
 import com.noop.analytics.RestScorer
 import com.noop.data.DailyMetric
-import com.noop.location.GpsSession
-import com.noop.location.LocationTracker
 import com.noop.notif.BatteryAlertNotifier
 import com.noop.notif.IllnessAlertNotifier
 import com.noop.ui.LiveConsoleReadout
@@ -44,7 +42,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -155,18 +152,6 @@ class WhoopConnectionService : Service() {
 
     /** Daily analytics projection shared across the notification's ~1 Hz live-state ticks. */
     private val notifyDayStateCache = NotifyDayStateCache()
-
-    /** Watches [GpsSession] and runs the platform location stream while a GPS workout is active. This
-     *  is what makes route tracking survive the screen turning off (#215): the collection lives on the
-     *  always-on service, not the Activity-scoped ViewModel that Android cancels when it's cleared. */
-    private var gpsGateJob: Job? = null
-
-    /** The actual location collector, alive only while a GPS workout is in flight. Cancelled (which
-     *  removes the LocationManager updates via the stream's awaitClose) the moment the workout ends. */
-    private var gpsJob: Job? = null
-
-    /** Platform-GPS wrapper (no Google Play Services). Lazily built — the service holds a Context. */
-    private val locationTracker by lazy { LocationTracker(this) }
 
     /** Last battery % the predictive runtime alert was evaluated at. The live-state flow emits far
      *  more often than the strap's ~8-min battery cadence; gating the Room read + estimator fit on an
@@ -554,50 +539,6 @@ class WhoopConnectionService : Service() {
             }
         }
 
-        // Drive GPS route tracking from here so it OUTLIVES the UI (#215). While a GPS workout is
-        // active we collect the platform location stream into the process-level [GpsSession]; the
-        // ViewModel only observes that shared route. Gated on the active flag so the location radio is
-        // off (and the FGS's location type unused) outside a GPS workout. Re-`start`s land here, so we
-        // cancel + relaunch the gate, never stack collectors.
-        gpsGateJob?.cancel()
-        gpsGateJob = scope.launch {
-            GpsSession.state
-                .map { it.active }
-                .distinctUntilChanged()
-                .collect { active ->
-                    gpsJob?.cancel()
-                    gpsJob = null
-                    if (active) {
-                        // Re-post with the location service type added so background location is
-                        // permitted while tracking; on Android 14+ a service that reads location in the
-                        // background must declare the location FGS type. Reverted to connectedDevice-only
-                        // when the workout ends (active=false re-posts the base type).
-                        startForegroundCompat(buildNotification(ble.state.value, null), tracking = true)
-                        // Workouts & GPS test mode (Test Centre): wire the GpsSession fix-progress sink to the
-                        // .workouts-tagged strap log ONLY when the WORKOUTS mode is on (one SharedPreferences
-                        // bool read here). When off, the sink stays null and the route fold is byte-identical.
-                        GpsSession.workoutsLog =
-                            if (com.noop.testcentre.TestCentre.from(applicationContext)
-                                    .active(com.noop.testcentre.TestDomain.WORKOUTS)
-                            ) {
-                                { line -> ble.externalLog(line, com.noop.testcentre.TestDomain.WORKOUTS) }
-                            } else {
-                                null
-                            }
-                        gpsJob = launch {
-                            // LocationTracker fails SAFE (no permission / no provider just ends the
-                            // stream); runCatching guards an OEM throw so it can't tear down the FGS.
-                            runCatching {
-                                locationTracker.stream().collect { pt -> GpsSession.append(pt) }
-                            }
-                        }
-                    } else {
-                        GpsSession.workoutsLog = null   // route finished: drop the test-mode sink
-                        startForegroundCompat(buildNotification(ble.state.value, null), tracking = false)
-                    }
-                }
-        }
-
         // Smart alarm light-sleep watcher (#207). While the alarm is enabled and we're inside the wake
         // window, feed each live HR reading to the pure detector; on a lighter-phase reading, advance
         // the GUARANTEED alarm earlier (the scheduler clamps to the window and can never move it later
@@ -691,18 +632,12 @@ class WhoopConnectionService : Service() {
         return START_NOT_STICKY
     }
 
-    /** Promote to the foreground. Returns false (rather than throwing) if the platform refuses. When
-     *  [tracking] a GPS workout we add the location FGS type — Android 14+ requires it for a service
-     *  that reads location in the background (the manifest declares `connectedDevice|location`). */
-    private fun startForegroundCompat(notification: Notification, tracking: Boolean = false): Boolean = runCatching {
-        val type =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                val locationType = if (tracking) ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION else 0
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE or locationType
-            } else {
-                0
-            }
-        ServiceCompat.startForeground(this, NOTIF_ID, notification, type)
+    /** Promote to the foreground with the connectedDevice FGS type. Returns false (rather than throwing)
+     *  if the platform refuses. */
+    private fun startForegroundCompat(notification: Notification): Boolean = runCatching {
+        ServiceCompat.startForeground(
+            this, NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
+        )
     }.isSuccess
 
     /** Signature of the fields the notification actually renders (#216). The live HR stream emits ~1 Hz
