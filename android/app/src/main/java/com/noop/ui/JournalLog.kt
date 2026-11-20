@@ -20,3 +20,20 @@ internal fun mergeJournalEntries(
     for (e in native) byKey[e.day to e.question] = e
     return byKey.values.sortedWith(compareBy({ it.day }, { it.question }))
 }
+
+/** Insights caption naming the dates the (no longer growing) journal covers, so a reader can tell the
+ *  behaviour effects come from past answers. Days are the stored `yyyy-MM-dd` keys; null when there are
+ *  no entries or a day key does not parse. */
+internal fun journalCoverageCaption(entries: List<JournalEntry>): String? {
+    if (entries.isEmpty()) return null
+    val fmt = java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy", java.util.Locale.US)
+    return try {
+        val days = entries.map { java.time.LocalDate.parse(it.day) }
+        val first = days.min().format(fmt)
+        val last = days.max().format(fmt)
+        if (first == last) "Based on journal answers from $last."
+        else "Based on journal answers from $first to $last."
+    } catch (_: java.time.format.DateTimeParseException) {
+        null
+    }
+}
