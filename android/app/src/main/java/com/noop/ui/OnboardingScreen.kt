@@ -593,12 +593,11 @@ private fun ConnectStep(viewModel: AppViewModel) {
                 message = uiString(R.string.onboarding_connect_background_body),
             )
 
-            // WHOOP is NOOP's primary band, so onboarding leads with it — but it isn't required.
-            // Make that obvious so a non-WHOOP user doesn't feel stuck on this step (#415-adjacent):
-            // they can continue now and pair a heart-rate strap or import data afterwards.
+            // Pairing isn't required to finish setup. Make that obvious so nobody feels stuck on
+            // this step: they can continue now and connect the strap afterwards.
             if (!live.bonded) {
                 Text(
-                    uiString(R.string.l10n_onboarding_screen_no_whoop_you_can_still_continue_ec58d88d),
+                    uiString(R.string.onboarding_connect_later),
                     style = NoopType.footnote,
                     color = Palette.textTertiary,
                     textAlign = TextAlign.Center,
