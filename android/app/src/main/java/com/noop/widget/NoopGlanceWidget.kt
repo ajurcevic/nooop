@@ -4,7 +4,6 @@ import com.noop.ui.uiString
 import androidx.compose.ui.res.stringResource
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -43,9 +42,8 @@ import com.noop.ui.ClockPrefs
  * snapshot — no BLE, no DB — so it costs nothing and survives process death. Tapping anywhere opens the
  * app. Each score is honest-null ("—") until NOOP has scored it; it never fabricates a number.
  *
- * Colours are hardcoded mirrors of the Titanium & Gold [com.noop.ui.Palette] (navy surface / textPrimary
- * / textSecondary, and the gold → amber → burnt-orange recovery tiers): Glance composes outside our
- * theme, and the widget is deliberately always-dark like the app.
+ * Colours come from [WidgetColors], the app's Calm tokens: each score is tinted the way Home tints it,
+ * and the card follows the app's Light / Dark / System choice.
  */
 class NoopGlanceWidget : GlanceAppWidget() {
 
@@ -76,37 +74,17 @@ class NoopGlanceWidget : GlanceAppWidget() {
     }
 }
 
-// Per-scheme widget colours (mirror the app palette; deepened gold/amber/orange on light for contrast
-// on the warm-paper card). The widget is a separate surface, so these are local — not Palette reads.
-private fun widgetSurface(dark: Boolean) = ColorProvider(if (dark) Color(0xFF0A1322) else Color(0xFFF4F1EA))
-private fun widgetTextPrimary(dark: Boolean) = ColorProvider(if (dark) Color(0xFFF4F6F8) else Color(0xFF1A2230))
-private fun widgetTextSecondary(dark: Boolean) = ColorProvider(if (dark) Color(0xFF8A94A4) else Color(0xFF7C8696))
-
-/** Recovery-band colour, the app-wide 67 / 34 cuts (RecoveryScorer.band); deepened on light. Charge and
- *  Rest both read on the recovery band in the app, so they share this. */
-private fun bandColor(recovery: Int, dark: Boolean): ColorProvider = ColorProvider(
-    when {
-        recovery >= 67 -> if (dark) Color(0xFFE8B84B) else Color(0xFFB07D17)
-        recovery >= 34 -> if (dark) Color(0xFFD98A3D) else Color(0xFFC2792E)
-        else -> if (dark) Color(0xFFE0662F) else Color(0xFFC84E1E)
-    },
-)
-
-/** Effort tint — the app's strain colour (Palette.strain066), a distinct teal so Effort doesn't read as
- *  another recovery band. Deepened on light for contrast on the warm-paper card. (#516) */
-private fun effortColor(dark: Boolean): ColorProvider =
-    ColorProvider(if (dark) Color(0xFF4FB6A8) else Color(0xFF2E7D74))
-
 @Composable
 private fun WidgetContent(snap: WidgetSnapshot, dark: Boolean) {
-    val surface = widgetSurface(dark)
-    val textPrimary = widgetTextPrimary(dark)
-    val textSecondary = widgetTextSecondary(dark)
+    val colors = WidgetColors.of(dark)
+    val surface = ColorProvider(colors.surface)
+    val textPrimary = ColorProvider(colors.textPrimary)
+    val textSecondary = ColorProvider(colors.textSecondary)
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(surface)
-            .cornerRadius(16.dp)
+            .cornerRadius(WIDGET_CORNER_RADIUS)
             .clickable(actionStartActivity<MainActivity>())
             .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -122,7 +100,7 @@ private fun WidgetContent(snap: WidgetSnapshot, dark: Boolean) {
             ScoreCell(
                 label = uiString(R.string.l10n_noop_glance_widget_rest_cbaaa181),
                 pct = snap.restPct,
-                color = snap.restPct?.let { bandColor(it, dark) } ?: textSecondary,
+                color = snap.restPct?.let { ColorProvider(colors.rest(it)) } ?: textSecondary,
                 valueSize = 22.sp,
                 textSecondary = textSecondary,
                 modifier = GlanceModifier.defaultWeight(),
@@ -130,7 +108,7 @@ private fun WidgetContent(snap: WidgetSnapshot, dark: Boolean) {
             ScoreCell(
                 label = uiString(R.string.l10n_noop_glance_widget_charge_49a8cb83),
                 pct = snap.recoveryPct,
-                color = snap.recoveryPct?.let { bandColor(it, dark) } ?: textSecondary,
+                color = snap.recoveryPct?.let { ColorProvider(colors.charge(it)) } ?: textSecondary,
                 valueSize = 30.sp,
                 textSecondary = textSecondary,
                 modifier = GlanceModifier.defaultWeight(),
@@ -138,7 +116,7 @@ private fun WidgetContent(snap: WidgetSnapshot, dark: Boolean) {
             ScoreCell(
                 label = uiString(R.string.l10n_noop_glance_widget_effort_660752e7),
                 pct = snap.effortPct,
-                color = snap.effortPct?.let { effortColor(dark) } ?: textSecondary,
+                color = snap.effortPct?.let { ColorProvider(colors.effort(it)) } ?: textSecondary,
                 valueSize = 22.sp,
                 textSecondary = textSecondary,
                 modifier = GlanceModifier.defaultWeight(),

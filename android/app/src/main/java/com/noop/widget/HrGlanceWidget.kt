@@ -2,7 +2,6 @@ package com.noop.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -80,14 +79,13 @@ class HrGlanceWidget : GlanceAppWidget() {
     }
 }
 
-// Local widget colours, mirroring the siblings rather than reading Palette: Glance composes outside the
-// app theme, so every widget in this package carries its own copy on purpose.
-/** The card colour as a raw Color, so the renderer can paint it as the bitmap's ground. */
-private fun hrSurfaceColor(dark: Boolean) = if (dark) Color(0xFF0A1322) else Color(0xFFF4F1EA)
+// Colours come from [WidgetColors], the app's Calm tokens. The raw surface colour is also the ground the
+// trace renderer paints, so the bitmap and the card cannot drift apart.
+private fun hrSurfaceColor(dark: Boolean) = WidgetColors.of(dark).surface
 
 private fun hrSurface(dark: Boolean) = ColorProvider(hrSurfaceColor(dark))
-private fun hrTextPrimary(dark: Boolean) = ColorProvider(if (dark) Color(0xFFF4F6F8) else Color(0xFF1A2230))
-private fun hrTextSecondary(dark: Boolean) = ColorProvider(if (dark) Color(0xFF8A94A4) else Color(0xFF7C8696))
+private fun hrTextPrimary(dark: Boolean) = ColorProvider(WidgetColors.of(dark).textPrimary)
+private fun hrTextSecondary(dark: Boolean) = ColorProvider(WidgetColors.of(dark).textSecondary)
 
 /** Card padding, both sides. The chart and the axis under it must subtract the SAME figure or the
  *  labels drift out of line with the trace they annotate. */
@@ -112,12 +110,8 @@ private const val HR_CHART_TARGET_DP = 92f
 private fun hrChartWidthDp(widthDp: Float): Float =
     (widthDp - HR_CARD_PADDING_DP - HR_SCALE_COLUMN_DP).coerceAtLeast(24f)
 
-/** The trace tint. A heart reads red in this app's language, not the screenshot's blue.
- *
- *  These are the HR ZONE-5 hexes: `StrandPalette.zone5` on the Apple side resolves to exactly this
- *  pair, so the two widgets are one colour rather than two approximations. Kept as a local literal for
- *  the same reason every other colour in this package is — Glance composes outside the app theme. */
-private fun hrAccent(dark: Boolean) = if (dark) Color(0xFFE0662F) else Color(0xFFC84E1E)
+/** The trace tint: HR zone 5 from the Calm tokens. A heart reads red in this app's language. */
+private fun hrAccent(dark: Boolean) = WidgetColors.of(dark).heart
 
 @Composable
 private fun HrWidgetContent(snap: WidgetSnapshot, dark: Boolean) {
@@ -128,7 +122,7 @@ private fun HrWidgetContent(snap: WidgetSnapshot, dark: Boolean) {
         modifier = GlanceModifier
             .fillMaxSize()
             .background(hrSurface(dark))
-            .cornerRadius(16.dp)
+            .cornerRadius(WIDGET_CORNER_RADIUS)
             .padding(14.dp)
             .clickable(actionStartActivity<MainActivity>()),
     ) {

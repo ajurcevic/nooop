@@ -2,7 +2,6 @@ package com.noop.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
@@ -81,25 +80,22 @@ class StressGlanceWidget : GlanceAppWidget() {
     }
 }
 
-// Local widget colours, mirroring the siblings rather than reading Palette: Glance composes outside the
-// app theme, so every widget in this package carries its own copy on purpose.
-private fun stressSurfaceColor(dark: Boolean) = if (dark) Color(0xFF0A1322) else Color(0xFFF4F1EA)
+// Colours come from [WidgetColors], the app's Calm tokens. The raw surface colour is also the ground the
+// curve renderer paints, so the bitmap and the card cannot drift apart.
+private fun stressSurfaceColor(dark: Boolean) = WidgetColors.of(dark).surface
 
 private fun stressSurface(dark: Boolean) = ColorProvider(stressSurfaceColor(dark))
-private fun stressTextPrimary(dark: Boolean) = ColorProvider(if (dark) Color(0xFFF4F6F8) else Color(0xFF1A2230))
-private fun stressTextSecondary(dark: Boolean) = ColorProvider(if (dark) Color(0xFF8A94A4) else Color(0xFF7C8696))
+private fun stressTextPrimary(dark: Boolean) = ColorProvider(WidgetColors.of(dark).textPrimary)
+private fun stressTextSecondary(dark: Boolean) = ColorProvider(WidgetColors.of(dark).textSecondary)
 
 /**
- * The screen's three-stop ramp, as raw colours the renderer can paint with.
- *
- * These are the same blue / green / amber the Stress screen samples across 0-3, kept as local literals
- * for the reason every colour in this package is one: Glance composes outside the app theme, so the
- * widget cannot read `Palette`. A widget drawing a different ramp from the screen it mirrors would
- * make the same hour look like two different readings.
+ * The Stress screen's three-stop ramp (calm, steady, tense), read from the same tokens the screen's
+ * `StressRamp` samples. A widget drawing a different ramp from the screen it mirrors would make the same
+ * hour look like two different readings.
  */
-private fun stressCalm(dark: Boolean) = if (dark) Color(0xFF4C8DFF) else Color(0xFF2D6FE0)
-private fun stressSteady(dark: Boolean) = if (dark) Color(0xFF3ECF8E) else Color(0xFF1FA971)
-private fun stressTense(dark: Boolean) = if (dark) Color(0xFFE0A62F) else Color(0xFFC8861E)
+private fun stressCalm(dark: Boolean) = WidgetColors.of(dark).stressCalm
+private fun stressSteady(dark: Boolean) = WidgetColors.of(dark).stressSteady
+private fun stressTense(dark: Boolean) = WidgetColors.of(dark).stressTense
 
 /** Card padding, both sides. The chart and the axis under it must subtract the SAME figure or the
  *  labels drift out of line with the curve they annotate. */
@@ -127,7 +123,7 @@ private fun StressWidgetContent(snap: WidgetSnapshot, dark: Boolean) {
         modifier = GlanceModifier
             .fillMaxSize()
             .background(stressSurface(dark))
-            .cornerRadius(16.dp)
+            .cornerRadius(WIDGET_CORNER_RADIUS)
             .padding(14.dp)
             .clickable(actionStartActivity<MainActivity>()),
     ) {
