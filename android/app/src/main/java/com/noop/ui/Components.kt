@@ -149,7 +149,7 @@ fun Modifier.frostedCardSurface(
             val fill = Palette.surfaceRaised.copy(alpha = Palette.surfaceRaised.alpha * op)
             val border = Palette.hairline.copy(alpha = Palette.hairline.alpha * op)
             // Calm edge (dark only): no outline, just a 1px inner highlight along the top that fades out
-            // by the end of the top corners. Light keeps its hairline, which reads on warm paper.
+            // by the end of the top corners. Light keeps its hairline, which reads on the light canvas.
             val drawEdge: androidx.compose.ui.graphics.drawscope.DrawScope.() -> Unit = {
                 if (Palette.isLight) {
                     drawRoundRect(color = border, cornerRadius = corner, style = Stroke(width = 1.dp.toPx()))

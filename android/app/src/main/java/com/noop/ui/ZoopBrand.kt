@@ -30,7 +30,7 @@ import com.noop.R
 // two vector layers that share one viewport: the letters (z and p) and the loop. Each layer is drawn white
 // and tinted here, so the letters follow the theme's primary text colour and the loop stays the brand
 // mint on any accent choice: the user's accent preference recolours chrome, never the logo. Light mode
-// uses the light scheme's deeper mint so the loop keeps its contrast on warm paper.
+// uses the light scheme's deeper mint so the loop keeps its contrast on the light canvas.
 
 /** The wordmark's width over its height, from the vector viewport (278.9 x 89.5). */
 private const val WORDMARK_ASPECT = 278.9f / 89.5f

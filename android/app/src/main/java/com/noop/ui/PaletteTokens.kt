@@ -14,8 +14,8 @@ import androidx.compose.ui.graphics.Color
 // is snapshot state, so every `Palette.X` read (in a composable OR a Canvas DrawScope) re-resolves
 // automatically when the theme flips — ZERO call-site changes across the ~1,740 references.
 //
-// Dark values mirror StrandPalette.swift's dark; light values are the approved "Warm Paper" set
-// (docs/superpowers/specs/2026-06-16-light-theme-design.md). Names/order match the Swift palette.
+// Both sets are the Zoop "Calm" palette (dark 2026-11-17, light 2026-11-21). Names/order match the
+// upstream Swift palette.
 
 data class PaletteTokens(
     val surfaceBase: Color,
@@ -131,32 +131,35 @@ val DarkTokens = PaletteTokens(
     heroFill = Color(0xFF14171F), heroBorder = Color(0x0DFFFFFF),
 )
 
+// Zoop "Calm" light palette (2026-11-21). The light twin of DarkTokens: a cool grey canvas with white
+// cards in place of the old beige "Warm Paper", and the same hue roles as dark Calm, each deepened so it
+// keeps contrast on white. Charge and the good/fair/poor tones run red to amber to green, Effort keeps the
+// amber ramp (the one warm data colour), Rest and sleep stay blue, and the heart-rate line is rose rather
+// than orange. textTertiary is #6B7585 so 11-12sp text keeps AA contrast (4.5:1) on white.
 val LightTokens = PaletteTokens(
-    surfaceBase = Color(0xFFEAE3D4), surfaceRaised = Color(0xFFFFFFFF), surfaceOverlay = Color(0xFFFFFFFF),
-    surfaceInset = Color(0xFFDFD8C8), hairline = Color(0xFFD8D0BD), hairlineStrong = Color(0xFFC7BCA4),
-    textPrimary = Color(0xFF1A2230), textSecondary = Color(0xFF4C5564), textTertiary = Color(0xFF7C8696),
-    glowAmbient = Color(0xFFF0E4C0),
-    // Light chrome accent → brand mint, parity with iOS #1068 (NoopVisualStyle.mint/mintGlow, light side).
-    // accentMuted is a pale mint tint (green-shifted analog of the old pale blue 0xFFE4ECF6); note Android's
-    // light theme is a WARM paper theme, so this shade may want an on-device tweak. Gold stays in recovery.
+    surfaceBase = Color(0xFFF2F4F7), surfaceRaised = Color(0xFFFFFFFF), surfaceOverlay = Color(0xFFFFFFFF),
+    surfaceInset = Color(0xFFE8ECF1), hairline = Color(0xFFE1E5EB), hairlineStrong = Color(0xFFCDD3DC),
+    textPrimary = Color(0xFF1A2230), textSecondary = Color(0xFF4C5564), textTertiary = Color(0xFF6B7585),
+    glowAmbient = Color(0xFFE6ECF3),
     accent = Color(0xFF149A78), accentHover = Color(0xFF38C99E), accentMuted = Color(0xFFDCEDE6), focusRing = Color(0xFF149A78),
-    recovery000 = Color(0xFF8F6212), recovery030 = Color(0xFFA87718), recovery055 = Color(0xFFC28E26),
-    recovery078 = Color(0xFFD2A23A), recovery100 = Color(0xFFE0B44C),
-    strain000 = Color(0xFF7E460E), strain033 = Color(0xFFA4621B), strain066 = Color(0xFFC2792E), strain100 = Color(0xFFD89240),
+    recovery000 = Color(0xFFC8372E), recovery030 = Color(0xFFD0632A), recovery055 = Color(0xFFB8920F),
+    recovery078 = Color(0xFF5E9E36), recovery100 = Color(0xFF0B9466),
+    strain000 = Color(0xFF8A4F10), strain033 = Color(0xFFA9621F), strain066 = Color(0xFFC2792E), strain100 = Color(0xFFD98A3D),
     sleepAwake = Color(0xFF97A2B2), sleepLight = Color(0xFF3A80D6), sleepDeep = Color(0xFF234F9E), sleepREM = Color(0xFF5790DA),
-    zone1 = Color(0xFF3A80D6), zone2 = Color(0xFF2E92B4), zone3 = Color(0xFFC28E26), zone4 = Color(0xFFC2792E), zone5 = Color(0xFFC84E1E),
-    statusPositive = Color(0xFFB07D17), statusWarning = Color(0xFFC2792E), statusCritical = Color(0xFFC84E1E),
-    metricCyan = Color(0xFF2E92B4), metricPurple = Color(0xFF3A80D6), metricAmber = Color(0xFFC2792E), metricRose = Color(0xFFC84E1E),
-    chargeColor = Color(0xFFB88421), chargeDeep = Color(0xFF8F6212), chargeBright = Color(0xFFE0B44C), chargeGlow = Color(0xFFC8902F),
+    zone1 = Color(0xFF3A80D6), zone2 = Color(0xFF2E92B4), zone3 = Color(0xFFB8920F), zone4 = Color(0xFFC2792E), zone5 = Color(0xFFC84E1E),
+    statusPositive = Color(0xFF0B9466), statusWarning = Color(0xFFC27A12), statusCritical = Color(0xFFC8372E),
+    metricCyan = Color(0xFF2E92B4), metricPurple = Color(0xFF3A80D6), metricAmber = Color(0xFFC2792E), metricRose = Color(0xFFD64A5F),
+    chargeColor = Color(0xFF0B9466), chargeDeep = Color(0xFF087A53), chargeBright = Color(0xFF3CC48E), chargeGlow = Color(0xFF0B9466),
     effortColor = Color(0xFFB26A1C), effortDeep = Color(0xFF7E460E), effortBright = Color(0xFFD89240), effortGlow = Color(0xFFB26A1C),
     restColor = Color(0xFF3A80D6), restDeep = Color(0xFF234F9E), restBright = Color(0xFF5790DA), restGlow = Color(0xFF3A80D6),
-    stressColor = Color(0xFFB88421), stressDeep = Color(0xFF3A80D6), stressBright = Color(0xFFC84E1E), stressGlow = Color(0xFFB88421),
-    scenicCenter = Color(0xFFFBF6EA), scenicEdge = Color(0xFFEDE6D6), scenicStar = Color(0xFFD8CDB6),
-    cardFillTop = Color(0xFFFFFFFF), cardFillBottom = Color(0xFFFAF7F0),
-    gold = Color(0xFFDBA52A), goldLight = Color(0xFFECC766), goldDeep = Color(0xFF9A6B12),
-    goldDeepText = Color(0xFF3A2708), signalYellow = Color(0xFFE8A800),
+    stressColor = Color(0xFFC27A12), stressDeep = Color(0xFF3A80D6), stressBright = Color(0xFFC8452F), stressGlow = Color(0xFFC27A12),
+    scenicCenter = Color(0xFFF7F9FB), scenicEdge = Color(0xFFEEF1F5), scenicStar = Color(0xFFCBD3DD),
+    cardFillTop = Color(0xFFFFFFFF), cardFillBottom = Color(0xFFFFFFFF),
+    // As in DarkTokens, the legacy "gold" slots are blue; goldDeepText is the text on accent/gold fills.
+    gold = Color(0xFF3A80D6), goldLight = Color(0xFF8FB8E8), goldDeep = Color(0xFF234F9E),
+    goldDeepText = Color(0xFFFFFFFF), signalYellow = Color(0xFFE8A800),
     titaniumTop = Color(0xFFDDE1E6), titaniumMid = Color(0xFFBBC2C9), titaniumLow = Color(0xFF98A0A8), titaniumDeep = Color(0xFF6B737B),
-    tipCore = Color(0xFF241B06),
+    tipCore = Color(0xFF1A2230),
     // Frosted WHITE hero in light mode (#1160), subtle dark edge. (Hero text uses the flip-able text*
     // tokens now, so no separate label token is needed.)
     heroFill = Color(0xD9FFFFFF), heroBorder = Color(0x1A000000),
