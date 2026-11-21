@@ -199,7 +199,7 @@ private fun DrawScope.drawAtmosphereDrift(dayPart: DayPart, isLight: Boolean, ph
     floatersFor(dayPart).forEach { drawFloater(it, phase, isLight) }
 }
 
-// Light-mode ceiling: knock atmosphere back further so it reads as warm paper, not colour.
+// Light-mode ceiling: knock atmosphere back further so it reads as a quiet canvas, not colour.
 private fun cap(isLight: Boolean, dark: Float, light: Float): Float = if (isLight) light else dark
 
 // MARK: Dawn — cool indigo up top, faint warm peach lift low-centre, soft low sun disc.
