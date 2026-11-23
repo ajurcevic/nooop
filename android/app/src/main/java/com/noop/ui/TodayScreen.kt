@@ -1662,6 +1662,8 @@ fun TodayScreen(
                                 recoveryCalibration = recoveryCalibration,
                                 carriedDay = lastScoredRecoveryDay,
                                 days = days,
+                                // Today only, the same gate as the breakdown sheet's Readiness card.
+                                showReadiness = selectedDayOffset == 0,
                                 onOpenReadiness = { showChargeBreakdown = true },
                             )
                         }

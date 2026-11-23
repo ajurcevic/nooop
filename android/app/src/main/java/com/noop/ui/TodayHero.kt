@@ -512,7 +512,9 @@ private fun HeroScoreVessel(
 /**
  * The readiness card at the top of the Metrics tab (Zoop "Calm"), one line: the readiness word in its tone
  * colour, "vs 30-day baseline" and an info button. The button opens the colour legend for every change chip
- * on the tab and the one-sentence readiness read, with a way to the full Readiness card.
+ * on the tab and the one-sentence readiness read, with a way to the full Readiness card. A second line shows
+ * only while a calibrating baseline looks stuck for a reason the owner can fix: no new nights from the strap
+ * (#612) or recent nights without HRV.
  */
 @Composable
 internal fun SynthesisHeroCard(
@@ -522,55 +524,63 @@ internal fun SynthesisHeroCard(
     // The day history for the readiness read, and the tap that opens the Charge breakdown (where the full
     // Readiness card lives). Defaults keep previews compiling.
     days: List<DailyMetric> = emptyList(),
+    // Readiness is today's read, so a past day shows its own Charge-level word instead. The caller passes the
+    // gate the breakdown sheet's Readiness card uses, so the line never offers a read the sheet won't show.
+    showReadiness: Boolean = true,
     onOpenReadiness: () -> Unit = {},
 ) {
     // The row the fallback reads from: today's own when it carries recovery, else the carried-over last
     // scored day (#543) so the card mirrors the carried Charge instead of blanking to "No Data". When
-    // carrying, the detail line gets a "Last night · <date>" provenance so the prior read isn't passed off
-    // as today's. Today's own read wins the instant tonight is scored.
+    // carrying, the read behind the info button gets a "Last night · <date>" stamp, as the Recovery card's
+    // Charge row does, so the prior read isn't passed off as today's. Today's own read wins the instant
+    // tonight is scored.
     val readDay = carriedDay ?: day
     val recovery = readDay?.recovery
     // S4 (#205): the readiness read (Primed / Balanced / Strained / Run down), INSUFFICIENT without enough
     // history; the Charge-level status below is the fallback word then.
-    val readiness = remember(days) {
-        if (days.isEmpty()) null else ReadinessEngine.evaluate(days, today = logicalDayKeyNow())
+    val readiness = remember(days, showReadiness) {
+        if (!showReadiness || days.isEmpty()) null else ReadinessEngine.evaluate(days, today = logicalDayKeyNow())
     }
     val level = readiness?.level ?: ReadinessEngine.Level.INSUFFICIENT
     val hasReadiness = readiness != null && level != ReadinessEngine.Level.INSUFFICIENT
     val status = if (recoveryCalibration != null) uiString(R.string.score_state_title_calibrating)
     else synthesisWord(recovery)
-    val detail = if (recoveryCalibration != null) {
+    // While the baseline calibrates, why it may look stuck. The owner can act on it, so it stays on the card
+    // under the line; null when nothing is wrong.
+    val calibrationNotice: String? = if (recoveryCalibration == null) {
+        null
+    } else {
         // #612: if the baseline aged out silently — connected, but no new night for > staleDays — say WHY
         // it's calibrating instead of only "learning your baseline". `stale` is always > staleDays (14).
         val stale = Baselines.nightsSinceNewestValidNight(days.map { it.day }, days.map { it.avgHrv }, logicalDayKeyNow())
         if (stale != null && stale > Baselines.staleDays) {
             uiString(R.string.l10n_today_screen_no_new_nights_from_your_strap_for_stale_days_8863bcfe, stale)
         } else {
-            // Comma (not the old em-dash) to match the Swift canonical synthesis copy VERBATIM
-            // (TodayView "Learning your baseline, N of M nights."). #612 above covers a TOTAL drought; the
-            // common shape is nights arriving with most of them empty, so name the missing nights to give
-            // a wearer something to act on instead of a counter that looks stuck. Swift twin:
-            // TodayView.calibrationDetail.
+            // #612 above covers a TOTAL drought; the common shape is nights arriving with most of them empty,
+            // so name the missing nights to give a wearer something to act on instead of a counter that looks
+            // stuck.
             val cov = Baselines.recentHrvCoverage(
                 days.map { it.day }, days.map { it.avgHrv }, logicalDayKeyNow(),
             )
-            val base = uiString(
-                R.string.today_synthesis_learning_baseline, recoveryCalibration, Baselines.minNightsSeed,
-            )
             if (cov.missing > 0 && cov.observed > 0) {
-                base + " " + uiString(R.string.today_synthesis_nights_without_hrv, cov.missing, cov.observed)
+                uiString(R.string.today_synthesis_nights_without_hrv, cov.missing, cov.observed)
             } else {
-                base
+                null
             }
         }
-    } else if (carriedDay != null) {
+    }
+    val detail = when {
+        // "Learning your baseline, N of M nights." The count waits behind the info button; the Recovery
+        // card's Charge row shows it too.
+        recoveryCalibration != null -> uiString(
+            R.string.today_synthesis_learning_baseline, recoveryCalibration, Baselines.minNightsSeed,
+        )
         // Carried prior-day read, summarise that day + stamp it so it isn't passed off as today's.
-        uiString(
+        carriedDay != null -> uiString(
             R.string.today_synthesis_carried_detail,
             synthesisDetail(carriedDay), carriedCaption(carriedDay.day).localized(),
         )
-    } else {
-        synthesisDetail(day)
+        else -> synthesisDetail(day)
     }
     // The word takes the brand mint only when it is a real read; calibrating and no-data stay neutral.
     val statusColor = if (recoveryCalibration == null && recovery != null) Palette.accent else Palette.textPrimary
@@ -579,31 +589,36 @@ internal fun SynthesisHeroCard(
     val explanation = if (readiness != null && hasReadiness) readinessCopy(readiness.summaryRes) else detail
     var showInfo by remember { mutableStateOf(false) }
     NoopCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
-        ) {
-            Text(
-                word,
-                style = NoopType.title2,
-                color = wordColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                uiString(R.string.metrics_vs_30_day_baseline),
-                style = NoopType.caption,
-                color = Palette.textTertiary,
-                maxLines = 1,
-            )
-            IconButton(onClick = { showInfo = true }, modifier = Modifier.size(Metrics.iconButton)) {
-                Icon(
-                    Icons.Outlined.Info,
-                    contentDescription = uiString(R.string.metrics_action_about_comparisons),
-                    tint = Palette.textTertiary,
-                    modifier = Modifier.size(Metrics.iconSmall),
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
+            ) {
+                Text(
+                    word,
+                    style = NoopType.title2,
+                    color = wordColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
+                Text(
+                    uiString(R.string.metrics_vs_30_day_baseline),
+                    style = NoopType.caption,
+                    color = Palette.textTertiary,
+                    maxLines = 1,
+                )
+                IconButton(onClick = { showInfo = true }, modifier = Modifier.size(Metrics.iconButton)) {
+                    Icon(
+                        Icons.Outlined.Info,
+                        contentDescription = uiString(R.string.metrics_action_about_comparisons),
+                        tint = Palette.textTertiary,
+                        modifier = Modifier.size(Metrics.iconSmall),
+                    )
+                }
+            }
+            calibrationNotice?.let { notice ->
+                Text(notice, style = NoopType.subhead, color = Palette.textSecondary)
             }
         }
     }

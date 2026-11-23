@@ -101,7 +101,7 @@ internal data class MetricTileUi(
     val format: (Double) -> String,
     /** Formats the size of a difference (always positive) for the arrow chip. */
     val formatDelta: (Double) -> String = format,
-    /** An extra line under the comparison, such as where an estimate came from. */
+    /** An extra line under the row's name, such as where an estimate came from. */
     val caption: String? = null,
     /** Compare with "normal" (zero) rather than a baseline: a skin temperature deviation is already relative. */
     val referenceIsNormal: Boolean = false,

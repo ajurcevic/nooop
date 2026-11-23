@@ -2685,7 +2685,6 @@
     <string name="metrics_recovery_rhr_down">Resting HR is lower than your baseline.</string>
     <string name="metrics_recovery_rhr_up">Resting HR is higher than your baseline.</string>
     <string name="metrics_recovery_rhr_close">Resting HR is close to your baseline.</string>
-    <string name="metrics_recovery_empty">Wear your strap overnight to see how you\'ve recovered.</string>
     <string name="metrics_sleep_good">A solid night.</string>
     <string name="metrics_sleep_fair">A fair night.</string>
     <string name="metrics_sleep_poor">Not your best night.</string>
@@ -2693,7 +2692,6 @@
     <string name="metrics_sleep_less">You slept %1$s, %2$s less than usual.</string>
     <string name="metrics_sleep_usual">You slept %1$s, about your usual.</string>
     <string name="metrics_sleep_plain">You slept %1$s.</string>
-    <string name="metrics_sleep_empty">Wear your strap to bed to see your sleep.</string>
     <string name="metrics_training_lighter_today">A lighter day so far. Effort is under your baseline.</string>
     <string name="metrics_training_typical_today">A typical day so far. Effort is close to your baseline.</string>
     <string name="metrics_training_bigger_today">A big day so far. Effort is above your baseline.</string>

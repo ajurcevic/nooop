@@ -194,10 +194,9 @@ internal fun provenanceLabelTint(label: DisplayText): Color = when ((label as? D
 }
 
 /**
- * S4 (#205): the one-word readiness read kept on the hero (Push / Maintain / Rest) now the full Readiness
- * card folded into the Charge-ring tap. PURE mapping of the existing [ReadinessEngine.Level]; INSUFFICIENT
- * returns null (the hero then shows no word, matching the old card hiding itself). Byte-identical twin of
- * the Swift TodayView.readinessWord.
+ * S4 (#205): the one-word readiness pill (Push / Maintain / Rest) on the Coupled view. PURE mapping of the
+ * existing [ReadinessEngine.Level]; INSUFFICIENT returns null (the pill then shows no word, matching the old
+ * card hiding itself). Byte-identical twin of the Swift TodayView.readinessWord.
  */
 @StringRes
 internal fun readinessWord(level: ReadinessEngine.Level): Int? = when (level) {

@@ -59,9 +59,8 @@ internal data class WeightInputs(
 )
 
 /**
- * Every Key Metric's tile for [dayKey], enabled or not: the category lines read facts from tiles the owner
- * may have hidden. [day] is the row on screen; the carry rows are the screen's per-field fallbacks, which
- * only exist on today.
+ * Every Key Metric's tile for [dayKey], enabled or not; the category cards draw only the enabled ones. [day]
+ * is the row on screen; the carry rows are the screen's per-field fallbacks, which only exist on today.
  */
 internal fun buildMetricTiles(
     histories: MetricHistories,
