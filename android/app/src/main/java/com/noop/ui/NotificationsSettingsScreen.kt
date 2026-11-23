@@ -269,7 +269,6 @@ fun NotificationsSettingsScreen(vm: AppViewModel) {
 
     ScreenScaffold(
         title = uiString(R.string.l10n_notifications_settings_screen_notifications_753a22b2),
-        subtitle = "Buzz your strap when these apps notify you. Everything runs on this device.",
     ) {
         // MARK: Master card
         AlertSection(

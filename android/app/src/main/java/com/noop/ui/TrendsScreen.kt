@@ -153,7 +153,6 @@ fun TrendsScreen(vm: AppViewModel) {
 
     LazyScreenScaffold(
         title = stringResource(R.string.nav_trends),
-        subtitle = stringResource(R.string.trends_subtitle),
         // LIQUID SKY BACKDROP (LiquidScreenSky.kt): the static time-of-day sky behind the header and top rows,
         // gated on the same day-cycle pref as Today; when off, the scaffold paints the flat canvas.
         topBackground = screenBackdropSlot(showDayCycleBackground, skyBehindCards),

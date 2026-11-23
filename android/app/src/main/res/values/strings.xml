@@ -54,7 +54,7 @@
     <string name="nav_more">More</string>
 
     <string name="push_title">Self-hosted push</string>
-    <string name="push_subtitle">Experimental · Android</string>
+    <string name="push_subtitle">Experimental</string>
     <string name="push_destination_title">Your endpoint</string>
     <string name="push_disclosure">When enabled, Zoop sends raw health records from this phone to the endpoint you control. This is explicit data egress from the device.</string>
     <string name="push_one_way_warning">One-way export only. Zoop cannot restore data from this endpoint and does not provide a receiver.</string>
@@ -195,7 +195,6 @@
     <!-- Trends / Explore / Deep Timeline (#448, completed by #453): these screens originally used
          hardcoded English throughout. Direct Compose copy and data-driven MetricSpec/TimelineMetric
          labels now live in resources; German wording follows the Apple catalogs where available. -->
-    <string name="trends_subtitle">The thread of you over time.</string>
     <string name="trends_trailing">Trailing</string>
     <string name="trends_trailing_days">Trailing %1$d days</string>
     <string name="trends_all_history">All history</string>
@@ -286,7 +285,6 @@
     <string name="trends_empty_title">Trends need history to draw</string>
     <string name="trends_empty_body">Trends need history to draw. Import your WHOOP export in Data Sources to see weeks, months and years instantly.</string>
 
-    <string name="explore_subtitle">Every signal, one tap deep.</string>
     <string name="explore_import_title">Import your history first</string>
     <string name="explore_import_body">Import your history first. A WHOOP export in Data Sources fills every metric you can explore here in about a minute.</string>
     <string name="deep_timeline_title">Deep Timeline</string>
@@ -308,7 +306,6 @@
     <string name="explore_chart_window">Window</string>
     <string name="explore_chart_points">Points</string>
 
-    <string name="timeline_subtitle">Every second of your day. Drag back up to 3 days.</string>
     <string name="timeline_my_whoop">My WHOOP</string>
     <string name="timeline_owned">Owned</string>
     <string name="timeline_all">All</string>
@@ -1917,7 +1914,6 @@
     <string name="recording_chip_detail_connected_no_data">No live heart rate or synced history yet this session.</string>
     <string name="score_state_title_calibrating">Calibrating</string>
     <string name="l10n_stress_glance_widget_resumes_in_the_morning_a640b49f">Resumes in the morning</string>
-    <string name="stress_screen_subtitle">Autonomic load across your waking day</string>
     <string name="stress_timeline_caption_day">The line is each waking hour\'s 0–3 proxy, scored against your own calm hours today. The bar below splits your day into calm, moderate and high stress time.</string>
     <string name="stress_timeline_caption_personal">The line is each waking hour\'s 0–3 proxy, scored against your personal daytime baseline (how your own days usually run). The bar below splits your day into calm, moderate and high stress time.</string>
     <plurals name="stress_hours_excluded_moving">
@@ -2462,7 +2458,6 @@
     <string name="l10n_health_screen_no_blood_oxygen_percentage_from_a_1d3d383e">No blood oxygen percentage from a WHOOP 4.0</string>
     <string name="l10n_health_screen_your_strap_banks_the_raw_optical_b52a0f80">Your strap banks the raw optical channels, but Zoop does not turn them into a blood oxygen percentage, so this stays empty however long you wear it. Import a WHOOP export in Data Sources to fill it from your account history.</string>
     <string name="ground_truth_title">5/MG Raw Data Collector</string>
-    <string name="ground_truth_subtitle">Record a bounded 100 Hz motion session, recover Bluetooth gaps from strap history, and export the complete timeline.</string>
     <string name="ground_truth_test_centre_desc">Record, annotate, recover, and export a bounded 5/MG 100 Hz motion capture.</string>
     <string name="ground_truth_open">Open raw-data collector</string>
     <string name="ground_truth_start">Start raw-data session</string>

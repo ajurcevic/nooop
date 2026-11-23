@@ -257,7 +257,6 @@ private fun RhythmVisualization(
     // reproducing the eager column's inter-card spacing exactly. The Poincaré PlotCard is the heavy one.
     LazyScreenScaffold(
         title = uiString(R.string.l10n_rhythm_screen_rhythm_c715bb28),
-        subtitle = "An experimental picture of your beat-to-beat timing",
         trailing = if (onClose != null) {
             {
                 IconButton(onClick = onClose) {

@@ -1,5 +1,4 @@
 <resources>
-    <string name="steps_history">Your step history.</string>
     <string name="steps_loading">Loading step history.</string>
     <string name="steps_loading_title">Loading…</string>
     <string name="steps_empty_title">No step readings yet</string>

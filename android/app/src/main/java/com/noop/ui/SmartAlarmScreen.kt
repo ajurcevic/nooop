@@ -83,7 +83,6 @@ fun SmartAlarmScreen(vm: AppViewModel) {
         // #766: "Alarms" because this screen now holds the phone Wake Window, the strap's firmware
         // wake-alarm (moved here from Automations), and the wind-down reminder, so the broader title fits.
         title = uiString(R.string.l10n_smart_alarm_screen_alarms_131dd3d6),
-        subtitle = "Your wake window, the strap wake-alarm, and the evening wind-down reminder, in one place.",
     ) {
         // The guaranteed-wake card always shows so the safety promise is the first thing read.
         item {

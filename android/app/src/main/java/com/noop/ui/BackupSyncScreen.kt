@@ -147,7 +147,6 @@ fun BackupSyncScreen() {
 
     LazyScreenScaffold(
         title = uiString(R.string.l10n_backup_sync_screen_backup_sync_81758ffa),
-        subtitle = "Save a full backup to a folder you choose - point it at Google Drive / Dropbox for off-device sync.",
     ) {
         // 1 · Destination folder
         item {

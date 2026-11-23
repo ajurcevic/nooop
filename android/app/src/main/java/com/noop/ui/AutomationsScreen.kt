@@ -117,7 +117,6 @@ fun AutomationsScreen(viewModel: AppViewModel) {
     // accessibility-walked on scroll.
     LazyScreenScaffold(
         title = uiString(R.string.l10n_automations_screen_automations_82542d6d),
-        subtitle = "Make the strap do things: tap to act, walk away to lock, train by feel.",
     ) {
         // #haptics (#1115): per-event in-session haptic toggles, default ON (opt-out) — turn off any cue you
         // find noisy; the feature keeps working, just without that wrist buzz.

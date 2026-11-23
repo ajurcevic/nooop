@@ -103,7 +103,6 @@ fun IntelligenceScreen(vm: AppViewModel) {
 
     LazyScreenScaffold(
         title = uiString(R.string.l10n_intelligence_screen_intelligence_c698f940),
-        subtitle = "Charge, effort and rest - scored with the model, explained in plain terms.",
     ) {
         item { forecast?.let { ForecastCard(it) } }
         item { ExplainerCard(effortScale) }

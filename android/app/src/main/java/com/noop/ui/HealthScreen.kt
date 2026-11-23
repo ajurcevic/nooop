@@ -161,7 +161,6 @@ fun HealthScreen(
 
     LazyScreenScaffold(
         title = uiString(R.string.l10n_health_screen_health_monitor_c4abc3fc),
-        subtitle = "Live vitals, streamed from the strap.",
         topBackground = screenBackdropSlot(showDayCycleBackground, skyBehindCards),
         // Sky-behind-cards fills the viewport so the transparent cards reveal the sky the whole way
         // down (Today / Trends / Sleep / metric-detail parity - same two prefs, same two behaviours).
@@ -1182,7 +1181,6 @@ fun VitalSignsScreen(vm: AppViewModel, onVitalClick: (String) -> Unit = {}) {
 
     ScreenScaffold(
         title = uiString(R.string.l10n_health_screen_vital_signs_e7d9e1b1),
-        subtitle = "Historical vitals from your cached daily metrics.",
     ) {
         RecentDaySelectorBar(selectedOffset = selectedDayOffset, onSelect = { selectedDayOffset = it })
         if (selectedMetric == null || vitals.all { it.value == null }) {
@@ -1864,10 +1862,6 @@ fun VitalDetailScreen(vm: AppViewModel, key: String) {
     }
     var range by remember { mutableStateOf(VitalDetailRange.MONTH) }
 
-    // The subtitle tracks how much history the metric has, so we never promise a "historical trend" the
-    // view isn't showing: Fitness Age with no reading yet -> what it still needs; ANY metric with a single
-    // reading -> that reading (trend to follow); two+ -> the trend. Pre-load falls through to trend.
-    val loadedPoints = if (seriesLoaded) (detail?.points?.size ?: 0) else -1
     // #430 parity: the detail carries the SAME backdrop as the screen that pushed it — the day-cycle sky
     // when the setting is on (full-viewport when "Sky behind cards" is also on, so the transparent cards
     // reveal it the whole way down; the top band otherwise), the plain canvas when off. Same gates the
@@ -1876,12 +1870,6 @@ fun VitalDetailScreen(vm: AppViewModel, key: String) {
     val skyBehindCards = remember { NoopPrefs.skyBehindCards(context) }
     ScreenScaffold(
         title = detail?.title ?: if (isStepsDetail) uiString(R.string.l10n_health_screen_steps_cdde4f20) else "Vital Signs",
-        subtitle = when {
-            isStepsDetail -> uiString(R.string.steps_history)
-            key == "fitness_age" && loadedPoints == 0 -> "What your Fitness Age still needs."
-            loadedPoints == 1 -> "Your latest reading — trend to follow."
-            else -> "Historical trend from cached daily metrics."
-        },
         topBackground = screenBackdropSlot(showDayCycleBackground, skyBehindCards),
         // Sky-behind-cards needs the full-viewport container too — the band container's status-bar
         // offset left the lower cards on plain canvas (tester report).

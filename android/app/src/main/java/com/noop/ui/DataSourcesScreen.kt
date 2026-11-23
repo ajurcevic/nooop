@@ -302,7 +302,6 @@ fun DataSourcesScreen(vm: AppViewModel) {
     // confirm dialogs below the scaffold are untouched.
     LazyScreenScaffold(
         title = uiString(R.string.l10n_data_sources_screen_data_sources_5e43d6bb),
-        subtitle = "Everything stays on this phone. Bring your history in once, then it's yours.",
     ) {
         // --- WHOOP data (cached history) ---
         item {

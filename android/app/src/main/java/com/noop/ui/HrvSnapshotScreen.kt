@@ -180,7 +180,6 @@ fun HrvSnapshotScreen(
     // spacing identical (LazyColumn reproduces the eager `spacedBy(20.dp)`).
     LazyScreenScaffold(
         title = uiString(R.string.l10n_hrv_snapshot_screen_hrv_reading_a2cf71f3),
-        subtitle = "A still, seated snapshot of your heart-rate variability",
     ) {
         // Status row.
         item {
