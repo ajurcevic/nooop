@@ -215,7 +215,8 @@
     <string name="trends_caption_lead_all">All history.</string>
     <string name="trends_caption_period">Charge, Effort and Rest are averages for the period, arrows compare with the %1$d days before, and shaded bands show your normal range.</string>
     <string name="trends_caption_all">Charge, Effort and Rest are averages across your whole history, and shaded bands show your normal range.</string>
-    <string name="trends_method_charts">The Charge line is a 7-day average. Weight and skin temperature show your latest reading.</string>
+    <string name="trends_method_charts_weekly">The Charge line is a 7-day average. Each Rest bar averages one week. Weight and skin temperature show your latest reading.</string>
+    <string name="trends_method_charts_monthly">The Charge line is a 7-day average. Each Rest bar averages one month. Weight and skin temperature show your latest reading.</string>
     <string name="trends_action_about_numbers">About these numbers</string>
     <string name="trends_point_label">%1$s · %2$s</string>
     <string name="trends_form_chip">Form %1$s · %2$s</string>

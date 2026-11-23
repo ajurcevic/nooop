@@ -132,20 +132,24 @@ private data class EdgeLabel(val fraction: Float, val text: String, val color: C
 
 /**
  * What the Trends numbers mean, opened from the info button at the end of the range control: the period and
- * what the averages, chips and bands stand for, then how the Charge line and the Body readings are drawn. A
- * null [days] is all history, which has no earlier span to compare with.
+ * what the averages, chips and bands stand for, then how the Charge line, the Rest bars (a week each up to six
+ * months, a month each beyond) and the Body readings are drawn. A null [days] is all history, which has no
+ * earlier span to compare with.
  */
 @Composable
 internal fun TrendsMethodDialog(days: Int?, onDismiss: () -> Unit) {
     val lead = if (days != null) uiString(R.string.trends_caption_lead_days, days) else uiString(R.string.trends_caption_lead_all)
     val body = if (days != null) uiString(R.string.trends_caption_period, days) else uiString(R.string.trends_caption_all)
+    val charts = uiString(
+        if (barPeriodFor(days) == BarPeriod.WEEK) R.string.trends_method_charts_weekly else R.string.trends_method_charts_monthly,
+    )
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Palette.surfaceOverlay,
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space12)) {
                 Text(uiString(R.string.metrics_two_sentences, lead, body), style = NoopType.subhead, color = Palette.textSecondary)
-                Text(uiString(R.string.trends_method_charts), style = NoopType.subhead, color = Palette.textSecondary)
+                Text(charts, style = NoopType.subhead, color = Palette.textSecondary)
             }
         },
         confirmButton = {
@@ -213,14 +217,48 @@ internal fun TrendsSummaryCard(scores: List<TrendSummaryScoreUi>, modifier: Modi
 // MARK: - Charge
 
 /**
+ * The Charge card: each day's 7-day average across the period as a line, or the not-enough-data note while the
+ * period has too few days for one. A tap or drag picks a day, and its date and value show at the end of the title
+ * row, so picking a day never moves the chart.
+ */
+@Composable
+internal fun TrendsChargeCard(
+    line: List<Pair<Long, Double>>,
+    axis: TrendAxis,
+    band: Pair<Double, Double>?,
+    modifier: Modifier = Modifier,
+) {
+    var selected by remember(line) { mutableIntStateOf(-1) }
+    val picked = line.getOrNull(selected)
+    TrendsSectionCard(
+        title = uiString(R.string.trends_charge),
+        modifier = modifier,
+        trailing = if (picked != null) {
+            { PickedDayPill(uiString(R.string.trends_point_label, pointDate(picked.first), picked.second.roundToInt().toString())) }
+        } else {
+            null
+        },
+    ) {
+        if (line.size >= 2) {
+            ChargeLineChart(line, axis, band, selected = selected, onSelect = { selected = it })
+        } else {
+            TrendsNoChart()
+        }
+    }
+}
+
+/**
  * The Charge line: each day's 7-day average across the period in the recovery colours, over the shaded normal
- * band and round gridlines labelled on the right. A tap or drag picks a day and labels it above the plot.
+ * band and round gridlines labelled on the right. A tap or drag hands the day under the finger to [onSelect],
+ * and the day at [selected] (an index into [line], -1 for none) gets a marker line and a ringed dot.
  */
 @Composable
 internal fun ChargeLineChart(
     line: List<Pair<Long, Double>>,
     axis: TrendAxis,
     band: Pair<Double, Double>?,
+    selected: Int,
+    onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (line.isEmpty()) return
@@ -228,7 +266,6 @@ internal fun ChargeLineChart(
     val runs = remember(days) { contiguousRuns(days, TRENDS_ROLLING_DAYS) }
     val floor = remember(line, band) { chargeAxisFloor(minOf(line.minOf { it.second }, band?.first ?: 100.0)) }
     val grid = remember(floor) { gridValues(floor, 100.0, 20.0) }
-    var selected by remember(line) { mutableIntStateOf(-1) }
     val picked = line.getOrNull(selected)
     val stops = Palette.recoveryStops.toTypedArray()
     val gridColor = Palette.hairline
@@ -241,12 +278,6 @@ internal fun ChargeLineChart(
     val pickedColor = picked?.let { Palette.recoveryColor(it.second) } ?: endColor
     fun share(value: Double): Float = (1.0 - (value - floor) / (100.0 - floor)).toFloat()
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
-        ChartHeader(
-            pill = picked?.let { (day, value) ->
-                uiString(R.string.trends_point_label, pointDate(day), value.roundToInt().toString())
-            },
-            pillAt = picked?.let { axis.fraction(it.first) } ?: 0f,
-        )
         Box(modifier = Modifier.fillMaxWidth().height(LineChartHeight + PlotInset * 2)) {
             Canvas(
                 modifier = Modifier
@@ -254,7 +285,7 @@ internal fun ChargeLineChart(
                     .padding(top = PlotInset, bottom = PlotInset, end = AxisGutter)
                     .trendSummary(line.map { it.second }) { it.roundToInt().toString() }
                     .pickAlongX(line) { at ->
-                        selected = nearestIndex(days, axis.startDay + at.toDouble() * (axis.endDay - axis.startDay))
+                        onSelect(nearestIndex(days, axis.startDay + at.toDouble() * (axis.endDay - axis.startDay)))
                     },
             ) {
                 val width = size.width
@@ -797,32 +828,18 @@ private fun AxisTicks(ticks: List<AxisTick>, modifier: Modifier = Modifier) {
 }
 
 /**
- * The row above a line chart where a picked day's [pill] sits, centred over the day at [pillAt] (a share of the
- * plot's width). The row keeps the pill's height while nothing is picked, so picking a day never moves the chart.
+ * A picked day's date and value on a quiet pill. Its padding keeps it shorter than a card title, so it can appear
+ * at the end of the title row without making the row taller.
  */
 @Composable
-private fun ChartHeader(pill: String?, pillAt: Float) {
-    Layout(
-        modifier = Modifier.fillMaxWidth(),
-        content = {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(Palette.surfaceInset)
-                    .padding(horizontal = Metrics.space10, vertical = Metrics.space4),
-            ) {
-                Text(pill.orEmpty(), style = NoopType.caption, color = Palette.textPrimary, maxLines = 1)
-            }
-        },
-    ) { measurables, constraints ->
-        val pillPlaceable = measurables.single().measure(constraints.copy(minWidth = 0, minHeight = 0))
-        val width = constraints.maxWidth
-        val plotWidth = (width - AxisGutter.roundToPx()).coerceAtLeast(0)
-        val pillLeft = (pillAt * plotWidth - pillPlaceable.width / 2f).roundToInt()
-            .coerceIn(0, (width - pillPlaceable.width).coerceAtLeast(0))
-        layout(width, pillPlaceable.height) {
-            if (pill != null) pillPlaceable.place(pillLeft, 0)
-        }
+private fun PickedDayPill(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(Palette.surfaceInset)
+            .padding(horizontal = Metrics.space10, vertical = Metrics.space2),
+    ) {
+        Text(text, style = NoopType.caption, color = Palette.textPrimary, maxLines = 1)
     }
 }
 

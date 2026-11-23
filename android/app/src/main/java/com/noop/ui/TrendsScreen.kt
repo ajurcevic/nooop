@@ -192,16 +192,12 @@ fun TrendsScreen(vm: AppViewModel) {
 
         // --- Charge: each day's 7-day average across the period. ---
         item {
-            TrendsSectionCard(
-                title = uiString(R.string.trends_charge),
+            TrendsChargeCard(
+                line = model.chargeLine,
+                axis = model.axis,
+                band = model.charge.band,
                 modifier = Modifier.staggeredAppear(index = 2),
-            ) {
-                if (model.chargeLine.size >= 2) {
-                    ChargeLineChart(model.chargeLine, model.axis, model.charge.band)
-                } else {
-                    TrendsNoChart()
-                }
-            }
+            )
         }
 
         // --- Rest: one bar per week, or per month on the longer ranges. ---
