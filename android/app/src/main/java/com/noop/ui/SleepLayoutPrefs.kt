@@ -7,9 +7,9 @@ import com.noop.R
 
 // MARK: - Reorderable Sleep sections (#sleep-layout)
 //
-// The Sleep tab's analytical cards — Sleep marks, the Stages hypnogram, Naps, Night detail, the Sleep-debt
-// ledger, Stages-vs-typical, and the Asleep-duration trend — render in one fixed order below the pinned
-// Sleep-performance hero + date navigator. This lets the user REORDER or HIDE those cards, mirroring the
+// The Sleep tab's analytical cards — the Stages hypnogram, Naps, Night detail, the Sleep-debt ledger,
+// Stages-vs-typical, and the Asleep-duration trend — render in one fixed order below the pinned Last night
+// hero and its date navigator. This lets the user REORDER or HIDE those cards, mirroring the
 // Today tab's Arrange sheet (see TodayLayoutPrefs), with the default being the original order so nothing
 // changes for anyone who never customizes Sleep. Display-only — no metric is computed or stored
 // differently; this only decides which already-built cards render and in what sequence.
@@ -46,13 +46,19 @@ enum class SleepSection(val raw: String, val title: String) {
         fun fromRaw(raw: String?): SleepSection? = entries.firstOrNull { it.raw == raw }
 
         /** The original, hard-coded card order — the default when the layout isn't customised. Matches the
-         *  pre-customisation render order in SleepScreen below the pinned Sleep-performance hero. (Naps
-         *  rides with Stages for now — drawn inside the stages hero; making it an independently arrangeable
-         *  card is a follow-up that requires hoisting the hero's edit/delete callbacks.) */
+         *  pre-customisation render order in SleepScreen below the pinned Last night hero. (Naps rides with
+         *  Stages for now — drawn inside the stages card; making it an independently arrangeable card is a
+         *  follow-up.) */
         val defaultOrder: List<SleepSection> = listOf(
             SLEEP_MARKS, STAGES, BODY_CLOCK, NIGHT_DETAIL, SLEEP_DEBT, STAGES_VS_TYPICAL, ASLEEP_DURATION,
             HOURS_VS_NEEDED, CONSISTENCY,
         )
+
+        /** Sections kept in the registry but no longer drawn on the Sleep tab. Sleep marks are logged from the
+         *  quick-actions sheet now ([logSleepMark]). The entry stays so a saved `sleep.sectionOrder` or
+         *  `sleep.hiddenSections` string and the Today hosted card keep decoding; the Arrange editor leaves
+         *  these out, and [SleepLayoutPrefs.decodeOrder] puts them back at their default slot. */
+        val retiredFromSleepTab: Set<SleepSection> = setOf(SLEEP_MARKS)
     }
 }
 

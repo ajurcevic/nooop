@@ -57,6 +57,7 @@ import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
@@ -84,6 +85,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.noop.R
 import androidx.compose.ui.Alignment
@@ -125,6 +127,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.noop.analytics.SleepMarkType
 import com.noop.push.SelfHostedPushScreen
 
 // MARK: - Navigation model
@@ -476,6 +479,9 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
     // The Updates inbox sheet (opened by the Today header bell). The store is a process singleton so
     // the Today cards and the import path post to the same inbox this sheet renders.
     val context = androidx.compose.ui.platform.LocalContext.current
+    // The scope the quick-actions sheet's sleep-mark writes run in (logSleepMark). It belongs to the app root,
+    // so closing the sheet never cancels a write in flight.
+    val markScope = rememberCoroutineScope()
     val updateStore = remember { UpdateStore.from(context) }
     var showUpdatesInbox by remember { mutableStateOf(false) }
     // #984: the changelog sheet a What's New inbox row opens. Held here (not inside the inbox) so it
@@ -635,6 +641,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                     SleepScreen(
                         vm = viewModel,
                         onOpenAlarms = { nav.navigate(Destination.SmartAlarm.route) },
+                        onQuickActions = { showQuickActions = true },
                     )
                 }
                 composable(Destination.CoupledView.route) {
@@ -734,8 +741,9 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             }
         }
 
-        // Quick-actions sheet, opened by the raised gold centre FAB. Each row routes to an
-        // existing destination — nothing new is built here, the FAB is just a faster door in.
+        // Quick-actions sheet, opened by the Today and Sleep header bolts. Each row routes to an
+        // existing destination, except the two sleep marks at the end, which log a "Going to bed" /
+        // "Woke up" mark in place (logSleepMark, #461) exactly as the hosted Sleep marks card does.
         if (showQuickActions) {
             ModalBottomSheet(
                 onDismissRequest = { showQuickActions = false },
@@ -792,6 +800,25 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                             },
                             icon = { Icon(action.icon, contentDescription = null) },
                             label = { Text(stringResource(action.titleRes), style = NoopType.body) },
+                            colors = NavigationDrawerItemDefaults.colors(
+                                unselectedContainerColor = Palette.surfaceRaised,
+                                unselectedIconColor = Palette.accent,
+                                unselectedTextColor = Palette.textPrimary,
+                            ),
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                        )
+                    }
+                    // Sleep marks (#461): logged in place, never a navigation. LOGGING ONLY: a mark goes to the
+                    // `sleep_mark` series and the shareable strap log, and never changes the detected night.
+                    sleepMarkActions.forEach { mark ->
+                        NavigationDrawerItem(
+                            selected = false,
+                            onClick = {
+                                showQuickActions = false
+                                logSleepMark(viewModel, markScope, context, mark.type)
+                            },
+                            icon = { Icon(mark.icon, contentDescription = null) },
+                            label = { Text(stringResource(mark.titleRes), style = NoopType.body) },
                             colors = NavigationDrawerItemDefaults.colors(
                                 unselectedContainerColor = Palette.surfaceRaised,
                                 unselectedIconColor = Palette.accent,
@@ -1206,6 +1233,16 @@ private data class QuickAction(@StringRes val titleRes: Int, val icon: ImageVect
 private val quickActions: List<QuickAction> = listOf(
     QuickAction(R.string.action_live_hr, Destination.Live.icon, Destination.Live.route),
     QuickAction(R.string.action_breathe, Icons.Filled.Air, Destination.Breathe.route),
+)
+
+/** A quick-actions sleep mark: a display title, an icon and the mark it logs. */
+private data class SleepMarkAction(@StringRes val titleRes: Int, val icon: ImageVector, val type: SleepMarkType)
+
+/** The sleep marks at the end of the quick-actions sheet, the same two the hosted Sleep marks card offers,
+ *  under the same names. */
+private val sleepMarkActions: List<SleepMarkAction> = listOf(
+    SleepMarkAction(R.string.action_going_to_bed, Icons.Filled.Bedtime, SleepMarkType.BEDTIME),
+    SleepMarkAction(R.string.action_woke_up, Icons.Filled.WbSunny, SleepMarkType.WAKE),
 )
 
 // MARK: - Navigation motion (README §Motion)

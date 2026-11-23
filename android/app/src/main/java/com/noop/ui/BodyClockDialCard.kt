@@ -80,16 +80,13 @@ fun BodyClockDialCard(
 
     NoopCard(tint = hue) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Overline(uiString(R.string.l10n_body_clock_dial_card_body_clock_b0b9b988))
-                    Text(
-                        uiString(R.string.l10n_body_clock_dial_card_last_night_against_your_clock_9183a37c),
-                        style = NoopType.footnote,
-                        color = Palette.textTertiary,
-                    )
-                }
-            }
+            // One title, as on every Sleep card. The legend under the dial names the two arcs, which is
+            // what a subtitle here used to restate.
+            Text(
+                uiString(R.string.l10n_body_clock_dial_card_body_clock_b0b9b988),
+                style = NoopType.headline,
+                color = Palette.textPrimary,
+            )
 
             // Hour numerals at 00, 06, 12 and 18. The dial carried one longer midnight tick and nothing
             // else, which orients the ring but leaves no time READABLE: the caption claims a night is

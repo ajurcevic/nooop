@@ -191,10 +191,11 @@ internal fun CustomizeDisc(onClick: () -> Unit) {
  * The accent quick-action "+" in the Today header's top-right. Moved off the bottom bar (now four clean
  * tabs) to balance the header and open the existing quick-action sheet. A small CONTAINED accent disc,  * the accented primary among an otherwise-neutral icon set, ~36dp, no float and no glow: a flat reset-blue
  * accent fill with a hairline rim, the "+" glyph in crisp white. Mirrors the iOS quick-action + (a glyph on
- * Circle().fill(StrandPalette.accent)).
+ * Circle().fill(StrandPalette.accent)). The Sleep header carries the same disc, so the sheet opens the same
+ * way from both tabs.
  */
 @Composable
-private fun QuickActionDisc(onClick: () -> Unit) {
+internal fun QuickActionDisc(onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier

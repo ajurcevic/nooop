@@ -13,18 +13,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,8 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -55,81 +50,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.noop.analytics.ClockFormat
 
-// Sleep window row + night navigation / edit / delete controls.
+// Night navigation / edit / delete controls for the Sleep hero.
 // Extracted from SleepScreen.kt (behavioral no-op; pure UI code-motion).
 
 /**
- * "Asleep / Woke" — the fell-asleep and woke clock times for the navigated night, read off the
- * session's onset (startTs) and wake (endTs) timestamps, each with a moon / sun glyph. Sits in the
- * hero between the night-nav header and the stage card so the two times people glance for first are
- * always visible, not truncated in the header caption. On-brand (surfaceRaised block, tokens) and
- * combined into one TalkBack element. Mirrors iOS SleepView.sleepWindowRow (PR #289).
- */
-@Composable
-internal fun SleepWindowRow(onsetTs: Long, wakeTs: Long) {
-    // #1821: the reader's chosen clock. Read here rather than threaded, because this is a composable and
-    // LocalContext is the idiomatic source; the label helpers stay pure.
-    val is24h = ClockPrefs.uses24Hour(LocalContext.current)
-    val asleep = clockTimeLabel(onsetTs, is24h)
-    val woke = clockTimeLabel(wakeTs, is24h)
-    // A frosted Rest-tinted card (was a flat surfaceRaised block) so the window row sits in the
-    // same colour world as the rest of the screen. Bevel treatment — content unchanged.
-    NoopCard(
-        modifier = Modifier.semantics(mergeDescendants = true) {
-            contentDescription = uiString(R.string.l10n_sleep_screen_fell_asleep_at_asleep_woke_at_80465b2d, asleep, woke)
-        },
-        padding = Metrics.space14,
-        tint = Palette.restColor,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            SleepTime(icon = Icons.Filled.Bedtime, label = uiString(R.string.l10n_sleep_screen_asleep_b9692bbe), value = asleep)
-            Spacer(Modifier.width(Metrics.space12))
-            Box(
-                modifier = Modifier
-                    .height(30.dp)
-                    .width(Metrics.divider)
-                    .background(Palette.hairline),
-            )
-            Spacer(Modifier.width(Metrics.space12))
-            SleepTime(icon = Icons.Filled.WbSunny, label = uiString(R.string.l10n_sleep_screen_woke_cfbb59a8), value = woke)
-            Spacer(Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-private fun SleepTime(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space10),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            icon,
-            contentDescription = null, // row carries the combined description
-            tint = Palette.restColor,
-            modifier = Modifier.size(20.dp),
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            Overline(label, color = Palette.textTertiary)
-            Text(value, style = NoopType.number(22f), color = Palette.textPrimary, maxLines = 1)
-        }
-    }
-}
-
-/**
- * Hero header with ◀/▶ to browse past nights plus an accent-tinted center block that
- * mirrors the Today page's date-nav: tapping the block opens a [DatePickerDialog] to jump
- * to any night by date, and the edit-pen icon opens a chooser to adjust the session's
- * bed/wake times via [TimePickerDialog]. ◀ goes older (offset+1), ▶ newer; each is disabled
- * at its bound — tinted tertiary when disabled, accent when active. (#160)
+ * The Sleep hero's top row: ◀/▶ to browse past nights around a center date block that
+ * mirrors the Today page's date-nav. Tapping the block opens a [DatePickerDialog] to jump
+ * to any night by date; beside it, the edit-pen icon opens a chooser to adjust the session's
+ * bed/wake times via [TimePickerDialog], with delete and add-nap next to it. ◀ goes older
+ * (offset+1), ▶ newer; each is disabled at its bound — tinted tertiary when disabled, accent
+ * when active. The card under this row names the night and its clock window. (#160)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun NightNavHeader(
     offset: Int,
-    // #1311: calendar-aware "N nights ago" label, computed by the caller from navDays so a skipped
-    // no-data night doesn't desync the count. Replaces the old offset-index labelling.
-    nightLabel: String,
     lastIndex: Int,
     clock: String?,
     onNavigate: (Int) -> Unit,
@@ -503,11 +438,11 @@ internal fun NightNavHeader(
         )
     }
 
-    // #1311: nightLabel is now the calendar-aware label passed in (was nightRelativeLabel(offset)).
+    // #1311: the calendar-aware "N nights ago" label lives in the hero card under this row, beside the clock
+    // window, so the block here carries the date alone, read from the SAME clock string the card reads its
+    // window from.
     val blockShape = RoundedCornerShape(Metrics.cornerSm)
-    val clockParts = clock?.split(" · ", limit = 2)
-    val dateLabel = clockParts?.getOrNull(0)
-    val timeLabel = clockParts?.getOrNull(1)
+    val dateLabel = clock?.split(" · ", limit = 2)?.getOrNull(0)
 
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space6)) {
         Row(
@@ -518,7 +453,7 @@ internal fun NightNavHeader(
             IconButton(onClick = { if (canGoOlder) onNavigate(offset + 1) }, enabled = canGoOlder) {
                 Icon(Icons.Filled.ChevronLeft, contentDescription = uiString(R.string.l10n_sleep_screen_previous_night_9f339047), tint = if (canGoOlder) Palette.accent else Palette.textTertiary)
             }
-            Column(
+            Box(
                 modifier = Modifier
                     .weight(1f)
                     .clip(blockShape)
@@ -528,63 +463,49 @@ internal fun NightNavHeader(
                     .border(Metrics.divider, Palette.hairline, blockShape)
                     .clickable(enabled = onPickNightDate != null, onClickLabel = "Pick night date") { showDatePicker = true }
                     .padding(vertical = Metrics.selectorPadding, horizontal = Metrics.selectorPadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                contentAlignment = Alignment.Center,
             ) {
-                Text(nightLabel, style = NoopType.caption, color = Palette.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (dateLabel != null) {
-                    Text(dateLabel, style = NoopType.captionNumber, color = Palette.accentHover, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(dateLabel ?: "—", style = NoopType.captionNumber, color = Palette.accentHover, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            if (session != null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space12),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Filled.Edit,
+                        contentDescription = uiString(R.string.l10n_sleep_screen_adjust_sleep_times_1e325561),
+                        tint = Palette.textTertiary,
+                        modifier = Modifier.size(14.dp).clickable {
+                            // #1492: open on the window the header shows (the whole bridged night), not the
+                            // winning fragment's — otherwise a split night's pickers pre-fill with times the
+                            // user never saw and is not trying to correct.
+                            val shown = SleepGroupEdit.groupWindow(heroGroup)
+                            sleepEditDraft = SleepTimeEditDraft(
+                                shown?.first ?: session.effectiveStartTs,
+                                shown?.second ?: session.endTs,
+                            )
+                            showTimeChoice = true
+                        },
+                    )
+                    Icon(
+                        Icons.Filled.DeleteOutline,
+                        contentDescription = uiString(R.string.l10n_sleep_screen_delete_this_sleep_session_6932e931),
+                        tint = Palette.textTertiary,
+                        modifier = Modifier.size(14.dp).clickable { showDeleteConfirm = true },
+                    )
+                    // Add a missed nap as its OWN session (#508) — staged from raw, never folded into this
+                    // night's main sleep. Two pickers (start → end), the end day derived from the start.
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = uiString(R.string.l10n_sleep_screen_add_a_nap_a1b3204f),
+                        tint = Palette.textTertiary,
+                        modifier = Modifier.size(14.dp).clickable { addingNapStart = true },
+                    )
                 }
             }
             IconButton(onClick = { if (canGoNewer) onNavigate(offset - 1) }, enabled = canGoNewer) {
                 Icon(Icons.Filled.ChevronRight, contentDescription = uiString(R.string.l10n_sleep_screen_next_night_7deeb06b), tint = if (canGoNewer) Palette.accent else Palette.textTertiary)
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                timeLabel ?: clock ?: "—",
-                style = NoopType.captionNumber,
-                color = Palette.accent,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (session != null) {
-                Spacer(Modifier.width(Metrics.space6))
-                Icon(
-                    Icons.Filled.Edit,
-                    contentDescription = uiString(R.string.l10n_sleep_screen_adjust_sleep_times_1e325561),
-                    tint = Palette.textTertiary,
-                    modifier = Modifier.size(14.dp).clickable {
-                        // #1492: open on the window the header shows (the whole bridged night), not the
-                        // winning fragment's — otherwise a split night's pickers pre-fill with times the
-                        // user never saw and is not trying to correct.
-                        val shown = SleepGroupEdit.groupWindow(heroGroup)
-                        sleepEditDraft = SleepTimeEditDraft(
-                            shown?.first ?: session.effectiveStartTs,
-                            shown?.second ?: session.endTs,
-                        )
-                        showTimeChoice = true
-                    },
-                )
-                Spacer(Modifier.width(Metrics.space12))
-                Icon(
-                    Icons.Filled.DeleteOutline,
-                    contentDescription = uiString(R.string.l10n_sleep_screen_delete_this_sleep_session_6932e931),
-                    tint = Palette.textTertiary,
-                    modifier = Modifier.size(14.dp).clickable { showDeleteConfirm = true },
-                )
-                // Add a missed nap as its OWN session (#508) — staged from raw, never folded into this
-                // night's main sleep. Two pickers (start → end), the end day derived from the start.
-                Spacer(Modifier.width(Metrics.space12))
-                Icon(
-                    Icons.Filled.Add,
-                    contentDescription = uiString(R.string.l10n_sleep_screen_add_a_nap_a1b3204f),
-                    tint = Palette.textTertiary,
-                    modifier = Modifier.size(14.dp).clickable { addingNapStart = true },
-                )
             }
         }
         // When the older-night arrow is disabled because no earlier night is banked yet, the chevron
@@ -638,5 +559,3 @@ internal fun NightNavHeader(
         )
     }
 }
-
-// MARK: - 2. Metric grid (row-equalized min-height tiles, each with a bottom sparkline)

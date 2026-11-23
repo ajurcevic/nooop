@@ -300,6 +300,7 @@ internal fun buildSleepModel(
         realSegments = realSegments,
         hypnogramSegments = hypnogramSegments,
         sleepDebtLedger = sleepDebtLedger,
+        sleepDebtByDay = localDebtByDay,
     )
 }
 

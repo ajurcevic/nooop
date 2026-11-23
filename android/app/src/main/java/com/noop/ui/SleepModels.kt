@@ -30,9 +30,9 @@ internal data class Metric(
 ) {
 
     companion object {
-        /** #1946: the caption for a metric tile whose `latest` value was carried from a prior day.
-         *  Returns null when the value is NOT carried (today's own, or no value) so the caller falls
-         *  through to the normal "vs typical" caption. When carried, returns a [DisplayText.Resource]
+        /** #1946: the caption for a Night detail row whose `latest` value was carried from a prior day.
+         *  Returns null when the value is NOT carried (today's own, or no value), so the row shows no
+         *  stamp. When carried, returns a [DisplayText.Resource]
          *  so the string lives in `strings.xml` where the i18n audit and the locale files can see it
          *  — matching [carriedCaption] in TodayScoring, which solved the same problem for the Today
          *  carry stamp. Mirror EXACTLY in Swift. */
@@ -96,6 +96,9 @@ internal data class SleepModel(
     /** Rolling 14-night sleep-debt ledger: Σ(slept − personal need) across the recent
      *  fortnight, with the per-night deltas behind it. Computed once per data change. (#242) */
     val sleepDebtLedger: SleepDebtLedger,
+    /** Each night's sleep debt (min) keyed by its `DailyMetric.day`: the series [sleepDebt] summarises, so the
+     *  Sleep hero can show the BROWSED night's debt from the same numbers rather than only the latest. */
+    val sleepDebtByDay: Map<String, Double> = emptyMap(),
 )
 
 /** The night the ◀/▶ chevrons selected: its MAIN session, the day-metric key it resolves to, its

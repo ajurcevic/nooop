@@ -109,4 +109,17 @@ class SleepLayoutPrefsTest {
             raws,
         )
     }
+
+    /** Sleep marks moved to the quick-actions sheet. The section is retired from the Sleep tab, never from the
+     *  registry: its persisted key still decodes, and the order the Arrange sheet saves (which leaves retired
+     *  sections out) reads back with the retired card at its default slot rather than losing it. */
+    @Test
+    fun sleepMarksIsRetiredFromTheSleepTabButKeptForSavedLayouts() {
+        assertEquals(setOf(SleepSection.SLEEP_MARKS), SleepSection.retiredFromSleepTab)
+        assertEquals(SleepSection.SLEEP_MARKS, SleepSection.fromRaw("sleepMarks"))
+        val savedBySheet = SleepLayoutPrefs.encode(
+            SleepSection.defaultOrder.filterNot { it in SleepSection.retiredFromSleepTab },
+        )
+        assertEquals(SleepSection.defaultOrder, SleepLayoutPrefs.decodeOrder(savedBySheet))
+    }
 }

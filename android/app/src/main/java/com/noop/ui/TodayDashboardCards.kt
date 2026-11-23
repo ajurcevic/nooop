@@ -33,7 +33,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
@@ -42,12 +41,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.content.Context
-import android.widget.Toast
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.noop.R
-import com.noop.analytics.SleepMark
 import com.noop.analytics.StepsEstimateEngine
 import com.noop.ble.WhoopModel
 import com.noop.data.DailyMetric
@@ -260,16 +257,7 @@ internal fun HostedCardsSection(
                 HostedCard.TREND_HRV, HostedCard.TREND_RESTING_HR, HostedCard.TREND_EFFORT ->
                     TrendHostCard(card, days, effortScale)
                 HostedCard.SLEEP_MARKS -> SleepMarkCard(
-                    onMark = { type ->
-                        val mark = SleepMark.now(type)
-                        viewModel.ble.externalLog(mark.logLine())
-                        scope.launch {
-                            runCatching {
-                                viewModel.repo.upsertMetricSeries(listOf(mark.metricPoint("my-whoop")))
-                            }
-                        }
-                        Toast.makeText(context, mark.confirmation(), Toast.LENGTH_SHORT).show()
-                    }
+                    onMark = { type -> logSleepMark(viewModel, scope, context, type) },
                 )
                 // #today-hosted-cards P1: the hours-asleep trend, built pure from `days` (no nap/debt) so
                 // it matches the Sleep tab's hours chart. The card composable lives in SleepScreen.kt
