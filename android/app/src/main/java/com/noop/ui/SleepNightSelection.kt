@@ -1,6 +1,7 @@
 package com.noop.ui
 
 import com.noop.analytics.AnalyticsEngine
+import com.noop.analytics.SleepEditGuard
 import com.noop.analytics.SleepStageTotals
 import com.noop.data.DailyMetric
 import com.noop.data.SleepSession
@@ -16,6 +17,15 @@ import java.util.TimeZone
  */
 internal fun sleepEditTargets(night: HeroNight?, edited: SleepSession, fromNapRow: Boolean): List<SleepSession> =
     if (fromNapRow) listOf(edited) else night?.heroGroup.orEmpty().ifEmpty { listOf(edited) }
+
+/**
+ * Whether a Naps card row may apply [newStart]..[newEnd] to [nap]: only a window that overlaps the nap's
+ * recorded span. The row has no "Move this sleep?" confirm, and its time-only pickers can land a window on
+ * the wrong day by accident (a start moved back past midnight keeps the nap's own date), so a window clear
+ * of the nap is refused rather than moving the nap there unasked. The Last night card confirms a move first.
+ */
+internal fun napRowWindowApplies(nap: SleepSession, newStart: Long, newEnd: Long): Boolean =
+    !SleepEditGuard.isDisjoint(newStart, newEnd, minOf(nap.startTs, nap.effectiveStartTs), nap.endTs)
 
 /**
  * The [DailyMetric.day] that holds the figures (Rest, sleep debt, the day's stage totals) for the night

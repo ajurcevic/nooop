@@ -81,7 +81,9 @@ internal fun NightNavHeader(
     val canGoNewer = offset > 0
     val context = LocalContext.current
     var showTimeChoice by remember { mutableStateOf(false) }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
+    // Keyed to the night like the draft below: a confirm opened for one night must close, never carry over,
+    // when a reload or a browse puts another night in its place.
+    var showDeleteConfirm by remember(session?.deviceId, session?.startTs) { mutableStateOf(false) }
     var editingBed by remember { mutableStateOf(false) }
     var editingWake by remember { mutableStateOf(false) }
     var sleepEditDraft by remember(session?.deviceId, session?.startTs) {
@@ -90,8 +92,11 @@ internal fun NightNavHeader(
     var showDatePicker by remember { mutableStateOf(false) }
     // #940 guard 2: a corrected (start, end) window that no longer touches the night's recorded
     // coverage parks here awaiting an explicit confirm; committing it silently fabricated an
-    // all-awake phantom night that hid the tab's history. null = nothing pending.
-    var pendingDisjointTimes by remember { mutableStateOf<Pair<Long, Long>?>(null) }
+    // all-awake phantom night that hid the tab's history. null = nothing pending. Keyed to the night, so a
+    // reload that swaps the night under an open confirm closes it instead of moving the new night.
+    var pendingDisjointTimes by remember(session?.deviceId, session?.startTs) {
+        mutableStateOf<Pair<Long, Long>?>(null)
+    }
     // Manual nap add (#508): pick a start time, then an end time; both anchored to THIS night's wake day
     // so the new nap lands on the right day. napStartTs holds the chosen start between the two pickers.
     var addingNapStart by remember { mutableStateOf(false) }

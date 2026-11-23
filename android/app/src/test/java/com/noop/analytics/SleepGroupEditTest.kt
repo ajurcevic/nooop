@@ -90,8 +90,8 @@ class SleepGroupEditTest {
     }
 
     /**
-     * ...wherever the window lies. The single-row edit moves a lone sleep to any drawn window, so a nap
-     * logged at the wrong hour, or a night the user confirmed moving, moves here too instead of being refused.
+     * ...wherever the window lies. The single-row edit moves a lone sleep to any drawn window, so a night the
+     * user confirmed moving with "Move this sleep?" moves here too instead of being refused.
      */
     @Test fun aSingleFragmentMovesToAWindowClearOfIt() {
         val only = frag(t0, t0 + 1 * h)

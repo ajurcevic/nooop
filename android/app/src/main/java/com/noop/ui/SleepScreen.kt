@@ -430,10 +430,14 @@ fun SleepScreen(
     val sleepListState = rememberLazyListState()
     // The hero is keyed, so when the Undo strip is inserted above it the list keeps the hero first. Scrolled
     // to the hero, that lays the strip out just above the screen, where its 7 seconds would run out unseen.
-    // Bring the strip into view instead, as the list did before the hero had a key.
+    // When the delete or edit came from the Last night card, whose controls sit at its top, bring the strip
+    // into view. A delete from further down (a Naps card row) leaves the list where it is rather than
+    // jumping it to the top, away from the card being worked in.
     LaunchedEffect(sleepUndo) {
-        if (sleepUndo == null) return@LaunchedEffect
-        if (sleepListState.layoutInfo.visibleItemsInfo.firstOrNull()?.key == SLEEP_HERO_KEY) {
+        val undo = sleepUndo ?: return@LaunchedEffect
+        if (undo.fromLastNightCard &&
+            sleepListState.layoutInfo.visibleItemsInfo.firstOrNull()?.key == SLEEP_HERO_KEY
+        ) {
             sleepListState.animateScrollToItem(0)
         }
     }
@@ -629,10 +633,15 @@ fun SleepScreen(
             // fragment) left the fragments defining the displayed bedtime and wake exactly
             // where they were, so a corrected night looked unchanged. ONE plan drives both the
             // optimistic copy and the durable write, so they cannot disagree.
-            // A nap from the Naps card is edited alone, never planned against the main night's group.
+            // A nap from the Naps card is edited alone, never planned against the main night's group, and
+            // only ever adjusted: a window that misses it is refused (napRowWindowApplies).
             val group = sleepEditTargets(night, s, fromNapRow)
-            val plan = SleepGroupEdit.plan(group, safeStart, safeEnd)
-            if (plan.clipped.isNotEmpty()) {
+            val plan = if (!fromNapRow || napRowWindowApplies(s, safeStart, safeEnd)) {
+                SleepGroupEdit.plan(group, safeStart, safeEnd)
+            } else {
+                null
+            }
+            if (plan != null && plan.clipped.isNotEmpty()) {
                 val edited = plan.clipped.associateBy { it.deviceId to it.startTs }
                 val gone = plan.dropped.map { it.deviceId to it.startTs }.toSet()
                 sleeps = sleeps.mapNotNull { row ->
@@ -643,15 +652,16 @@ fun SleepScreen(
                     }
                 }
                 if (plan.dropped.isNotEmpty()) {
-                    sleepUndo = SleepUndoState(plan.dropped, fromEdit = true)
+                    sleepUndo = SleepUndoState(plan.dropped, fromEdit = true, fromLastNightCard = !fromNapRow)
                 }
                 scope.launch { vm.updateSleepGroupTimes(group, safeStart, safeEnd) }
             } else {
-                // The planner refuses a window that misses every fragment of a split night rather than
-                // read a bed/wake correction as "delete this night". Say so instead of doing nothing. (#940)
+                // A window that misses every fragment of a split night, or misses the nap a Naps card row
+                // edits, is refused rather than read as "delete this night" or "move this nap". Say so
+                // instead of doing nothing. (#940)
                 Toast.makeText(
                     context,
-                    "Those times don't overlap this night, so nothing changed.",
+                    "Those times don't overlap this sleep, so nothing changed.",
                     Toast.LENGTH_SHORT,
                 ).show()
             }
@@ -671,7 +681,7 @@ fun SleepScreen(
     val onUpdateNapTimes: (SleepSession, Long, Long) -> Unit = { s, start, end ->
         applySleepTimes(s, start, end, true)
     }
-    val onDeleteSleepSession: (SleepSession) -> Unit = { s ->
+    val applySleepDelete: (SleepSession, Boolean) -> Unit = { s, fromNapRow ->
         // Delete = the edit path minus the re-insert: drop this session from `sleeps`
         // so every metric recomputes immediately as if the night were never recorded,
         // then persist the removal off the UI thread. Lets the user clear a misread or
@@ -679,7 +689,7 @@ fun SleepScreen(
         // #65: offer a transient UNDO. `s` still carries its owning deviceId + userEdited,
         // everything undo needs to restore it into the original namespace.
         sleeps = sleeps.filterNot { it.deviceId == s.deviceId && it.startTs == s.startTs }
-        sleepUndo = SleepUndoState(listOf(s), fromEdit = false)
+        sleepUndo = SleepUndoState(listOf(s), fromEdit = false, fromLastNightCard = !fromNapRow)
         scope.launch {
             vm.deleteSleepSession(s)
             dismissedSleeps = runCatching {
@@ -687,6 +697,8 @@ fun SleepScreen(
             }.getOrDefault(dismissedSleeps)
         }
     }
+    val onDeleteSleepSession: (SleepSession) -> Unit = { s -> applySleepDelete(s, false) }
+    val onDeleteNapSession: (SleepSession) -> Unit = { s -> applySleepDelete(s, true) }
     val onAddSleepNap: (Long, Long) -> Unit = { startTs, endTs ->
         // Persist the new nap as its OWN session (#508); reload `sleeps` afterwards so the
         // new block shows in the ◀/▶ browse without waiting for a sync. We don't optimistically
@@ -917,9 +929,9 @@ fun SleepScreen(
                         nightHr = nightHr,
                         session = night?.session,
                         heroGroup = night?.heroGroup.orEmpty(),
-                        // Only the Naps card's rows edit through here, each nap on its own.
+                        // Only the Naps card's rows edit and delete through here, each nap on its own.
                         onUpdateTimes = onUpdateNapTimes,
-                        onDeleteSession = onDeleteSleepSession,
+                        onDeleteSession = onDeleteNapSession,
                         napBlocks = night?.napBlocks ?: emptyList(),
                         motionEpochs = night?.groupMotion ?: emptyList(),
                         groupStages = night?.groupStages,
@@ -1127,8 +1139,15 @@ internal fun SleepMarkCard(onMark: (SleepMarkType) -> Unit) {
  *  Undo reverses the REMOVAL, not the whole correction: the retired fragments return with their original
  *  bounds while the surviving ones keep their corrected ones. That is what the strip offers in words
  *  ("sleep outside the new times was removed"), and it is the more useful half to be able to take back —
- *  the corrected bed and wake times were the point of the edit, and only the deletion is unrecoverable. */
-private data class SleepUndoState(val sessions: List<SleepSession>, val fromEdit: Boolean)
+ *  the corrected bed and wake times were the point of the edit, and only the deletion is unrecoverable.
+ *
+ *  `fromLastNightCard` says the removal came from the Last night card rather than a Naps card row, so the
+ *  screen may scroll the strip into view without pulling the user away from the card they were working in. */
+private data class SleepUndoState(
+    val sessions: List<SleepSession>,
+    val fromEdit: Boolean,
+    val fromLastNightCard: Boolean,
+)
 
 /**
  * #65: the transient UNDO strip after a suppressing sleep delete. A Rest-tinted card stating the window

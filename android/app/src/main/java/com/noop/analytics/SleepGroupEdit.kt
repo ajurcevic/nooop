@@ -40,8 +40,9 @@ object SleepGroupEdit {
      * path so a detected one is tombstoned and cannot be re-detected straight back into the night.
      *
      * A one-fragment group therefore reproduces the single-row edit exactly — it takes both bounds, wherever
-     * they lie — so the two paths cannot drift apart. That includes a window clear of the fragment: a nap
-     * logged at the wrong hour, or a night the user confirmed moving, has to move.
+     * they lie — so the two paths cannot drift apart. That includes a window clear of the fragment, which the
+     * Last night card sends only after its "Move this sleep?" confirm: a night the user confirmed moving has
+     * to move. (A Naps card row has no such confirm and refuses a window clear of its nap before planning.)
      *
      * Stage arrays are reclipped per fragment through the same [SleepWindowReclip] the single-row edit
      * uses, so a shortened fragment's hypnogram matches its new bounds instead of overhanging them.
