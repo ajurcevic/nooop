@@ -545,10 +545,13 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val live by vm.live.collectAsStateWithLifecycle()
-    // The strap row on the landing list: the active strap's name (the one the Live screen shows) and, only
-    // while that strap is linked, its battery, through the same gate as the Today header chip.
+    // The strap row on the landing list names the active strap (the one the Live screen shows).
     val activeDeviceName by vm.activeDeviceName.collectAsStateWithLifecycle()
     val activeIsWhoop by vm.activeIsWhoop.collectAsStateWithLifecycle()
+    // One gated strap battery for Settings, through the same gate as the Today header chip: the landing row
+    // and the Strap page's pill both read it, so they cannot disagree, and neither shows the last link's
+    // charge while the strap is not linked.
+    val strapBatteryPct = settingsStrapBatteryPct(activeIsWhoop, live.connected, live.batteryPct)
     // #2338: the read-only advertising-name probe result. Its own flow on the BLE client rather than a
     // LiveState field, matching the other opcode probes.
     val advertisingNameProbe by vm.advertisingNameProbe.collectAsStateWithLifecycle()
@@ -927,10 +930,7 @@ fun SettingsScreen(
         // below are wrapped in place by page rather than re-indented, which keeps their history readable.
         if (settingsPage == null) {
             SettingsLandingList(
-                strapSummary = strapLandingSummary(
-                    activeDeviceName,
-                    strapLandingBatteryPct(activeIsWhoop, live.connected, live.batteryPct),
-                ),
+                strapSummary = strapLandingSummary(activeDeviceName, strapBatteryPct),
                 onOpenPage = { settingsPage = it },
                 onOpenRoute = onOpenRoute,
             )
@@ -2048,7 +2048,7 @@ fun SettingsScreen(
                         tone = strapTone(live.encryptedBond, live.bonded, live.connected),
                         pulsing = live.connected,
                     )
-                    live.batteryPct?.let { pct ->
+                    strapBatteryPct?.let { pct ->
                         StatePill(
                             title = uiString(
                                 R.string.l10n_settings_screen_battery_pct_roundtoint_e02e2891,

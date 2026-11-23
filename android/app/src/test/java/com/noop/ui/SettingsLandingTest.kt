@@ -36,12 +36,25 @@ class SettingsLandingTest {
     /** The row shows a charge only from a live link to the active strap, never a stale or a ring's reading. */
     @Test
     fun strapBattery_onlyFromALiveLinkToTheActiveStrap() {
-        assertEquals(64.0, strapLandingBatteryPct(activeIsWhoop = true, connected = true, batteryPct = 64.0)!!, 0.0)
-        assertNull(strapLandingBatteryPct(activeIsWhoop = true, connected = false, batteryPct = 64.0))
-        assertNull(strapLandingBatteryPct(activeIsWhoop = false, connected = true, batteryPct = 64.0))
-        assertNull(strapLandingBatteryPct(activeIsWhoop = true, connected = true, batteryPct = null))
+        assertEquals(64.0, settingsStrapBatteryPct(activeIsWhoop = true, connected = true, batteryPct = 64.0)!!, 0.0)
+        assertNull(settingsStrapBatteryPct(activeIsWhoop = true, connected = false, batteryPct = 64.0))
+        assertNull(settingsStrapBatteryPct(activeIsWhoop = false, connected = true, batteryPct = 64.0))
+        assertNull(settingsStrapBatteryPct(activeIsWhoop = true, connected = true, batteryPct = null))
         // Disconnected: the row keeps the strap's name and drops the old reading.
-        assertEquals("WHOOP 4.0", strapLandingSummary("WHOOP 4.0", strapLandingBatteryPct(true, false, 64.0)))
+        assertEquals("WHOOP 4.0", strapLandingSummary("WHOOP 4.0", settingsStrapBatteryPct(true, false, 64.0)))
+    }
+
+    /** The landing row and the Strap page's pill read one gated battery value, so they cannot disagree. */
+    @Test
+    fun strapBattery_oneGateForTheRowAndThePill() {
+        val source = settingsSource()
+        assertTrue(source.contains("val strapBatteryPct = settingsStrapBatteryPct(activeIsWhoop, live.connected, live.batteryPct)"))
+        assertTrue(source.contains("strapSummary = strapLandingSummary(activeDeviceName, strapBatteryPct)"))
+        val strapStart = source.indexOf("if (settingsPage == SettingsPage.STRAP) {")
+        val strapEnd = source.indexOf("if (settingsPage == SettingsPage.HEALTH) {", strapStart)
+        assertTrue("page blocks out of order", strapStart >= 0 && strapEnd > strapStart)
+        assertTrue(source.substring(strapStart, strapEnd).contains("strapBatteryPct?.let { pct ->"))
+        assertFalse("an ungated battery read is back", source.contains("live.batteryPct?.let"))
     }
 
     @Test

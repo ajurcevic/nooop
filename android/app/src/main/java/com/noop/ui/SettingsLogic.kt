@@ -119,22 +119,22 @@ internal val SETTINGS_LANDING_PAGES: List<SettingsPage> = listOf(
 )
 
 /**
- * The strap battery the landing row may show: the active strap's charge from its current link, resolved
- * through [HeaderBatteryDisplay.resolve], the gate the Today header's battery chip reads, or null. The
- * strap's `batteryPct` is never cleared on disconnect, so an ungated read would show the last link's
- * charge (or, after a switch, another strap's) as if it were current. A ring's charge is not the strap's,
- * so it is never shown here.
+ * The strap battery Settings may show, on the landing list's strap row and the Strap page's battery pill
+ * alike: the active strap's charge from its current link, resolved through [HeaderBatteryDisplay.resolve],
+ * the gate the Today header's battery chip reads, or null. The strap's `batteryPct` is never cleared on
+ * disconnect, so an ungated read would show the last link's charge (or, after a switch, another strap's) as
+ * if it were current. A ring's charge is not the strap's, so it is never shown here.
  */
-internal fun strapLandingBatteryPct(activeIsWhoop: Boolean, connected: Boolean, batteryPct: Double?): Double? =
+internal fun settingsStrapBatteryPct(activeIsWhoop: Boolean, connected: Boolean, batteryPct: Double?): Double? =
     (HeaderBatteryDisplay.resolve(activeIsWhoop, connected, batteryPct, ringPct = null) as? HeaderBatteryDisplay.State.Charge)
         ?.takeIf { !it.isRing }
         ?.pct
 
 /**
  * The strap row's summary on the landing list: the active strap's name and its battery, for example
- * "WHOOP 4.0, 64%". [batteryPct] is the gated reading from [strapLandingBatteryPct], rounded the same way
- * as the battery pill on the Strap page. Either half is left out when unknown, and with neither the row
- * shows no summary rather than a placeholder.
+ * "WHOOP 4.0, 64%". [batteryPct] is the gated reading from [settingsStrapBatteryPct], the same value the
+ * Strap page's battery pill shows, rounded the same way. Either half is left out when unknown, and with
+ * neither the row shows no summary rather than a placeholder.
  */
 internal fun strapLandingSummary(name: String?, batteryPct: Double?): String? {
     val label = name?.trim()?.takeIf { it.isNotEmpty() }
