@@ -689,6 +689,9 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                         // Coupled view, Self-hosted push and Test Centre on the Advanced page. A push, so
                         // Back returns to Settings on the page it was opened from.
                         onOpenRoute = { nav.navigate(it) },
+                        // A page change inside Settings is not a route change, so reset the auto-hide here
+                        // too: every page, and the list it returns to, opens with its navigation present.
+                        onPageChange = { scrollingDown = false },
                     )
                 }
                 composable(Destination.StepsCalibration.route) {
@@ -925,17 +928,27 @@ private fun MoreScreen(onNavigate: (String) -> Unit) {
 /** One tappable destination row — accent icon + label + trailing chevron in a comfortable tap target,
  *  mirroring the iOS More tab's rows. The More page and the links inside other screens draw this row. */
 @Composable
-internal fun NavLinkRow(link: NavLink, onClick: () -> Unit) {
+internal fun NavLinkRow(link: NavLink, onClick: () -> Unit, enabled: Boolean = true) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(link.dest.icon, contentDescription = null, tint = Palette.accent, modifier = Modifier.size(20.dp))
+        Icon(
+            link.dest.icon,
+            contentDescription = null,
+            tint = if (enabled) Palette.accent else Palette.textTertiary,
+            modifier = Modifier.size(20.dp),
+        )
         Spacer(Modifier.width(14.dp))
-        Text(stringResource(link.labelRes), style = NoopType.body, color = Palette.textPrimary, modifier = Modifier.weight(1f))
+        Text(
+            stringResource(link.labelRes),
+            style = NoopType.body,
+            color = if (enabled) Palette.textPrimary else Palette.textTertiary,
+            modifier = Modifier.weight(1f),
+        )
         Icon(
             Icons.Filled.ChevronRight,
             contentDescription = null,
@@ -946,13 +959,14 @@ internal fun NavLinkRow(link: NavLink, onClick: () -> Unit) {
 }
 
 /** A plain card of [NavLinkRow]s separated by inset hairlines: no header, nothing to collapse. Tapping a
- *  row hands its destination to [onOpen]; the caller decides how to navigate there. */
+ *  row hands its destination to [onOpen]; the caller decides how to navigate there. With [enabled] false
+ *  the rows are dimmed and ignore taps. */
 @Composable
-internal fun NavLinkCard(links: List<NavLink>, onOpen: (Destination) -> Unit) {
+internal fun NavLinkCard(links: List<NavLink>, enabled: Boolean = true, onOpen: (Destination) -> Unit) {
     NoopCard(padding = 0.dp) {
         Column(modifier = Modifier.fillMaxWidth()) {
             links.forEachIndexed { i, link ->
-                NavLinkRow(link, onClick = { onOpen(link.dest) })
+                NavLinkRow(link, onClick = { onOpen(link.dest) }, enabled = enabled)
                 if (i < links.lastIndex) {
                     HorizontalDivider(
                         color = Palette.hairline,

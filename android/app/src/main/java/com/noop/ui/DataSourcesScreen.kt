@@ -304,8 +304,13 @@ fun DataSourcesScreen(vm: AppViewModel, onOpenBackupSync: () -> Unit = {}) {
         title = uiString(R.string.l10n_data_sources_screen_data_sources_5e43d6bb),
     ) {
         // Backup & Sync left the More page ("Import and backup" opens this screen), so its door is the first row.
+        // Disabled while an import runs: leaving this screen cancels the import part-way through its writes.
         item {
-            NavLinkCard(listOf(NavLink(Destination.BackupSync, R.string.data_sources_backup_row)), onOpen = { onOpenBackupSync() })
+            NavLinkCard(
+                listOf(NavLink(Destination.BackupSync, R.string.data_sources_backup_row)),
+                enabled = !busy,
+                onOpen = { onOpenBackupSync() },
+            )
         }
 
         // --- WHOOP data (cached history) ---

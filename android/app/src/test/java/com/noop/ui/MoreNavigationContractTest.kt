@@ -138,8 +138,9 @@ class MoreNavigationContractTest {
                     "onOpen = { onOpenCompare() })",
             ),
             "DataSourcesScreen.kt" to listOf(
-                "NavLinkCard(listOf(NavLink(Destination.BackupSync, R.string.data_sources_backup_row)), " +
-                    "onOpen = { onOpenBackupSync() })",
+                // Disabled during an import, which leaving the screen would cancel part-way.
+                "NavLinkCard( listOf(NavLink(Destination.BackupSync, R.string.data_sources_backup_row)), " +
+                    "enabled = !busy, onOpen = { onOpenBackupSync() }, )",
             ),
             "AutomationsScreen.kt" to listOf(
                 "NavLinkCard(listOf(NavLink(Destination.SmartAlarm, R.string.automations_smart_alarm_row)), " +

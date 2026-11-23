@@ -97,6 +97,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -541,6 +542,9 @@ fun SettingsScreen(
     // Opens a destination by its route: Notifications on the landing list, and the link rows on the
     // Strap and Advanced pages.
     onOpenRoute: (String) -> Unit = {},
+    // Called when the open page changes (a page opens, or Back returns to the list). That is not a route
+    // change, so the shell uses it to bring back an auto-hidden bottom bar as it does on a route change.
+    onPageChange: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -648,6 +652,10 @@ fun SettingsScreen(
     // to the list instead of leaving Settings.
     var settingsPage by rememberSaveable { mutableStateOf<SettingsPage?>(null) }
     BackHandler(enabled = settingsPage != null) { settingsPage = null }
+    // Back from a page scrolled far enough to hide the bottom bar lands on the short list, which may have
+    // nothing to scroll that could bring the bar back.
+    val currentOnPageChange by rememberUpdatedState(onPageChange)
+    LaunchedEffect(settingsPage) { currentOnPageChange() }
 
     // EXPERIMENTAL WHOOP 5/MG protocol probes (off by default). Mirrors the macOS @AppStorage toggle;
     // SharedPreferences isn't reactive, so the Switch drives a local mutableState that the store reads.

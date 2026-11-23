@@ -99,15 +99,24 @@ class SettingsLandingTest {
         }
     }
 
-    /** SettingsScreen.kt with every whitespace run collapsed to one space; skips the test if it is absent. */
-    private fun settingsSource(): String {
+    /** A page change is not a route change, so Settings reports it and the shell brings the bottom bar back. */
+    @Test
+    fun pageChangesRevealTheBottomBar() {
+        assertTrue(settingsSource().contains("LaunchedEffect(settingsPage) { currentOnPageChange() }"))
+        assertTrue(uiSource("AppRoot.kt").contains("onPageChange = { scrollingDown = false }"))
+    }
+
+    private fun settingsSource(): String = uiSource("SettingsScreen.kt")
+
+    /** A file in the ui package with every whitespace run collapsed to one space; skips the test if absent. */
+    private fun uiSource(name: String): String {
         val userDir = File(System.getProperty("user.dir") ?: ".")
         val file = listOf(
-            File(userDir, "src/main/java/com/noop/ui/SettingsScreen.kt"),
-            File(userDir, "app/src/main/java/com/noop/ui/SettingsScreen.kt"),
-            File(userDir, "android/app/src/main/java/com/noop/ui/SettingsScreen.kt"),
+            File(userDir, "src/main/java/com/noop/ui/$name"),
+            File(userDir, "app/src/main/java/com/noop/ui/$name"),
+            File(userDir, "android/app/src/main/java/com/noop/ui/$name"),
         ).firstOrNull { it.isFile }
-        assumeTrue("SettingsScreen.kt not reachable from $userDir", file != null)
+        assumeTrue("$name not reachable from $userDir", file != null)
         return file!!.readText().replace(Regex("\\s+"), " ")
     }
 }
