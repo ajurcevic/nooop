@@ -39,21 +39,24 @@ object SleepGroupEdit {
      * edit path. A fragment with no overlap is dropped; the caller retires those through the normal delete
      * path so a detected one is tombstoned and cannot be re-detected straight back into the night.
      *
-     * A one-fragment group therefore reproduces the single-row edit exactly — it takes both bounds — so the
-     * two paths cannot drift apart.
+     * A one-fragment group therefore reproduces the single-row edit exactly — it takes both bounds, wherever
+     * they lie — so the two paths cannot drift apart. That includes a window clear of the fragment: a nap
+     * logged at the wrong hour, or a night the user confirmed moving, has to move.
      *
      * Stage arrays are reclipped per fragment through the same [SleepWindowReclip] the single-row edit
      * uses, so a shortened fragment's hypnogram matches its new bounds instead of overhanging them.
      *
-     * Returns an empty plan when the window clears every fragment: that is a window disjoint from the whole
-     * night, which the editor's own confirm gate is there to catch, and silently deleting a night is never
-     * the right reading of a bed/wake correction.
+     * Returns an empty plan when the window clears every fragment of a night of two or more: that is a
+     * window disjoint from the whole night, which the editor's own confirm gate is there to catch, and
+     * silently deleting a night is never the right reading of a bed/wake correction.
      */
     fun plan(group: List<SleepSession>, newStartTs: Long, newEndTs: Long): Plan {
         if (group.isEmpty() || newEndTs <= newStartTs) return Plan(emptyList(), emptyList())
         val ordered = group.sortedBy { it.effectiveStartTs }
-        val kept = ordered.filter { minOf(it.endTs, newEndTs) > maxOf(it.effectiveStartTs, newStartTs) }
-        // Never let a bed/wake correction empty the night — see the doc above.
+        val overlapping = ordered.filter { minOf(it.endTs, newEndTs) > maxOf(it.effectiveStartTs, newStartTs) }
+        // A lone fragment moves with the window, as the single-row edit does. Otherwise never let a bed/wake
+        // correction empty the night — see the doc above.
+        val kept = if (ordered.size == 1) ordered else overlapping
         if (kept.isEmpty()) return Plan(emptyList(), emptyList())
         val dropped = ordered - kept.toSet()
 

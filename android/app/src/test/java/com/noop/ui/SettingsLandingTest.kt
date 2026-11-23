@@ -57,6 +57,14 @@ class SettingsLandingTest {
         assertFalse("an ungated battery read is back", source.contains("live.batteryPct?.let"))
     }
 
+    /** A reading outside 0..100 is clamped as the Today header's battery chip clamps it, so the two agree. */
+    @Test
+    fun strapBattery_clampsLikeTheTodayChip() {
+        assertEquals(100.0, settingsStrapBatteryPct(activeIsWhoop = true, connected = true, batteryPct = 104.0)!!, 0.0)
+        assertEquals(0.0, settingsStrapBatteryPct(activeIsWhoop = true, connected = true, batteryPct = -3.0)!!, 0.0)
+        assertEquals("WHOOP 4.0, 100%", strapLandingSummary("WHOOP 4.0", settingsStrapBatteryPct(true, true, 104.0)))
+    }
+
     @Test
     fun strapSummary_isAbsentRatherThanInvented() {
         assertNull(strapLandingSummary(null, null))

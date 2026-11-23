@@ -7,17 +7,15 @@ import com.noop.data.SleepSession
 import java.util.TimeZone
 
 /**
- * The sessions a time edit of [edited] rewrites. The main night is edited as its whole bridged group
- * (#1492), so a corrected bedtime moves the fragments that define it. A nap, edited from the Naps card, is
- * outside that group and is edited alone: planning a nap's window against the main-night group either
- * found no overlap and dropped the edit, or clipped the main night to the nap's times.
+ * The sessions a time edit of [edited] rewrites. An edit from the Last night card applies to the main
+ * night's whole bridged group (#1492), so a corrected bedtime moves the fragments that define it. An edit
+ * from a row of the Naps card ([fromNapRow]) applies to that nap alone: planning a nap's window against the
+ * main night's group either found no overlap and dropped the edit, or clipped the main night to the nap's
+ * times. The caller says which card the edit came from because the session cannot: when the single-block
+ * anchor ([HeroNight.session]) falls outside the bridged group, the same session is also a Naps card row.
  */
-internal fun sleepEditTargets(night: HeroNight?, edited: SleepSession): List<SleepSession> {
-    val group = night?.heroGroup.orEmpty()
-    fun SleepSession.isEdited() = deviceId == edited.deviceId && startTs == edited.startTs
-    val editsMainNight = night != null && (night.session.isEdited() || group.any { it.isEdited() })
-    return if (editsMainNight) group.ifEmpty { listOf(edited) } else listOf(edited)
-}
+internal fun sleepEditTargets(night: HeroNight?, edited: SleepSession, fromNapRow: Boolean): List<SleepSession> =
+    if (fromNapRow) listOf(edited) else night?.heroGroup.orEmpty().ifEmpty { listOf(edited) }
 
 /**
  * The [DailyMetric.day] that holds the figures (Rest, sleep debt, the day's stage totals) for the night

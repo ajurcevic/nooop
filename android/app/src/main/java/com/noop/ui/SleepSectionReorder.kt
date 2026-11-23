@@ -39,6 +39,10 @@ import kotlinx.coroutines.launch
  *  pinned rows around it. Twin of `TODAY_SECTION_KEY_PREFIX`. */
 const val SLEEP_SECTION_KEY_PREFIX = "sleepSection:"
 
+/** LazyColumn key of the pinned Last night card. Keyed so a note appearing above it does not reset its open
+ *  editor, and without [SLEEP_SECTION_KEY_PREFIX], so the drag never treats it as a section. */
+internal const val SLEEP_HERO_KEY = "sleepHero"
+
 /**
  * Live drag state for the Sleep hold-to-drag reorder. One instance per screen. `key`/`distance` are
  * snapshot state (they drive the lifted card's translation each frame); the rest are plain fields written

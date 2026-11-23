@@ -120,15 +120,17 @@ internal val SETTINGS_LANDING_PAGES: List<SettingsPage> = listOf(
 
 /**
  * The strap battery Settings may show, on the landing list's strap row and the Strap page's battery pill
- * alike: the active strap's charge from its current link, resolved through [HeaderBatteryDisplay.resolve],
- * the gate the Today header's battery chip reads, or null. The strap's `batteryPct` is never cleared on
- * disconnect, so an ungated read would show the last link's charge (or, after a switch, another strap's) as
- * if it were current. A ring's charge is not the strap's, so it is never shown here.
+ * alike: the active strap's last reported charge, only while the strap is linked, or null. It resolves
+ * through [HeaderBatteryDisplay.resolve] and clamps to 0..100 as the Today header's battery chip does, so
+ * the three readouts agree. The strap's `batteryPct` is never cleared on disconnect, so an ungated read
+ * would keep showing the last link's charge (or, after a switch, another strap's) while nothing is linked.
+ * A ring's charge is not the strap's, so it is never shown here.
  */
 internal fun settingsStrapBatteryPct(activeIsWhoop: Boolean, connected: Boolean, batteryPct: Double?): Double? =
     (HeaderBatteryDisplay.resolve(activeIsWhoop, connected, batteryPct, ringPct = null) as? HeaderBatteryDisplay.State.Charge)
         ?.takeIf { !it.isRing }
         ?.pct
+        ?.coerceIn(0.0, 100.0)
 
 /**
  * The strap row's summary on the landing list: the active strap's name and its battery, for example

@@ -428,6 +428,15 @@ fun SleepScreen(
     // the edge auto-scroll velocity SleepReorderableSection's onDrag computed. Persistence is on drop
     // (onDrop below), not here — this only updates the in-memory order live.
     val sleepListState = rememberLazyListState()
+    // The hero is keyed, so when the Undo strip is inserted above it the list keeps the hero first. Scrolled
+    // to the hero, that lays the strip out just above the screen, where its 7 seconds would run out unseen.
+    // Bring the strip into view instead, as the list did before the hero had a key.
+    LaunchedEffect(sleepUndo) {
+        if (sleepUndo == null) return@LaunchedEffect
+        if (sleepListState.layoutInfo.visibleItemsInfo.firstOrNull()?.key == SLEEP_HERO_KEY) {
+            sleepListState.animateScrollToItem(0)
+        }
+    }
     val sleepSectionDrag = remember { SleepSectionDragState() }
     val sleepDragActive = sleepSectionDrag.key != null
     LaunchedEffect(sleepDragActive) {
@@ -598,8 +607,9 @@ fun SleepScreen(
     }
 
     // The night-edit callbacks, shared by the hero's edit / delete / add-nap controls and the Naps card's
-    // per-nap rows, so both paths rewrite `sleeps` and persist the change the same way.
-    val onUpdateSleepTimes: (SleepSession, Long, Long) -> Unit = { s, start, end ->
+    // per-nap rows, so both paths rewrite `sleeps` and persist the change the same way. `fromNapRow` says
+    // which card a time edit came from: the hero edits the main night's whole group, a nap row its nap.
+    val applySleepTimes: (SleepSession, Long, Long, Boolean) -> Unit = { s, start, end, fromNapRow ->
         // #940 belt-and-braces: never apply (optimistically OR durably) a future-ending
         // or inverted window, whatever the pickers produced. The editor's own guards
         // (cross-midnight auto-correct + the disjoint confirm) should make this
@@ -620,7 +630,7 @@ fun SleepScreen(
             // where they were, so a corrected night looked unchanged. ONE plan drives both the
             // optimistic copy and the durable write, so they cannot disagree.
             // A nap from the Naps card is edited alone, never planned against the main night's group.
-            val group = sleepEditTargets(night, s)
+            val group = sleepEditTargets(night, s, fromNapRow)
             val plan = SleepGroupEdit.plan(group, safeStart, safeEnd)
             if (plan.clipped.isNotEmpty()) {
                 val edited = plan.clipped.associateBy { it.deviceId to it.startTs }
@@ -636,6 +646,14 @@ fun SleepScreen(
                     sleepUndo = SleepUndoState(plan.dropped, fromEdit = true)
                 }
                 scope.launch { vm.updateSleepGroupTimes(group, safeStart, safeEnd) }
+            } else {
+                // The planner refuses a window that misses every fragment of a split night rather than
+                // read a bed/wake correction as "delete this night". Say so instead of doing nothing. (#940)
+                Toast.makeText(
+                    context,
+                    "Those times don't overlap this night, so nothing changed.",
+                    Toast.LENGTH_SHORT,
+                ).show()
             }
         } else {
             // The clamp refused a future/inverted window. Never drop an edit silently (the nap
@@ -646,6 +664,12 @@ fun SleepScreen(
                 Toast.LENGTH_SHORT,
             ).show()
         }
+    }
+    val onUpdateSleepTimes: (SleepSession, Long, Long) -> Unit = { s, start, end ->
+        applySleepTimes(s, start, end, false)
+    }
+    val onUpdateNapTimes: (SleepSession, Long, Long) -> Unit = { s, start, end ->
+        applySleepTimes(s, start, end, true)
     }
     val onDeleteSleepSession: (SleepSession) -> Unit = { s ->
         // Delete = the edit path minus the re-insert: drop this session from `sleeps`
@@ -802,7 +826,7 @@ fun SleepScreen(
             // an unkeyed item is keyed by position, so a note appearing or leaving would dispose the hero and
             // close an open time editor or picker, losing its draft. Not a SLEEP_SECTION_KEY_PREFIX key, so
             // the reorder drag never treats it as an arrangeable card.
-            item(key = "sleepHero") {
+            item(key = SLEEP_HERO_KEY) {
                 LastNightHero(
                     nightLabel = nightLabel,
                     // #2199: never the SleepModel's label here — that model resolves to the NEWEST night, not
@@ -893,7 +917,8 @@ fun SleepScreen(
                         nightHr = nightHr,
                         session = night?.session,
                         heroGroup = night?.heroGroup.orEmpty(),
-                        onUpdateTimes = onUpdateSleepTimes,
+                        // Only the Naps card's rows edit through here, each nap on its own.
+                        onUpdateTimes = onUpdateNapTimes,
                         onDeleteSession = onDeleteSleepSession,
                         napBlocks = night?.napBlocks ?: emptyList(),
                         motionEpochs = night?.groupMotion ?: emptyList(),
