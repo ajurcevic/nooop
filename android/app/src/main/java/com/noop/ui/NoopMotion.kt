@@ -133,7 +133,7 @@ fun rememberPowerSaveMode(): Boolean {
 }
 
 /**
- * Process-wide live mirror of the in-app "Reduce motion in NOOP" preference. SharedPreferences keeps
+ * Process-wide live mirror of the in-app "Reduce motion" preference. SharedPreferences keeps
  * listeners weakly, so this object retains both the preferences and listener for the process lifetime.
  * One observer feeds Compose snapshot state to every looping surface, avoiding a listener per composable.
  */

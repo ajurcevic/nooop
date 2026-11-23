@@ -1,6 +1,5 @@
 package com.noop.ui
 
-import android.content.SharedPreferences
 import kotlin.math.roundToInt
 
 // MARK: - Waist stepper (optional VO₂max input)
@@ -91,49 +90,46 @@ internal val SEX_OPTIONS = listOf(
     SexOption("nonbinary", "Non-binary"),
 )
 
-// MARK: - Advanced disclosure persistence (S3)
+// MARK: - Settings pages
 
 /**
- * The persisted open/closed state of the Settings "Advanced" disclosure. Keyed identically to the iOS
- * `@AppStorage("settingsAdvancedOpen")` (here under the `noop.` SharedPreferences namespace), and it
- * DEFAULTS to false so a first-run user lands collapsed. Pulled out so the default is a single testable
- * fact: a regression that ships it defaulting open would dump the full wall of cards on first run again.
+ * The pages the Settings landing list opens. Settings starts on the list every time it is opened; the
+ * open page is held in saveable screen state only, never persisted, so no stored token can strand a user
+ * on a page that was renamed or removed.
  */
-internal object SettingsDisclosurePrefs {
-    const val KEY = "noop.settingsAdvancedOpen"
-    const val DEFAULT_OPEN = false
-
-    fun read(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY, DEFAULT_OPEN)
-    fun write(prefs: SharedPreferences, open: Boolean) { prefs.edit().putBoolean(KEY, open).apply() }
+internal enum class SettingsPage {
+    PROFILE,
+    LOOK,
+    STRAP,
+    HEALTH,
+    DATA,
+    ABOUT,
+    ADVANCED,
 }
 
-// MARK: - Settings tabs
+/** The everyday pages, in landing-list order. [SettingsPage.ADVANCED] sits apart in its own card below. */
+internal val SETTINGS_LANDING_PAGES: List<SettingsPage> = listOf(
+    SettingsPage.PROFILE,
+    SettingsPage.LOOK,
+    SettingsPage.STRAP,
+    SettingsPage.HEALTH,
+    SettingsPage.DATA,
+    SettingsPage.ABOUT,
+)
 
 /**
- * The groups the Settings screen is split into, shown one at a time behind a tab row. [prefValue] is
- * the stable persisted token, kept separate from the enum name so a rename cannot strand a saved choice.
+ * The strap row's summary on the landing list: the active strap's name and its battery, for example
+ * "WHOOP 4.0, 64%". It reads the same `live.batteryPct` and rounds it the same way as the battery
+ * pill on the Strap page it opens, so the two can never disagree. Either half is left out when unknown,
+ * and with neither the row shows no summary rather than a placeholder.
  */
-internal enum class SettingsTab(val prefValue: String) {
-    YOU("you"),
-    STRAP("strap"),
-    HEALTH("health"),
-    LOOK("look"),
-    DATA("data"),
-    ABOUT("about"),
-}
-
-/**
- * The persisted Settings tab, so reopening Settings lands where the user left it. A fresh install, or a
- * stored token no current tab carries, reads as [SettingsTab.YOU].
- */
-internal object SettingsTabPrefs {
-    const val KEY = "noop.settingsTab"
-    val DEFAULT = SettingsTab.YOU
-
-    fun read(prefs: SharedPreferences): SettingsTab {
-        val stored = prefs.getString(KEY, null) ?: return DEFAULT
-        return SettingsTab.entries.firstOrNull { it.prefValue == stored } ?: DEFAULT
+internal fun strapLandingSummary(name: String?, batteryPct: Double?): String? {
+    val label = name?.trim()?.takeIf { it.isNotEmpty() }
+    val pct = batteryPct?.roundToInt()
+    return when {
+        label != null && pct != null -> "$label, $pct%"
+        label != null -> label
+        pct != null -> "$pct%"
+        else -> null
     }
-
-    fun write(prefs: SharedPreferences, tab: SettingsTab) { prefs.edit().putString(KEY, tab.prefValue).apply() }
 }

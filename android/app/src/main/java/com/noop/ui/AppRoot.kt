@@ -683,11 +683,11 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                     SettingsScreen(
                         viewModel,
                         onOpenBackupSync = { nav.navigate(Destination.BackupSync.route) },
-                        onOpenSelfHostedPush = { nav.navigate(Destination.SelfHostedPush.route) },
                         onOpenStepsCalibration = { nav.navigate(Destination.StepsCalibration.route) },
-                        // The Settings rows for the screens More no longer lists: Notifications, Power saving,
-                        // Rhythm, Intelligence, Strap limitations, Coupled view and Test Centre. A push, so
-                        // Back returns to Settings.
+                        // The Settings rows that open other screens: Notifications on the landing list,
+                        // Power saving on the Strap page, and Rhythm, Intelligence, Strap limitations,
+                        // Coupled view, Self-hosted push and Test Centre on the Advanced page. A push, so
+                        // Back returns to Settings on the page it was opened from.
                         onOpenRoute = { nav.navigate(it) },
                     )
                 }

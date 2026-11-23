@@ -1065,7 +1065,7 @@ object NoopPrefs {
         of(context).edit().putString(KEY_BACKGROUND_RECENTS, value).apply()
     }
 
-    /** "Reduce motion in NOOP" (opt-in, default OFF). The literal key matches Apple so the setting has
+    /** "Reduce motion" (opt-in, default OFF). The literal key matches Apple so the setting has
      *  one cross-platform identity. [rememberQuietMotion] observes it live for every looping surface. */
     const val KEY_QUIET_MOTION = "noop.quietMotion"
 
