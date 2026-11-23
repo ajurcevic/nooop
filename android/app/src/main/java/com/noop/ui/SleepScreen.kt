@@ -619,7 +619,8 @@ fun SleepScreen(
             // fragment) left the fragments defining the displayed bedtime and wake exactly
             // where they were, so a corrected night looked unchanged. ONE plan drives both the
             // optimistic copy and the durable write, so they cannot disagree.
-            val group = night?.heroGroup.orEmpty().ifEmpty { listOf(s) }
+            // A nap from the Naps card is edited alone, never planned against the main night's group.
+            val group = sleepEditTargets(night, s)
             val plan = SleepGroupEdit.plan(group, safeStart, safeEnd)
             if (plan.clipped.isNotEmpty()) {
                 val edited = plan.clipped.associateBy { it.deviceId to it.startTs }
@@ -797,7 +798,11 @@ fun SleepScreen(
             // LAST NIGHT — the one pinned hero card: the navigated night's Rest score, time asleep and sleep
             // debt over its stage strip, with the night browse and its edit controls directly above. Every
             // figure is the BROWSED night's own, so the card never mixes two nights.
-            item {
+            // Keyed so the notes above it (sync, undo, result updated) can come and go without resetting it:
+            // an unkeyed item is keyed by position, so a note appearing or leaving would dispose the hero and
+            // close an open time editor or picker, losing its draft. Not a SLEEP_SECTION_KEY_PREFIX key, so
+            // the reorder drag never treats it as an arrangeable card.
+            item(key = "sleepHero") {
                 LastNightHero(
                     nightLabel = nightLabel,
                     // #2199: never the SleepModel's label here — that model resolves to the NEWEST night, not

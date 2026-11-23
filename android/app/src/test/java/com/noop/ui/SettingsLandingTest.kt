@@ -10,9 +10,9 @@ import java.io.File
 
 /**
  * Pins the Settings landing list: every page is reachable from it exactly once, the strap row's summary
- * reports only what it knows, Settings opens on the list rather than a remembered page, and the strap
- * experiments live on Advanced so the Strap page keeps to everyday controls. The source audits follow the
- * source-locating pattern used by [MoreNavigationContractTest].
+ * reports only what it knows, Settings opens on the list rather than a page restored from storage, and the
+ * strap experiments live on Advanced so the Strap page keeps to everyday controls. The source audits
+ * follow the source-locating pattern used by [MoreNavigationContractTest].
  */
 class SettingsLandingTest {
 
@@ -31,6 +31,17 @@ class SettingsLandingTest {
         assertEquals("WHOOP 4.0", strapLandingSummary("  WHOOP 4.0 ", null))
         assertEquals("50%", strapLandingSummary(null, 50.0))
         assertEquals("50%", strapLandingSummary("   ", 50.0))
+    }
+
+    /** The row shows a charge only from a live link to the active strap, never a stale or a ring's reading. */
+    @Test
+    fun strapBattery_onlyFromALiveLinkToTheActiveStrap() {
+        assertEquals(64.0, strapLandingBatteryPct(activeIsWhoop = true, connected = true, batteryPct = 64.0)!!, 0.0)
+        assertNull(strapLandingBatteryPct(activeIsWhoop = true, connected = false, batteryPct = 64.0))
+        assertNull(strapLandingBatteryPct(activeIsWhoop = false, connected = true, batteryPct = 64.0))
+        assertNull(strapLandingBatteryPct(activeIsWhoop = true, connected = true, batteryPct = null))
+        // Disconnected: the row keeps the strap's name and drops the old reading.
+        assertEquals("WHOOP 4.0", strapLandingSummary("WHOOP 4.0", strapLandingBatteryPct(true, false, 64.0)))
     }
 
     @Test

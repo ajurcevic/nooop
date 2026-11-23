@@ -7,6 +7,42 @@ import com.noop.data.SleepSession
 import java.util.TimeZone
 
 /**
+ * The sessions a time edit of [edited] rewrites. The main night is edited as its whole bridged group
+ * (#1492), so a corrected bedtime moves the fragments that define it. A nap, edited from the Naps card, is
+ * outside that group and is edited alone: planning a nap's window against the main-night group either
+ * found no overlap and dropped the edit, or clipped the main night to the nap's times.
+ */
+internal fun sleepEditTargets(night: HeroNight?, edited: SleepSession): List<SleepSession> {
+    val group = night?.heroGroup.orEmpty()
+    fun SleepSession.isEdited() = deviceId == edited.deviceId && startTs == edited.startTs
+    val editsMainNight = night != null && (night.session.isEdited() || group.any { it.isEdited() })
+    return if (editsMainNight) group.ifEmpty { listOf(edited) } else listOf(edited)
+}
+
+/**
+ * The [DailyMetric.day] that holds the figures (Rest, sleep debt, the day's stage totals) for the night
+ * whose main block is [session]. Since 2.11.1 every row is keyed by the LOCAL calendar day the night wakes
+ * on, on-device and imported alike (#277), so the local wake day comes first. Rows written before that
+ * were keyed by the UTC day, which differs for a wake east of UTC before the UTC date turns (Perth before
+ * 08:00) or west of UTC after it turns; the UTC day is tried second, and only when no other night in
+ * [navDays] wakes on that local day, so the key never lands on another night's row. With no stage-bearing
+ * row under either key it is the local wake day. (#160, #277)
+ */
+internal fun nightDayKey(
+    session: SleepSession,
+    navDays: List<List<SleepSession>>,
+    days: List<DailyMetric>,
+): String {
+    val localKey = localDayString(session.endTs)
+    val utcKey = AnalyticsEngine.dayString(session.endTs)
+    val utcKeyIsAnotherNight = navDays.any { night -> night.any { localDayString(it.endTs) == utcKey } }
+    val candidates = if (utcKey == localKey || utcKeyIsAnotherNight) listOf(localKey) else listOf(localKey, utcKey)
+    return candidates.firstOrNull { key ->
+        days.any { it.day == key && (it.deepMin ?: 0.0) + (it.remMin ?: 0.0) + (it.lightMin ?: 0.0) > 0.0 }
+    } ?: localKey
+}
+
+/**
  * Pick the night for the DAY [offset] stops back from the most recent (0 = latest). [navDays]
  * is grouped-by-calendar-day, newest first, so the chevrons step by DAY not by flat session
  * index — a WHOOP 4.0 user with a single detected night has exactly one stop (both arrows
@@ -18,9 +54,7 @@ import java.util.TimeZone
  * the same calendar day, so both bucket here); the OLD `maxByOrNull { endTs }` picked the
  * latest-ending block, which is the afternoon nap — so the overnight vanished from the Sleep tab.
  * Picking the longest overnight block fixes it; the other blocks are carried as `napBlocks` for
- * the naps card. The day key tries UTC then local-tz attribution of the MAIN block's wake — imported
- * DailyMetric.day is local-tz while dayString is UTC, so a near-midnight-UTC wake needs the second
- * key; both derive from THIS night's endTs, never another night. (#160, #518)
+ * the naps card. The day key is [nightDayKey] of the MAIN block's wake. (#160, #518)
  */
 internal fun selectNight(
     navDays: List<List<SleepSession>>,
@@ -70,11 +104,7 @@ internal fun selectNight(
     val heroGroup = group.dropWhile {
         it.effectiveStartTs < onsetTsForHero && isPreOnsetAwakeStub(it, groupRefAsleepMin)
     }
-    val utcKey = AnalyticsEngine.dayString(session.endTs)
-    val localKey = localDayString(session.endTs)
-    val dayKey = listOf(utcKey, localKey).firstOrNull { key ->
-        days.any { it.day == key && (it.deepMin ?: 0.0) + (it.remMin ?: 0.0) + (it.lightMin ?: 0.0) > 0.0 }
-    } ?: utcKey
+    val dayKey = nightDayKey(session, navDays, days)
     // Lay every fragment's persisted segments end-to-end so a biphasic night draws as one continuous
     // hypnogram, and SUM their stage minutes for the hero. Built from `heroGroup` (the group minus a leading
     // spurious stub, #736) so the chart and minutes start at the displayed bedtime. Null for a single-block

@@ -545,8 +545,10 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val live by vm.live.collectAsStateWithLifecycle()
-    // The strap row on the landing list names the active strap, as the Devices screen does.
+    // The strap row on the landing list: the active strap's name (the one the Live screen shows) and, only
+    // while that strap is linked, its battery, through the same gate as the Today header chip.
     val activeDeviceName by vm.activeDeviceName.collectAsStateWithLifecycle()
+    val activeIsWhoop by vm.activeIsWhoop.collectAsStateWithLifecycle()
     // #2338: the read-only advertising-name probe result. Its own flow on the BLE client rather than a
     // LiveState field, matching the other opcode probes.
     val advertisingNameProbe by vm.advertisingNameProbe.collectAsStateWithLifecycle()
@@ -637,9 +639,10 @@ fun SettingsScreen(
     var showStepsCalibration by remember { mutableStateOf(false) }
     var dayCycleMode by remember { mutableStateOf(NoopPrefs.dayCycleMode(context)) }
 
-    // Which page is open; null is the landing list. Saveable rather than persisted: every fresh open of
-    // Settings starts on the list, while Back from a screen pushed off a page (Advanced, then Test Centre)
-    // returns to that page. System Back on a page returns to the list instead of leaving Settings.
+    // Which page is open; null is the landing list. Saveable rather than persisted: a new Settings screen
+    // starts on the list, while Back from a screen pushed off a page (Advanced, then Test Centre) returns to
+    // that page, and so does a tab switch that restores Settings' saved state. System Back on a page returns
+    // to the list instead of leaving Settings.
     var settingsPage by rememberSaveable { mutableStateOf<SettingsPage?>(null) }
     BackHandler(enabled = settingsPage != null) { settingsPage = null }
 
@@ -924,7 +927,10 @@ fun SettingsScreen(
         // below are wrapped in place by page rather than re-indented, which keeps their history readable.
         if (settingsPage == null) {
             SettingsLandingList(
-                strapSummary = strapLandingSummary(activeDeviceName, live.batteryPct),
+                strapSummary = strapLandingSummary(
+                    activeDeviceName,
+                    strapLandingBatteryPct(activeIsWhoop, live.connected, live.batteryPct),
+                ),
                 onOpenPage = { settingsPage = it },
                 onOpenRoute = onOpenRoute,
             )

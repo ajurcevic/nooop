@@ -32,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -312,8 +313,10 @@ fun TrendsExploreScreen(vm: AppViewModel, onOpenCompare: () -> Unit = {}) {
     // follow the toggle through every read-out (hero, footer stats, Y-axis). Display-only.
     val effortScale = UnitPrefs.effortScale(LocalContext.current)
 
-    var selectedKey by remember { mutableStateOf(builtInMetrics.first().key) }
-    var range by remember { mutableStateOf(ExploreRange.Month) }
+    // Saveable, so Back from Compare (pushed from the link below) returns to the metric and range the
+    // user picked rather than the defaults: a pushed screen takes this one out of composition.
+    var selectedKey by rememberSaveable { mutableStateOf(builtInMetrics.first().key) }
+    var range by rememberSaveable { mutableStateOf(ExploreRange.Month) }
     val selected = (metrics.firstOrNull { it.key == selectedKey } ?: metrics.first())
         .copy(effortScale = effortScale)
 
