@@ -1641,7 +1641,6 @@
     <string name="l10n_today_screen_heart_rate_variability_a137586d">Heart-rate variability</string>
     <string name="l10n_today_screen_how_domain_label_is_calculated_8897768c">How %1$s is calculated</string>
     <string name="l10n_today_screen_latest_bpm_e7bec767">%1$s bpm</string>
-    <string name="l10n_today_screen_live_now_your_scores_are_building_cb05a4e8">Live now. Your scores are building.</string>
     <string name="l10n_today_screen_move_item_metric_title_down_890afe60">Move %1$s down</string>
     <string name="l10n_today_screen_move_item_metric_title_up_52d2104c">Move %1$s up</string>
     <string name="l10n_today_screen_new_data_added_e59345b4">New data added</string>
@@ -2172,6 +2171,11 @@
     <string name="strap_pill_looking">looking for it…</string>
     <string name="strap_pill_tap_to_reconnect">tap to reconnect</string>
     <string name="strap_pill_open_devices">Open devices</string>
+    <string name="strap_chip_pct">%1$d%%</string>
+    <string name="strap_chip_syncing">Syncing</string>
+    <string name="strap_chip_not_connected">Not connected</string>
+    <string name="strap_chip_looking">Looking…</string>
+    <string name="strap_chip_desc">%1$s, %2$s</string>
     <string name="today_strap_battery">Strap battery</string>
     <string name="today_strap_battery_percent">Strap battery %1$d percent</string>
     <string name="today_ring_battery_percent">Ring battery %1$d percent</string>
@@ -2332,7 +2336,7 @@
     <string name="today_update_building_baseline_message">Charge, Effort and Rest become personal after a few nights of wear.</string>
     <string name="today_update_scores_building_title">Live now. Your scores are building.</string>
     <string name="today_update_scores_building_message">Charge, Effort and Rest build over your next few nights of wear.</string>
-    <string name="today_pending_scores_body">Your live heart rate is working from the strap, and recovery, strain and sleep build from it over your next few nights of wear, sharpening as it learns your baseline. Want your full history instantly? Import your WHOOP export in Data Sources and it backfills in about a minute.</string>
+    <string name="today_scores_start_line">Scores start after a few nights of wear</string>
     <string name="today_sleep_source_last_night">%1$s · last night</string>
     <string name="today_dashboard_editor_description">Choose which cards show on Today. Cards with no value yet show a dash.</string>
     <string name="today_charge_driver_guidance">Each line shows how many points that signal moved Charge versus your on-device baseline. Approximate, not medical advice.</string>
@@ -2650,8 +2654,7 @@
     <string name="home_hr_zone">Zone %1$d</string>
     <string name="home_hr_below_zones">Easy</string>
     <string name="home_hr_not_streaming">Last reading</string>
-    <string name="home_vs_7day_avg">%1$s vs last 7 days</string>
-    <string name="home_no_7day_avg">Still learning your normal</string>
+    <string name="home_vs_last_7_days">vs last 7 days</string>
     <string name="metrics_category_training">Training</string>
     <string name="metrics_category_body">Body</string>
     <string name="metrics_two_sentences">%1$s %2$s</string>

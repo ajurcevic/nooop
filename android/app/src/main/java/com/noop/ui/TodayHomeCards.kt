@@ -18,6 +18,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,16 +38,17 @@ import com.noop.data.DailyMetric
 import java.util.Locale
 import kotlin.math.roundToInt
 
-// Today tab: the Home heart, score and vitals cards.
-// Split out of TodayScreen.kt; behaviour unchanged.
+// Today tab: the Home heart card, the one summary card (scores and vitals) and the first-week line.
+// Split out of TodayScreen.kt.
 
 // MARK: - Home tab cards
 //
-// The one-screen Home: a heart-rate card led by the live bpm, then the three daily scores in thin score
-// rings and the three recovery vitals as plain numbers, each set against its own trailing 7-day average.
-// Neutral surfaces; colour sits on the numbers and rings only: the live bpm takes its heart-rate zone
-// colour, Charge and Effort their own score ramps, Rest a good/fair/poor band, and each vital whether it
-// beat its 7-day average. The live bpm and the three score numbers carry a faint glow in their colour.
+// The one-screen Home: a heart-rate card led by the live bpm, then one summary card: the three daily
+// scores in thin score rings, each with a small change chip against its own trailing 7-day average, and
+// under a hairline the three recovery vitals as a quiet row of plain numbers.
+// Neutral surfaces; colour sits on the numbers, rings and chips only: the live bpm takes its heart-rate
+// zone colour, Charge and Effort their own score ramps, Rest a good/fair/poor band. The live bpm and the
+// three score numbers carry a faint glow in their colour.
 
 /** Placeholder for a number Home has no value for. */
 private const val HOME_EMPTY_VALUE = "—"
@@ -156,10 +158,16 @@ private fun LivePulseDot() {
     )
 }
 
-/** Charge, Effort and Rest for the selected day, each against its own trailing 7-day average. */
+/**
+ * Home's one summary card: Charge, Effort and Rest as score rings, each with a small change chip against
+ * its own trailing 7-day average (one "vs last 7 days" caption names the comparison for all three), then,
+ * under a hairline, last night's HRV, resting heart rate and breathing rate as a quiet row of plain
+ * numbers with no comparison.
+ */
 @Composable
-internal fun HomeScoreCard(
+internal fun HomeSummaryCard(
     day: DailyMetric?,
+    vitalsDay: DailyMetric?,
     days: List<DailyMetric>,
     selectedDayKey: String,
     effortForDay: Double?,
@@ -171,70 +179,152 @@ internal fun HomeScoreCard(
     onOpenMetric: (String) -> Unit,
 ) {
     val charge = day?.recovery
-    // A Charge whose HRV baseline is still thin says so in place of its comparison line, the same rule the
+    // A Charge whose HRV baseline is still thin says so in place of its change chip, the same rule the
     // Metrics tile's note follows (chargeEstimateNote), so the two surfaces flag the same days.
     val chargeLearning = chargeEstimateNote(charge != null, chargeConfidence) == EstimateNote.STILL_LEARNING
     val chargeAvg = remember(days, selectedDayKey) { trailingAverage(days.seriesOf { it.recovery }, selectedDayKey) }
     val effortAvg = remember(days, selectedDayKey) { trailingAverage(days.seriesOf { it.strain }, selectedDayKey) }
     val restAvg = remember(restHistory, selectedDayKey) { trailingAverage(restHistory, selectedDayKey) }
     val effortDecimals = if (effortScale == EffortScale.WHOOP) 1 else 0
+    val wholeNumber: (Double) -> String = { it.roundToInt().toString() }
+    val oneDecimal: (Double) -> String = { String.format(Locale.getDefault(), "%.1f", it) }
+    val chargeChange = scoreChange(charge, chargeAvg, chargeLearning, wholeNumber)
+    val restChange = scoreChange(restScore, restAvg, learning = false, formatDelta = wholeNumber)
+    // Effort has no healthy direction (more or less effort is neither good nor bad), so its chip stays
+    // neutral whichever way it moved.
+    val effortChange = when {
+        effortForDay != null && effortAvg != null -> HomeChange.Chip(
+            delta = UnitFormatter.effortValue(effortForDay, effortScale) -
+                UnitFormatter.effortValue(effortAvg, effortScale),
+            tone = null,
+            formatDelta = if (effortDecimals == 0) wholeNumber else oneDecimal,
+        )
+        effortForDay != null -> HomeChange.Learning
+        else -> HomeChange.None
+    }
+    val anyChip = chargeChange is HomeChange.Chip || effortChange is HomeChange.Chip ||
+        restChange is HomeChange.Chip
+
+    // Per field, today first, the same carry rule as the Recovery vitals section on Metrics.
+    val hrv = day?.avgHrv ?: vitalsDay?.avgHrv
+    val rhr = (day?.restingHr ?: vitalsDay?.restingHr)?.toDouble()
+    val resp = day?.respRateBpm ?: vitalsDay?.respRateBpm
+    fun open(card: DashboardCard): (() -> Unit)? = dashboardCardMetricKey(card)?.let { key -> { onOpenMetric(key) } }
+
     NoopCard {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            HomeScoreRing(
-                label = uiString(R.string.today_metric_charge),
-                value = charge?.roundToInt()?.toString(),
-                // Charge and Rest are 0-100 scores; Effort is stored on the 0-100 scale whatever the
-                // display scale, so all three rings fill by value / 100.
-                fraction = ((charge ?: 0.0) / 100.0).toFloat(),
-                comparison = if (chargeLearning) {
-                    uiString(R.string.home_still_learning)
-                } else {
-                    homeComparison(charge, chargeAvg, decimals = 0)
-                },
-                valueColor = charge?.let { Palette.recoveryColor(it) },
-                onClick = onChargeTap,
-                modifier = Modifier.weight(1f),
-            )
-            HomeScoreRing(
-                label = uiString(R.string.today_metric_effort),
-                value = effortForDay?.let {
-                    if (effortDecimals == 0) UnitFormatter.effortValue(it, effortScale).roundToInt().toString()
-                    else UnitFormatter.effortDisplay(it, effortScale)
-                },
-                fraction = ((effortForDay ?: 0.0) / 100.0).toFloat(),
-                comparison = homeComparison(
-                    effortForDay?.let { UnitFormatter.effortValue(it, effortScale) },
-                    effortAvg?.let { UnitFormatter.effortValue(it, effortScale) },
-                    decimals = effortDecimals,
-                ),
-                valueColor = effortForDay?.let { Palette.strainColor(it) },
-                onClick = { onOpenMetric(HERO_EFFORT_METRIC_KEY) },
-                modifier = Modifier.weight(1f),
-            )
-            HomeScoreRing(
-                label = uiString(R.string.today_metric_rest),
-                value = restScore?.roundToInt()?.toString(),
-                fraction = ((restScore ?: 0.0) / 100.0).toFloat(),
-                comparison = homeComparison(restScore, restAvg, decimals = 0),
-                valueColor = restScore?.let { homeToneColor(restTone(it)) },
-                onClick = { onOpenMetric(HERO_REST_METRIC_KEY) },
-                modifier = Modifier.weight(1f),
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space12)) {
+            if (anyChip) {
+                Text(
+                    uiString(R.string.home_vs_last_7_days),
+                    style = NoopType.caption,
+                    color = Palette.textTertiary,
+                    modifier = Modifier.align(Alignment.End),
+                )
+            }
+            Row(modifier = Modifier.fillMaxWidth()) {
+                HomeScoreRing(
+                    label = uiString(R.string.today_metric_charge),
+                    value = charge?.roundToInt()?.toString(),
+                    // Charge and Rest are 0-100 scores; Effort is stored on the 0-100 scale whatever the
+                    // display scale, so all three rings fill by value / 100.
+                    fraction = ((charge ?: 0.0) / 100.0).toFloat(),
+                    change = chargeChange,
+                    valueColor = charge?.let { Palette.recoveryColor(it) },
+                    onClick = onChargeTap,
+                    modifier = Modifier.weight(1f),
+                )
+                HomeScoreRing(
+                    label = uiString(R.string.today_metric_effort),
+                    value = effortForDay?.let {
+                        if (effortDecimals == 0) UnitFormatter.effortValue(it, effortScale).roundToInt().toString()
+                        else UnitFormatter.effortDisplay(it, effortScale)
+                    },
+                    fraction = ((effortForDay ?: 0.0) / 100.0).toFloat(),
+                    change = effortChange,
+                    valueColor = effortForDay?.let { Palette.strainColor(it) },
+                    onClick = { onOpenMetric(HERO_EFFORT_METRIC_KEY) },
+                    modifier = Modifier.weight(1f),
+                )
+                HomeScoreRing(
+                    label = uiString(R.string.today_metric_rest),
+                    value = restScore?.roundToInt()?.toString(),
+                    fraction = ((restScore ?: 0.0) / 100.0).toFloat(),
+                    change = restChange,
+                    valueColor = restScore?.let { homeToneColor(restTone(it)) },
+                    onClick = { onOpenMetric(HERO_REST_METRIC_KEY) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            HorizontalDivider(color = Palette.hairline)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space8),
+            ) {
+                HomeVital(
+                    label = uiString(R.string.today_card_hrv),
+                    value = hrv?.roundToInt()?.toString(),
+                    unit = DashboardCard.HRV.unit,
+                    onClick = open(DashboardCard.HRV),
+                    modifier = Modifier.weight(1f),
+                )
+                HomeVital(
+                    label = uiString(R.string.today_card_resting_hr),
+                    value = rhr?.roundToInt()?.toString(),
+                    unit = DashboardCard.RESTING_HR.unit,
+                    onClick = open(DashboardCard.RESTING_HR),
+                    modifier = Modifier.weight(1f),
+                )
+                HomeVital(
+                    label = uiString(R.string.today_card_respiratory),
+                    value = resp?.let { String.format(Locale.getDefault(), "%.1f", it) },
+                    unit = DashboardCard.RESPIRATORY.unit,
+                    onClick = open(DashboardCard.RESPIRATORY),
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }
 
 /**
- * One daily score on Home: its label over a thin score ring with the number inside, then the comparison
- * line, all centred. The ring fills by [fraction] (0..1) in [valueColor]; with no value it shows only the
- * empty track and a dash.
+ * The change chip for Charge or Rest: the day against its trailing average, green when higher and amber
+ * when lower (neutral inside the tolerance). "Still learning" when the score exists but there is no
+ * average yet, or when [learning] says the score itself is still an estimate; nothing with no score.
+ */
+private fun scoreChange(
+    value: Double?,
+    average: Double?,
+    learning: Boolean,
+    formatDelta: (Double) -> String,
+): HomeChange = when {
+    learning -> HomeChange.Learning
+    value != null && average != null -> HomeChange.Chip(
+        delta = value - average,
+        tone = homeChipTone(vitalTrendTone(value, average, higherIsBetter = true)),
+        formatDelta = formatDelta,
+    )
+    value != null -> HomeChange.Learning
+    else -> HomeChange.None
+}
+
+/** What sits under a Home score ring: a change chip, the still-learning caption, or nothing. */
+private sealed class HomeChange {
+    data class Chip(val delta: Double, val tone: HomeTone?, val formatDelta: (Double) -> String) : HomeChange()
+    data object Learning : HomeChange()
+    data object None : HomeChange()
+}
+
+/**
+ * One daily score on Home: its label over a thin score ring with the number inside, then its change chip
+ * (or the still-learning caption), all centred. The ring fills by [fraction] (0..1) in [valueColor]; with
+ * no value it shows only the empty track and a dash.
  */
 @Composable
 private fun HomeScoreRing(
     label: String,
     value: String?,
     fraction: Float,
-    comparison: String,
+    change: HomeChange,
     valueColor: Color?,
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
@@ -265,121 +355,52 @@ private fun HomeScoreRing(
                 maxLines = 1,
             )
         }
-        Text(
-            comparison,
-            style = NoopType.caption,
-            color = Palette.textTertiary,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-        )
-    }
-}
-
-/** HRV, resting heart rate and breathing rate from last night, each against its trailing 7-day average. */
-@Composable
-internal fun HomeVitalsCard(
-    day: DailyMetric?,
-    vitalsDay: DailyMetric?,
-    days: List<DailyMetric>,
-    selectedDayKey: String,
-    onOpenMetric: (String) -> Unit,
-) {
-    // Per field, today first, the same carry rule as the Recovery vitals section on Metrics.
-    val hrv = day?.avgHrv ?: vitalsDay?.avgHrv
-    val rhr = (day?.restingHr ?: vitalsDay?.restingHr)?.toDouble()
-    val resp = day?.respRateBpm ?: vitalsDay?.respRateBpm
-    val hrvAvg = remember(days, selectedDayKey) { trailingAverage(days.seriesOf { it.avgHrv }, selectedDayKey) }
-    val rhrAvg = remember(days, selectedDayKey) {
-        trailingAverage(days.seriesOf { it.restingHr?.toDouble() }, selectedDayKey)
-    }
-    val respAvg = remember(days, selectedDayKey) { trailingAverage(days.seriesOf { it.respRateBpm }, selectedDayKey) }
-    fun open(card: DashboardCard): (() -> Unit)? = dashboardCardMetricKey(card)?.let { key -> { onOpenMetric(key) } }
-    NoopCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space8),
-        ) {
-            HomeStat(
-                label = uiString(R.string.today_card_hrv),
-                value = hrv?.roundToInt()?.toString(),
-                unit = DashboardCard.HRV.unit,
-                comparison = homeComparison(hrv, hrvAvg, decimals = 0),
-                valueColor = vitalTrendTone(hrv, hrvAvg, higherIsBetter = true)?.let { homeToneColor(it) },
-                onClick = open(DashboardCard.HRV),
-                compact = true,
-                modifier = Modifier.weight(1f),
+        when (change) {
+            is HomeChange.Chip -> ComparisonChip(
+                delta = change.delta,
+                tone = change.tone,
+                formatDelta = change.formatDelta,
             )
-            HomeStat(
-                label = uiString(R.string.today_card_resting_hr),
-                value = rhr?.roundToInt()?.toString(),
-                unit = DashboardCard.RESTING_HR.unit,
-                comparison = homeComparison(rhr, rhrAvg, decimals = 0),
-                valueColor = vitalTrendTone(rhr, rhrAvg, higherIsBetter = false)?.let { homeToneColor(it) },
-                onClick = open(DashboardCard.RESTING_HR),
-                compact = true,
-                modifier = Modifier.weight(1f),
+            HomeChange.Learning -> Text(
+                uiString(R.string.home_still_learning),
+                style = NoopType.caption,
+                color = Palette.textTertiary,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
             )
-            HomeStat(
-                label = uiString(R.string.today_card_respiratory),
-                value = resp?.let { String.format(Locale.getDefault(), "%.1f", it) },
-                unit = DashboardCard.RESPIRATORY.unit,
-                comparison = homeComparison(resp, respAvg, decimals = 1),
-                valueColor = vitalTrendTone(resp, respAvg, higherIsBetter = false)?.let { homeToneColor(it) },
-                onClick = open(DashboardCard.RESPIRATORY),
-                compact = true,
-                modifier = Modifier.weight(1f),
-            )
+            HomeChange.None -> Unit
         }
     }
 }
 
-/** The status colour for a Home tone: positive, warning or critical. Shared with the Metrics tiles. */
-internal fun homeToneColor(tone: HomeTone): Color = when (tone) {
-    HomeTone.GOOD -> Palette.statusPositive
-    HomeTone.FAIR -> Palette.statusWarning
-    HomeTone.POOR -> Palette.statusCritical
-}
-
-/** "+4 vs 7-day avg", or the no-average line when either side of the comparison is missing. */
-@Composable
-private fun homeComparison(value: Double?, average: Double?, decimals: Int): String =
-    if (value != null && average != null) {
-        uiString(R.string.home_vs_7day_avg, signedDelta(value - average, decimals))
-    } else {
-        uiString(R.string.home_no_7day_avg)
-    }
-
 /**
- * One figure in a Home card: label, number with an optional unit, and its comparison line. [valueColor]
- * tints the number; null keeps it neutral.
+ * One vital in the summary card's quiet row: label, then the number with its unit. No comparison and no
+ * tone colour; the vital's detail screen carries the trend.
  */
 @Composable
-private fun HomeStat(
+private fun HomeVital(
     label: String,
     value: String?,
-    comparison: String,
+    unit: String?,
     onClick: (() -> Unit)?,
-    valueColor: Color? = null,
     modifier: Modifier = Modifier,
-    unit: String? = null,
-    compact: Boolean = false,
 ) {
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(Metrics.space8))
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
             .padding(vertical = Metrics.space4),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space4),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        Text(label, style = NoopType.subhead, color = Palette.textSecondary, maxLines = 1)
+        Text(label, style = NoopType.caption, color = Palette.textSecondary, maxLines = 1)
         Row(
             verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
             Text(
                 value ?: HOME_EMPTY_VALUE,
-                style = NoopType.number(if (compact) 24f else 30f),
-                color = if (value != null) valueColor ?: Palette.textPrimary else Palette.textTertiary,
+                style = NoopType.number(18f),
+                color = if (value != null) Palette.textPrimary else Palette.textTertiary,
                 maxLines = 1,
             )
             if (unit != null && value != null) {
@@ -391,6 +412,34 @@ private fun HomeStat(
                 )
             }
         }
-        Text(comparison, style = NoopType.caption, color = Palette.textTertiary, maxLines = 2)
     }
+}
+
+/**
+ * The first-week line on Today: one short sentence where the scores will be, with an optional × that
+ * files it into the Updates inbox (restorable from there).
+ */
+@Composable
+internal fun TodayPendingLine(text: String, onDismiss: (() -> Unit)?) {
+    NoopCard(padding = Metrics.space12) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space8),
+        ) {
+            Text(
+                text,
+                style = NoopType.subhead,
+                color = Palette.textSecondary,
+                modifier = Modifier.weight(1f),
+            )
+            if (onDismiss != null) TodayCardDismissButton(onClick = onDismiss)
+        }
+    }
+}
+
+/** The status colour for a Home tone: positive, warning or critical. Shared with the Metrics tiles. */
+internal fun homeToneColor(tone: HomeTone): Color = when (tone) {
+    HomeTone.GOOD -> Palette.statusPositive
+    HomeTone.FAIR -> Palette.statusWarning
+    HomeTone.POOR -> Palette.statusCritical
 }
