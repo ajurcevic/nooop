@@ -1654,30 +1654,27 @@ fun TodayScreen(
                                 }
                             }
                         }
-                        // The plain-English read-out: the Synthesis word and line, the readiness pill, and
-                        // the chips that drove it. Carries the last scored day's read at the rollover (#543).
+                        // The one-line readiness card: the readiness word, "vs 30-day baseline" and an info
+                        // button holding the colour legend and the read. Carries the last scored day (#543).
                         TodaySection.SYNTHESIS -> Box(modifier = Modifier.fillMaxWidth().staggeredAppear(stagger)) {
                             SynthesisHeroCard(
                                 day = displayMetric,
                                 recoveryCalibration = recoveryCalibration,
                                 carriedDay = lastScoredRecoveryDay,
                                 days = days,
-                                drivers = metricDrivers(metricTiles),
                                 onOpenReadiness = { showChargeBreakdown = true },
                             )
                         }
-                        // METRICS: the one line that explains every arrow, then the Recovery, Sleep, Training
-                        // and Body cards (each enabled metric in its group, a tap opening it in place), then
-                        // the Customize button that picks the metrics (#251). One keyed item for the drag.
+                        // METRICS: the Recovery, Sleep, Training and Body cards, each enabled metric a row in
+                        // its group (a tap opens its detail under the row), then the Customize button that
+                        // picks the metrics (#251). One keyed item for the drag.
                         TodaySection.KEY_METRICS -> Column(
                             modifier = Modifier.fillMaxWidth().staggeredAppear(stagger),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            MetricsArrowCaption()
                             MetricCategoryCards(
                                 tiles = metricTiles,
                                 enabled = enabledKeyMetrics,
-                                isToday = selectedDayOffset == 0,
                                 expandedId = expandedMetric,
                                 onToggle = { id -> expandedMetric = if (expandedMetric == id) null else id },
                             )

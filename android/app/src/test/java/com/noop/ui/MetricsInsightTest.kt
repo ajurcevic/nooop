@@ -12,7 +12,7 @@ import org.junit.Test
 
 /**
  * The Metrics tab's maths and plain-English lines (MetricsInsight.kt): the 30-day baseline, the normal range,
- * the chart points, the arrow colours and the sentence each card picks. Pure functions, so every rule is
+ * the chart points, the arrow colours and the sentences behind them. Pure functions, so every rule is
  * pinned here without a phone or a strap.
  */
 class MetricsInsightTest {
@@ -233,16 +233,6 @@ class MetricsInsightTest {
     }
 
     @Test
-    fun tilesPairUpAndAWideOrOpenedTileTakesARowOfItsOwn() {
-        assertEquals(listOf(listOf("a", "b"), listOf("c")), tileRows(listOf("a", "b", "c")) { false })
-        assertEquals(
-            listOf(listOf("a"), listOf("WIDE"), listOf("c", "d")),
-            tileRows(listOf("a", "WIDE", "c", "d")) { it == "WIDE" },
-        )
-        assertEquals(emptyList<List<String>>(), tileRows(emptyList<String>()) { false })
-    }
-
-    @Test
     fun everyMetricBelongsToACategory() {
         assertEquals(MetricCategory.SLEEP, metricCategory(KeyMetric.ASLEEP))
         assertEquals(MetricCategory.SLEEP, metricCategory(KeyMetric.REST))
@@ -299,20 +289,6 @@ class MetricsInsightTest {
         assertFalse(empty.canExpand)
         assertNull(empty.tone)
         assertNull(empty.side)
-    }
-
-    @Test
-    fun summaryChipsCarryTheDifferenceFromTheBaseline() {
-        val tiles = mapOf(
-            KeyMetric.HRV to tile(raw = 64.0, baseline = 61.0),
-            KeyMetric.RESTING_HR to tile(raw = 55.0, baseline = null, rule = TrendRule.LOWER_IS_BETTER, label = "Resting HR"),
-        )
-        val drivers = metricDrivers(tiles)
-        // Resting heart rate has no baseline yet, so it has no chip.
-        assertEquals(1, drivers.size)
-        assertEquals("HRV", drivers.single().label)
-        assertEquals(3.0, drivers.single().delta, 1e-9)
-        assertEquals(HomeTone.FAIR, drivers.single().tone)
     }
 
     // MARK: - Imported histories

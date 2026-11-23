@@ -22,6 +22,11 @@ import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -505,34 +510,33 @@ private fun HeroScoreVessel(
 }
 
 /**
- * The plain-English Synthesis card at the top of the Metrics tab (Zoop "Calm"): the overline and the one-word
- * readiness pill, the Charge-level word in the brand mint, the one-line read, and chips for what drove it
- * (HRV, resting heart rate and last night's sleep against their 30-day baselines). Always open: the read is
- * short enough that folding it only hid it.
+ * The readiness card at the top of the Metrics tab (Zoop "Calm"), one line: the readiness word in its tone
+ * colour, "vs 30-day baseline" and an info button. The button opens the colour legend for every change chip
+ * on the tab and the one-sentence readiness read, with a way to the full Readiness card.
  */
 @Composable
 internal fun SynthesisHeroCard(
     day: DailyMetric?,
     recoveryCalibration: Int?,
     carriedDay: DailyMetric? = null,
-    // The day history for the one-word readiness read, the driver chips, and the tap that opens the Charge
-    // breakdown (where the full Readiness card lives). Defaults keep previews compiling.
+    // The day history for the readiness read, and the tap that opens the Charge breakdown (where the full
+    // Readiness card lives). Defaults keep previews compiling.
     days: List<DailyMetric> = emptyList(),
-    drivers: List<MetricDriver> = emptyList(),
     onOpenReadiness: () -> Unit = {},
 ) {
-    // The row the synthesis reads from: today's own when it carries recovery, else the carried-over last
+    // The row the fallback reads from: today's own when it carries recovery, else the carried-over last
     // scored day (#543) so the card mirrors the carried Charge instead of blanking to "No Data". When
     // carrying, the detail line gets a "Last night · <date>" provenance so the prior read isn't passed off
     // as today's. Today's own read wins the instant tonight is scored.
     val readDay = carriedDay ?: day
     val recovery = readDay?.recovery
-    // S4 (#205): the one-word readiness read (Push / Maintain / Rest), hidden without enough history. #1405:
-    // the Synthesis words below are Charge-level and never share a word with it.
-    val readinessLevel = remember(days) {
-        if (days.isEmpty()) ReadinessEngine.Level.INSUFFICIENT
-        else ReadinessEngine.evaluate(days, today = logicalDayKeyNow()).level
+    // S4 (#205): the readiness read (Primed / Balanced / Strained / Run down), INSUFFICIENT without enough
+    // history; the Charge-level status below is the fallback word then.
+    val readiness = remember(days) {
+        if (days.isEmpty()) null else ReadinessEngine.evaluate(days, today = logicalDayKeyNow())
     }
+    val level = readiness?.level ?: ReadinessEngine.Level.INSUFFICIENT
+    val hasReadiness = readiness != null && level != ReadinessEngine.Level.INSUFFICIENT
     val status = if (recoveryCalibration != null) uiString(R.string.score_state_title_calibrating)
     else synthesisWord(recovery)
     val detail = if (recoveryCalibration != null) {
@@ -570,52 +574,66 @@ internal fun SynthesisHeroCard(
     }
     // The word takes the brand mint only when it is a real read; calibrating and no-data stay neutral.
     val statusColor = if (recoveryCalibration == null && recovery != null) Palette.accent else Palette.textPrimary
+    val word = if (readiness != null && hasReadiness) readinessCopy(readiness.headlineRes) else status
+    val wordColor = if (hasReadiness) readinessColor(level) else statusColor
+    val explanation = if (readiness != null && hasReadiness) readinessCopy(readiness.summaryRes) else detail
+    var showInfo by remember { mutableStateOf(false) }
     NoopCard(modifier = Modifier.fillMaxWidth()) {
-        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space12)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space8),
-            ) {
-                Text(
-                    uiString(R.string.today_section_synthesis),
-                    style = NoopType.subhead,
-                    color = Palette.textSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
+        ) {
+            Text(
+                word,
+                style = NoopType.title2,
+                color = wordColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                uiString(R.string.metrics_vs_30_day_baseline),
+                style = NoopType.caption,
+                color = Palette.textTertiary,
+                maxLines = 1,
+            )
+            IconButton(onClick = { showInfo = true }, modifier = Modifier.size(Metrics.iconButton)) {
+                Icon(
+                    Icons.Outlined.Info,
+                    contentDescription = uiString(R.string.metrics_action_about_comparisons),
+                    tint = Palette.textTertiary,
+                    modifier = Modifier.size(Metrics.iconSmall),
                 )
-                readinessWord(readinessLevel)?.let { wordRes ->
-                    ReadinessHeroPill(word = uiString(wordRes), level = readinessLevel, onTap = onOpenReadiness)
-                }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
-                Text(status, style = NoopType.title1, color = statusColor)
-                Text(detail, style = NoopType.body, color = Palette.textSecondary)
-            }
-            if (drivers.isNotEmpty()) MetricDriverChips(drivers)
         }
     }
-}
-
-/**
- * S4 (#205): the one-word readiness pill on the hero (Push / Maintain / Rest). A small tinted capsule
- * matching the score-pill chrome, coloured by the readiness level; tapping opens the Charge breakdown sheet
- * where the full Readiness card lives. Mirrors the iOS readinessHeroPill.
- */
-@Composable
-private fun ReadinessHeroPill(word: String, level: ReadinessEngine.Level, onTap: () -> Unit) {
-    val tone = readinessColor(level)
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(tone.copy(alpha = 0.12f))
-            .border(1.dp, tone.copy(alpha = 0.32f), RoundedCornerShape(50))
-            .clickable(onClickLabel = uiString(R.string.today_action_full_readiness), onClick = onTap)
-            .padding(horizontal = 10.dp, vertical = 5.dp)
-            .semantics { contentDescription = uiString(R.string.l10n_today_screen_readiness_word_749b3330, word) },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(word.uppercase(), style = NoopType.overline, color = tone)
+    if (showInfo) {
+        AlertDialog(
+            onDismissRequest = { showInfo = false },
+            containerColor = Palette.surfaceOverlay,
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(Metrics.space12)) {
+                    Text(uiString(R.string.metrics_arrow_caption), style = NoopType.subhead, color = Palette.textSecondary)
+                    Text(explanation, style = NoopType.subhead, color = Palette.textSecondary)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showInfo = false }) {
+                    Text(uiString(R.string.l10n_components_close_bbfa773e), color = Palette.accent)
+                }
+            },
+            dismissButton = {
+                // The way on to the Charge breakdown and the full Readiness card, once there is a read to open.
+                if (hasReadiness) {
+                    TextButton(onClick = {
+                        showInfo = false
+                        onOpenReadiness()
+                    }) {
+                        Text(uiString(R.string.today_action_full_readiness), color = Palette.textSecondary)
+                    }
+                }
+            },
+        )
     }
 }
 

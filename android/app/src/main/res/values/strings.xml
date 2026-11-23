@@ -969,7 +969,6 @@
     <string name="l10n_today_screen_strap_history_still_offloading_80140264">strap history still offloading</string>
     <string name="l10n_today_screen_pct_roundtoint_05ba4549">%1$s</string>
     <string name="l10n_today_screen_quick_actions_e47e8042">Quick actions</string>
-    <string name="l10n_today_screen_readiness_word_749b3330">Readiness: %1$s</string>
     <string name="l10n_today_screen_reset_44c57abd">Reset</string>
     <string name="l10n_today_screen_see_how_charge_effort_and_rest_80243197">See how Charge, Effort and Rest are calculated, and how they differ from WHOOP.</string>
     <string name="l10n_today_screen_see_how_it_works_f7b38f07">See how it works</string>
@@ -2659,9 +2658,6 @@
     <string name="metrics_category_body">Body</string>
     <string name="metrics_two_sentences">%1$s %2$s</string>
     <string name="metrics_action_open_tile">Show details</string>
-    <string name="metrics_vs_baseline">vs %1$s</string>
-    <string name="metrics_vs_normal">vs normal</string>
-    <string name="metrics_baseline_value">Baseline %1$s</string>
     <string name="metrics_open_trend">See full trend</string>
     <string name="metrics_normal_range">Normal range</string>
     <string name="metrics_last_30_days">Last 30 days</string>
@@ -2669,8 +2665,9 @@
     <string name="metrics_range_value">%1$s–%2$s</string>
     <string name="metrics_average_7_days">7-day avg</string>
     <string name="metrics_effort_so_far">today so far</string>
-    <string name="metrics_slept">Slept %1$s</string>
     <string name="metrics_arrow_caption">Arrows compare each number with your 30-day baseline. Green is better, amber is about usual, orange is worse.</string>
+    <string name="metrics_vs_30_day_baseline">vs 30-day baseline</string>
+    <string name="metrics_action_about_comparisons">About these comparisons</string>
     <string name="metrics_sentence_above_baseline">Above your baseline.</string>
     <string name="metrics_sentence_close_to_baseline">Close to your baseline.</string>
     <string name="metrics_sentence_below_baseline">Below your baseline.</string>

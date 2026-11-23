@@ -13,8 +13,9 @@ import kotlin.math.floor
 //
 // The Metrics tab sets every number against the owner's own recent past: a 30-day baseline (the mean of the
 // 30 days before the number's day), a normal range (the middle 80% of those days) and the 7-day average the
-// Home tab already compares with. The maths and the choice of each plain-English line live here as pure
-// functions, so JVM tests pin them; MetricsCategoryCards.kt only draws what these return.
+// Home tab already compares with. The maths and the plain-English lines behind it live here as pure
+// functions, so JVM tests pin them; MetricsCategoryCards.kt only draws what these return (an opened row's
+// sentence, its range bar and chart).
 
 /** Calendar days behind a Metrics baseline and its normal range. */
 internal const val METRICS_BASELINE_DAYS = 30
@@ -284,30 +285,3 @@ internal fun firstReading(vararg rows: DailyMetric?, pick: (DailyMetric) -> Doub
     }
     return null
 }
-
-/**
- * The rows a category card lays its tiles out in: pairs on a two-column grid, with a wide tile (Effort) or the
- * tile the owner opened taking a full row of its own. A tile left without a partner keeps half the width.
- */
-internal fun <T> tileRows(tiles: List<T>, fullWidth: (T) -> Boolean): List<List<T>> {
-    val rows = mutableListOf<List<T>>()
-    val pending = mutableListOf<T>()
-    for (tile in tiles) {
-        if (fullWidth(tile)) {
-            if (pending.isNotEmpty()) {
-                rows.add(pending.toList())
-                pending.clear()
-            }
-            rows.add(listOf(tile))
-        } else {
-            pending.add(tile)
-            if (pending.size == 2) {
-                rows.add(pending.toList())
-                pending.clear()
-            }
-        }
-    }
-    if (pending.isNotEmpty()) rows.add(pending.toList())
-    return rows
-}
-

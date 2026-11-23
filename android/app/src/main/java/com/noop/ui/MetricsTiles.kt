@@ -5,7 +5,6 @@ import com.noop.R
 import com.noop.analytics.Baselines
 import com.noop.analytics.ScoreConfidence
 import com.noop.analytics.SkinTempDisplay
-import com.noop.analytics.StrainScorer
 import com.noop.data.DailyMetric
 import java.time.LocalDate
 import java.util.Locale
@@ -115,8 +114,6 @@ internal fun buildMetricTiles(
         value: String? = reading?.let { format(it.value) },
         caption: String? = null,
         referenceIsNormal: Boolean = false,
-        barMax: Double? = null,
-        barMaxLabel: String? = null,
         labelSuffix: String? = null,
         valueColor: Color? = null,
         onOpen: (() -> Unit)? = null,
@@ -141,8 +138,6 @@ internal fun buildMetricTiles(
             formatDelta = formatDelta,
             caption = caption,
             referenceIsNormal = referenceIsNormal,
-            barMax = barMax,
-            barMaxLabel = barMaxLabel,
             labelSuffix = labelSuffix,
             axisStart = date?.let { shortDate(it, METRICS_BASELINE_DAYS) },
             axisEnd = date?.let {
@@ -258,8 +253,6 @@ internal fun buildMetricTiles(
             rule = TrendRule.NEUTRAL,
             format = effortFormat,
             tolerance = EFFORT_TYPICAL_TOLERANCE,
-            barMax = StrainScorer.maxStrain,
-            barMaxLabel = UnitFormatter.effortScaleMax(effortScale),
             labelSuffix = if (isToday && effortReading != null) uiString(R.string.metrics_effort_so_far) else null,
             onOpen = { onOpenMetric(HERO_EFFORT_METRIC_KEY) },
         ),
@@ -412,25 +405,6 @@ internal fun chargeEstimateNote(hasOwnScore: Boolean, confidence: ScoreConfidenc
 /** The Calories tile's note: only when the day shows a figure and that figure is Zoop's own estimate. */
 internal fun caloriesEstimateNote(dayKey: String, hasValue: Boolean, estimatedDays: Set<String>): EstimateNote? =
     if (hasValue && dayKey in estimatedDays) EstimateNote.FROM_HEART_RATE else null
-
-/**
- * The summary card's chips: HRV, resting heart rate and last night's sleep against their baselines. A metric
- * without a baseline yet has no arrow to show, so it is left out.
- */
-internal fun metricDrivers(tiles: Map<KeyMetric, MetricTileUi>): List<MetricDriver> {
-    fun MetricTileUi.driver(label: String): MetricDriver? {
-        val value = raw ?: return null
-        val reference = reference ?: return null
-        return MetricDriver(label, value - reference, tone, formatDelta)
-    }
-    return listOfNotNull(
-        tiles[KeyMetric.HRV]?.let { it.driver(it.label) },
-        tiles[KeyMetric.RESTING_HR]?.let { it.driver(it.label) },
-        tiles[KeyMetric.ASLEEP]?.let { tile ->
-            tile.raw?.let { minutes -> tile.driver(uiString(R.string.metrics_slept, durationText(minutes))) }
-        },
-    )
-}
 
 /** A whole number, rounded: Charge, Rest, HRV, resting heart rate, blood oxygen. */
 private fun wholeNumber(value: Double): String = value.roundToInt().toString()

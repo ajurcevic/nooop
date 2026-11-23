@@ -276,7 +276,7 @@ private fun readinessEvidenceText(evidence: ReadinessEngine.Evidence): String {
 }
 
 @Composable
-private fun readinessCopy(copy: ReadinessEngine.Copy): String = uiString(
+internal fun readinessCopy(copy: ReadinessEngine.Copy): String = uiString(
     when (copy) {
         ReadinessEngine.Copy.TODAY_READINESS_BALANCED -> R.string.today_readiness_balanced
         ReadinessEngine.Copy.TODAY_READINESS_BALANCED_SUMMARY -> R.string.today_readiness_balanced_summary

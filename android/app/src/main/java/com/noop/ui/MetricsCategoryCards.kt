@@ -3,19 +3,14 @@ package com.noop.ui
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -31,9 +26,8 @@ import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Bolt
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,7 +51,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.noop.R
@@ -69,11 +62,11 @@ import kotlin.math.roundToInt
 
 // MARK: - Metrics category cards (Zoop "Calm" redesign)
 //
-// The Metrics tab groups every number into four cards, Recovery, Sleep, Training and Body, each with one
-// plain-English line and a two-column grid of tiles. A tile shows the number in its data colour and a small
-// arrow chip against the owner's 30-day baseline; a tap opens it in place to the full card width with the
-// normal range, a 30-day chart and three small stats. The numbers and their baselines come in already
-// resolved (MetricTileUi); the maths behind them is MetricsInsight.kt.
+// The Metrics tab groups every number into four cards, Recovery, Sleep, Training and Body, each a list of
+// rows. A row shows the metric's name, the number in its data colour and a small arrow chip against the
+// owner's 30-day baseline; a tap opens its detail under the row with the normal range, a 30-day chart and
+// three small stats. The numbers and their baselines come in already resolved (MetricTileUi); the maths
+// behind them is MetricsInsight.kt.
 
 /** Shown in place of a number the day does not have. Matches the Home tab's empty value. */
 private const val METRICS_EMPTY_VALUE = "—"
@@ -112,11 +105,7 @@ internal data class MetricTileUi(
     val caption: String? = null,
     /** Compare with "normal" (zero) rather than a baseline: a skin temperature deviation is already relative. */
     val referenceIsNormal: Boolean = false,
-    /** A full-width tile with a bar to this top of scale, on the comparison scale (Effort's 100). */
-    val barMax: Double? = null,
-    /** The bar's top of scale as shown ("21" or "100"). */
-    val barMaxLabel: String? = null,
-    /** Quiet words after the label on a full-width tile, such as "today so far". */
+    /** Quiet words under the row's label, such as "today so far". */
     val labelSuffix: String? = null,
     /** The opened chart's first date, the window's start ("18 Oct"). */
     val axisStart: String? = null,
@@ -144,14 +133,6 @@ internal data class MetricTileUi(
     val canExpand: Boolean get() = raw != null
 }
 
-/** A summary-card chip: a label and its arrow against the baseline, such as "HRV ↑ 3 ms". */
-internal data class MetricDriver(
-    val label: String,
-    val delta: Double,
-    val tone: HomeTone?,
-    val formatDelta: (Double) -> String,
-)
-
 /** The category card's title, shared with the Trends section cards. */
 internal fun categoryTitle(category: MetricCategory): String = when (category) {
     MetricCategory.RECOVERY -> uiString(R.string.l10n_today_screen_recovery_ea924f72)
@@ -170,14 +151,13 @@ internal fun categoryIcon(category: MetricCategory): ImageVector = when (categor
 
 /**
  * The four category cards for the enabled metrics, in the fixed Recovery, Sleep, Training, Body order. A
- * card with no enabled metric is left out. [tiles] holds every metric, enabled or not, so each card's line
- * can read the facts it is about even when the owner hid one of the tiles.
+ * card with no enabled metric is left out. [tiles] holds every metric, enabled or not; only the enabled ones
+ * become rows.
  */
 @Composable
 internal fun MetricCategoryCards(
     tiles: Map<KeyMetric, MetricTileUi>,
     enabled: List<KeyMetric>,
-    isToday: Boolean,
     expandedId: String?,
     onToggle: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -188,7 +168,6 @@ internal fun MetricCategoryCards(
             if (shown.isEmpty()) return@forEach
             MetricCategoryCard(
                 category = category,
-                line = categoryLine(category, tiles, isToday),
                 tiles = shown,
                 expandedId = expandedId,
                 onToggle = onToggle,
@@ -197,96 +176,23 @@ internal fun MetricCategoryCards(
     }
 }
 
-/** The one plain-English line under a category title, built from the same tiles the card draws. */
-private fun categoryLine(category: MetricCategory, tiles: Map<KeyMetric, MetricTileUi>, isToday: Boolean): String? =
-    when (category) {
-        MetricCategory.RECOVERY -> {
-            val charge = recoveryChargeLine(tiles[KeyMetric.CHARGE]?.raw)?.let { uiString(it) }
-            val vitals = recoveryVitalsLine(tiles[KeyMetric.HRV]?.tone, tiles[KeyMetric.RESTING_HR]?.tone)
-                ?.let { uiString(it) }
-            when {
-                charge != null && vitals != null -> uiString(R.string.metrics_two_sentences, charge, vitals)
-                charge != null -> charge
-                vitals != null -> vitals
-                else -> uiString(R.string.metrics_recovery_empty)
-            }
-        }
-        MetricCategory.SLEEP -> {
-            val rest = sleepRestLine(tiles[KeyMetric.REST]?.raw)?.let { uiString(it) }
-            val asleep = tiles[KeyMetric.ASLEEP]
-            val asleepValue = asleep?.raw
-            val duration = if (asleep != null && asleepValue != null) {
-                val res = sleepDurationLine(asleep.tone)
-                val reference = asleep.reference
-                if (reference != null && asleep.tone != null && asleep.tone != HomeTone.FAIR) {
-                    uiString(res, asleep.format(asleepValue), asleep.formatDelta(abs(asleepValue - reference)))
-                } else {
-                    uiString(res, asleep.format(asleepValue))
-                }
-            } else {
-                null
-            }
-            when {
-                rest != null && duration != null -> uiString(R.string.metrics_two_sentences, rest, duration)
-                rest != null -> rest
-                duration != null -> duration
-                else -> uiString(R.string.metrics_sleep_empty)
-            }
-        }
-        MetricCategory.TRAINING -> {
-            val effort = tiles[KeyMetric.EFFORT]
-            uiString(trainingLine(effort?.raw, effort?.insight?.baseline, isToday))
-        }
-        MetricCategory.BODY -> {
-            val skin = tiles[KeyMetric.SKIN_TEMP]?.side
-            // raw, not value: a weight taken from the profile shows a number but was never measured.
-            val any = listOf(KeyMetric.WEIGHT, KeyMetric.SKIN_TEMP, KeyMetric.BLOOD_OXYGEN)
-                .any { tiles[it]?.raw != null }
-            uiString(bodyLine(skin, any))
-        }
-    }
-
-/** One category card: icon and title, the plain line, then the tiles on a two-column grid. */
+/** One category card: icon and title, then one row per metric between hairlines, the opened one's detail under it. */
 @Composable
 private fun MetricCategoryCard(
     category: MetricCategory,
-    line: String?,
     tiles: List<MetricTileUi>,
     expandedId: String?,
     onToggle: (String) -> Unit,
 ) {
     NoopCard {
-        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space12)) {
+        Column {
             CategoryHeading(category)
-            if (line != null) {
-                Text(line, style = NoopType.body, color = Palette.textSecondary)
-            }
-            val rows = tileRows(tiles) { it.id == expandedId || it.barMax != null }
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(top = Metrics.space4).animateContentSize(),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space10),
-            ) {
-                rows.forEach { row ->
-                    val only = row.singleOrNull()
-                    when {
-                        only != null && only.id == expandedId ->
-                            ExpandedMetricTile(only, onToggle = { onToggle(only.id) })
-                        only != null && only.barMax != null ->
-                            WideBarTile(only, onToggle = { tileTap(only, onToggle) })
-                        else -> Row(
-                            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                            horizontalArrangement = Arrangement.spacedBy(Metrics.space10),
-                        ) {
-                            row.forEach { tile ->
-                                CompactMetricTile(
-                                    tile,
-                                    onToggle = { tileTap(tile, onToggle) },
-                                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                                )
-                            }
-                            if (row.size == 1) Spacer(Modifier.weight(1f))
-                        }
-                    }
+            Column(modifier = Modifier.fillMaxWidth().padding(top = Metrics.space4).animateContentSize()) {
+                tiles.forEachIndexed { index, tile ->
+                    if (index > 0) HorizontalDivider(thickness = Metrics.divider, color = Palette.hairline)
+                    val opened = tile.id == expandedId
+                    MetricRow(tile, opened = opened, onTap = { tileTap(tile, onToggle) })
+                    if (opened && tile.canExpand) MetricRowDetail(tile)
                 }
             }
         }
@@ -318,129 +224,82 @@ internal fun CategoryHeading(category: MetricCategory) {
     }
 }
 
-/** A tap on a closed tile: open it in place when it has a number, else do what the empty tile offers. */
+/** A tap on a row: open or close its detail when it has a number, else do what the empty row offers. */
 private fun tileTap(tile: MetricTileUi, onToggle: (String) -> Unit) {
     if (tile.canExpand) onToggle(tile.id) else tile.onOpen?.invoke()
 }
 
-/** The surface every tile shares: the inset fill, and the mint ring of the opened state. */
+/** The inset surface an opened row's detail sits on. */
 @Composable
-private fun Modifier.tileSurface(opened: Boolean): Modifier {
-    val shape = RoundedCornerShape(TileRadius)
-    val base = this.clip(shape).background(Palette.surfaceInset)
-    return if (opened) {
-        base.background(Palette.accent.copy(alpha = 0.06f)).border(1.dp, Palette.accent.copy(alpha = 0.35f), shape)
-    } else {
-        base
-    }
-}
+private fun Modifier.tileSurface(): Modifier = this.clip(RoundedCornerShape(TileRadius)).background(Palette.surfaceInset)
 
-/** A closed tile: label and chevron, the number, then its arrow chip against the baseline. */
+/**
+ * One metric row: the name on the left with any quiet note under it (an estimate, "today so far", a baseline
+ * still building), and the number with its unit and the arrow chip against the baseline on the right. The
+ * whole row is the tap target.
+ */
 @Composable
-private fun CompactMetricTile(tile: MetricTileUi, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+private fun MetricRow(tile: MetricTileUi, opened: Boolean, onTap: () -> Unit) {
     val tappable = tile.canExpand || tile.onOpen != null
-    Column(
-        modifier = modifier
-            .tileSurface(opened = false)
+    val value = tile.raw
+    val reference = tile.reference
+    // Each note keeps its own line: an estimate or a pending sync must stay visible, never folded away.
+    val notes = listOfNotNull(
+        tile.labelSuffix,
+        tile.caption,
+        if (value != null && reference == null) uiString(R.string.today_update_building_baseline_title) else null,
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
             .then(
                 if (tappable) {
-                    Modifier.clickable(onClickLabel = uiString(R.string.metrics_action_open_tile), onClick = onToggle)
+                    Modifier.clickable(
+                        onClickLabel = uiString(if (opened) R.string.today_action_collapse else R.string.metrics_action_open_tile),
+                        onClick = onTap,
+                    )
                 } else {
                     Modifier
                 },
             )
-            .padding(TilePadding),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space6),
+            .padding(vertical = Metrics.space12),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        TileHeader(tile.label, opened = false, showChevron = tile.canExpand)
-        ValueLine(tile, size = 26f)
-        Spacer(Modifier.weight(1f))
-        ComparisonLine(tile)
-        tile.caption?.let {
-            Text(it, style = NoopType.caption, color = Palette.textTertiary, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+            Text(
+                tile.label,
+                style = NoopType.body,
+                color = Palette.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            notes.forEach { note ->
+                Text(note, style = NoopType.caption, color = Palette.textTertiary, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
         }
-    }
-}
-
-/** The tile's label with the open/close chevron on the right. */
-@Composable
-private fun TileHeader(label: String, opened: Boolean, showChevron: Boolean = true, suffix: String? = null) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Text(label, style = NoopType.subhead, color = Palette.textSecondary, maxLines = 1)
-            if (suffix != null) {
+        Spacer(Modifier.width(Metrics.space12))
+        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space4)) {
+            Text(
+                tile.value ?: METRICS_EMPTY_VALUE,
+                style = NoopType.metricInline,
+                color = if (tile.value != null) tile.valueColor else Palette.textTertiary,
+                maxLines = 1,
+                modifier = Modifier.alignByBaseline(),
+            )
+            if (tile.value != null && tile.unit.isNotEmpty()) {
                 Text(
-                    " · ",
-                    style = NoopType.subhead,
+                    tile.unit,
+                    style = NoopType.caption,
                     color = Palette.textTertiary,
                     maxLines = 1,
-                )
-                Text(
-                    suffix,
-                    style = NoopType.subhead,
-                    color = Palette.textTertiary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.alignByBaseline(),
                 )
             }
         }
-        if (showChevron) {
-            Icon(
-                if (opened) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
-                contentDescription = null,
-                tint = Palette.textTertiary,
-                modifier = Modifier.size(Metrics.iconSmall),
-            )
+        if (value != null && reference != null) {
+            Spacer(Modifier.width(Metrics.space8))
+            ComparisonChip(delta = value - reference, tone = tile.tone, formatDelta = tile.formatDelta)
         }
-    }
-}
-
-/** The big number in its data colour with its unit beside it, or a dash when the day has none. */
-@Composable
-private fun ValueLine(tile: MetricTileUi, size: Float) {
-    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Metrics.space4)) {
-        Text(
-            tile.value ?: METRICS_EMPTY_VALUE,
-            style = NoopType.number(size),
-            color = if (tile.value != null) tile.valueColor else Palette.textTertiary,
-            maxLines = 1,
-        )
-        if (tile.value != null && tile.unit.isNotEmpty()) {
-            Text(
-                tile.unit,
-                style = NoopType.subhead,
-                color = Palette.textTertiary,
-                maxLines = 1,
-                modifier = Modifier.padding(bottom = (size / 9f).dp),
-            )
-        }
-    }
-}
-
-/** The arrow chip and "vs 61", "Building your baseline" before there is one, or nothing without a number. */
-@Composable
-private fun ComparisonLine(tile: MetricTileUi) {
-    val value = tile.raw ?: return
-    val reference = tile.reference
-    if (reference == null) {
-        Text(
-            uiString(R.string.today_update_building_baseline_title),
-            style = NoopType.caption,
-            color = Palette.textTertiary,
-            maxLines = 2,
-        )
-        return
-    }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Metrics.space6)) {
-        ComparisonChip(delta = value - reference, tone = tile.tone, formatDelta = tile.formatDelta)
-        Text(
-            if (tile.referenceIsNormal) uiString(R.string.metrics_vs_normal)
-            else uiString(R.string.metrics_vs_baseline, tile.format(reference)),
-            style = NoopType.caption,
-            color = Palette.textTertiary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 
@@ -477,133 +336,12 @@ internal fun ComparisonChip(delta: Double, tone: HomeTone?, formatDelta: (Double
 }
 
 /**
- * The full-width Effort tile: the number out of its scale, the arrow chip, and a bar from zero with a tick at
- * the baseline, labelled 0, "Baseline 12.4" and the top of the scale.
+ * The detail that opens under a row: a plain sentence, the normal-range bar, the 30-day chart with the normal
+ * band and the dashed baseline, three small stats and a way to the full trend. The row above it already shows
+ * the number and its chip, and closes the detail again.
  */
 @Composable
-private fun WideBarTile(tile: MetricTileUi, onToggle: () -> Unit) {
-    val max = tile.barMax ?: return
-    val value = tile.raw
-    val reference = tile.reference
-    val tappable = tile.canExpand || tile.onOpen != null
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .tileSurface(opened = false)
-            .then(
-                if (tappable) {
-                    Modifier.clickable(onClickLabel = uiString(R.string.metrics_action_open_tile), onClick = onToggle)
-                } else {
-                    Modifier
-                },
-            )
-            .padding(TilePadding),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space10),
-    ) {
-        TileHeader(tile.label, opened = false, showChevron = tile.canExpand, suffix = tile.labelSuffix)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.weight(1f)) { ValueLine(tile, size = 30f) }
-            if (value != null && reference != null) {
-                ComparisonChip(delta = value - reference, tone = tile.tone, formatDelta = tile.formatDelta)
-                Spacer(Modifier.width(Metrics.space6))
-                Text(
-                    uiString(R.string.metrics_vs_baseline, tile.format(reference)),
-                    style = NoopType.caption,
-                    color = Palette.textTertiary,
-                    maxLines = 1,
-                )
-            } else if (value != null) {
-                Text(
-                    uiString(R.string.today_update_building_baseline_title),
-                    style = NoopType.caption,
-                    color = Palette.textTertiary,
-                    maxLines = 1,
-                )
-            }
-        }
-        if (value != null) {
-            val fill = (value / max).toFloat().coerceIn(0f, 1f)
-            val tick = reference?.let { (it / max).toFloat().coerceIn(0f, 1f) }
-            val track = Palette.hairlineStrong
-            val deep = Palette.effortDeep
-            val bright = tile.lineColor
-            val tickColor = Palette.textSecondary
-            Canvas(modifier = Modifier.fillMaxWidth().height(18.dp)) {
-                val barHeight = 8.dp.toPx()
-                val top = (size.height - barHeight) / 2f
-                val radius = CornerRadius(barHeight / 2f, barHeight / 2f)
-                drawRoundRect(track, topLeft = Offset(0f, top), size = Size(size.width, barHeight), cornerRadius = radius)
-                if (fill > 0f) {
-                    drawRoundRect(
-                        brush = Brush.horizontalGradient(listOf(deep, bright), startX = 0f, endX = size.width * fill),
-                        topLeft = Offset(0f, top),
-                        size = Size(size.width * fill, barHeight),
-                        cornerRadius = radius,
-                    )
-                }
-                if (tick != null) {
-                    val x = size.width * tick
-                    drawLine(
-                        tickColor,
-                        start = Offset(x, 0f),
-                        end = Offset(x, size.height),
-                        strokeWidth = 2.dp.toPx(),
-                        cap = StrokeCap.Round,
-                    )
-                }
-            }
-            ScaleLabels(
-                start = tile.format(0.0),
-                middle = reference?.let { uiString(R.string.metrics_baseline_value, tile.format(it)) },
-                middleFraction = tick ?: 0.5f,
-                end = tile.barMaxLabel ?: tile.format(max),
-            )
-        }
-        tile.caption?.let {
-            Text(it, style = NoopType.caption, color = Palette.textTertiary, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        }
-    }
-}
-
-/**
- * Labels under a bar: [start] at the left edge, [end] at the right, and [middle] centred on its tick. An end
- * label that the middle one would overlap is left out rather than drawn on top of it.
- */
-@Composable
-private fun ScaleLabels(start: String, middle: String?, middleFraction: Float, end: String) {
-    Layout(
-        modifier = Modifier.fillMaxWidth(),
-        content = {
-            Text(start, style = NoopType.captionNumber, color = Palette.textTertiary, maxLines = 1)
-            Text(middle.orEmpty(), style = NoopType.captionNumber, color = Palette.textSecondary, maxLines = 1)
-            Text(end, style = NoopType.captionNumber, color = Palette.textTertiary, maxLines = 1)
-        },
-    ) { measurables, constraints ->
-        val loose = constraints.copy(minWidth = 0, minHeight = 0)
-        val placeables = measurables.map { it.measure(loose) }
-        val startP = placeables[0]
-        val middleP = placeables[1]
-        val endP = placeables[2]
-        val width = constraints.maxWidth
-        val gap = 8.dp.roundToPx()
-        val middleX = (middleFraction * width - middleP.width / 2f).roundToInt()
-            .coerceIn(0, (width - middleP.width).coerceAtLeast(0))
-        val height = maxOf(startP.height, middleP.height, endP.height)
-        layout(width, height) {
-            val hasMiddle = middle != null
-            if (!hasMiddle || middleX >= startP.width + gap) startP.place(0, 0)
-            if (hasMiddle) middleP.place(middleX, 0)
-            if (!hasMiddle || middleX + middleP.width + gap <= width - endP.width) endP.place(width - endP.width, 0)
-        }
-    }
-}
-
-/**
- * An opened tile, the full card width: the number and its chip with a plain sentence, the normal-range bar,
- * the 30-day chart with the normal band and the dashed baseline, three small stats and a way to the full trend.
- */
-@Composable
-private fun ExpandedMetricTile(tile: MetricTileUi, onToggle: () -> Unit) {
+private fun MetricRowDetail(tile: MetricTileUi) {
     val value = tile.raw
     val reference = tile.reference
     val insight = tile.insight
@@ -612,35 +350,13 @@ private fun ExpandedMetricTile(tile: MetricTileUi, onToggle: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .tileSurface(opened = true)
-            .clickable(onClickLabel = uiString(R.string.today_action_collapse), onClick = onToggle)
+            .padding(bottom = Metrics.space12)
+            .tileSurface()
             .padding(TilePadding),
         verticalArrangement = Arrangement.spacedBy(Metrics.space14),
     ) {
-        TileHeader(tile.label, opened = true, suffix = tile.labelSuffix)
-        Row(verticalAlignment = Alignment.Top) {
-            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space8)) {
-                ValueLine(tile, size = 40f)
-                if (value != null && reference != null) {
-                    ComparisonChip(
-                        delta = value - reference,
-                        tone = tile.tone,
-                        formatDelta = tile.formatDelta,
-                        unit = tile.unit,
-                    )
-                }
-            }
-            Spacer(Modifier.width(Metrics.space16))
-            val sentence = expandedSentence(tile)
-            if (sentence != null) {
-                Text(
-                    sentence,
-                    style = NoopType.body,
-                    color = Palette.textSecondary,
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.weight(1f),
-                )
-            }
+        expandedSentence(tile)?.let { sentence ->
+            Text(sentence, style = NoopType.body, color = Palette.textSecondary, modifier = Modifier.fillMaxWidth())
         }
         if (value != null && low != null && high != null) {
             RangeBar(
@@ -703,7 +419,7 @@ private fun ExpandedMetricTile(tile: MetricTileUi, onToggle: () -> Unit) {
     }
 }
 
-/** "Above your baseline. Inside your normal range." from the opened tile's own numbers. */
+/** "Above your baseline. Inside your normal range." from the opened row's own numbers. */
 private fun expandedSentence(tile: MetricTileUi): String? {
     val value = tile.raw ?: return null
     val side = tile.side ?: return null
@@ -1020,17 +736,6 @@ private fun StatColumn(label: String, value: String?, unit: String, modifier: Mo
     }
 }
 
-/** The one line that explains every arrow on the tab, shown once above the category cards. */
-@Composable
-internal fun MetricsArrowCaption(modifier: Modifier = Modifier) {
-    Text(
-        uiString(R.string.metrics_arrow_caption),
-        style = NoopType.footnote,
-        color = Palette.textTertiary,
-        modifier = modifier.fillMaxWidth().padding(horizontal = Metrics.space4),
-    )
-}
-
 /** The quiet "Customize" text button at the end of the cards, which opens the metric chooser. */
 @Composable
 internal fun MetricsCustomizeButton(onClick: () -> Unit) {
@@ -1050,30 +755,6 @@ internal fun MetricsCustomizeButton(onClick: () -> Unit) {
                 modifier = Modifier.size(Metrics.iconSmall),
             )
             Text(uiString(R.string.today_customize_action), style = NoopType.subhead, color = Palette.textSecondary)
-        }
-    }
-}
-
-/** The summary card's chips: each a label and its arrow against the baseline, wrapping onto a second line. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-internal fun MetricDriverChips(drivers: List<MetricDriver>) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space8),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space8),
-    ) {
-        drivers.forEach { driver ->
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(Palette.surfaceInset)
-                    .padding(start = Metrics.space12, end = Metrics.space4, top = Metrics.space4, bottom = Metrics.space4),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space8),
-            ) {
-                Text(driver.label, style = NoopType.subhead, color = Palette.textPrimary, maxLines = 1)
-                ComparisonChip(delta = driver.delta, tone = driver.tone, formatDelta = driver.formatDelta)
-            }
         }
     }
 }
