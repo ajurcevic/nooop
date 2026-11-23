@@ -57,6 +57,7 @@ import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
@@ -84,12 +85,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.noop.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -100,7 +101,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
@@ -125,14 +125,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.noop.analytics.SleepMarkType
 import com.noop.push.SelfHostedPushScreen
 
 // MARK: - Navigation model
 //
 // The macOS app's sidebar holds many sections; on Android (mirroring the iOS RootTabView) we surface
 // them through a unified floating "glass" bottom bar (Today · Trends · Sleep · More) for the everyday
-// screens, with a "More" sheet that lists the full grouped set — so every destination is one tap away
-// without a global hamburger/drawer. Destinations are grouped exactly as the sidebar groups them.
+// screens, with a "More" page of three plain cards ([moreCards]). The screens More does not list open from
+// the screen they belong to or from Settings, so every destination stays reachable without a global
+// hamburger/drawer. The enum below keeps the sidebar's groups as comments.
 // Routes whose screens belong to later waves point at a ComingSoon placeholder so the app compiles today.
 
 /** A single drawer destination: stable route, display title (localized via [titleRes]), sidebar icon. */
@@ -144,11 +146,12 @@ internal enum class Destination(
     // Group: Today
     Today("today", R.string.nav_today, Icons.Filled.Home),
     // The Today sections that do not fit Home's single screen: summary, metric grids, workouts, cards.
-    // A bottom-bar tab, so like Today it is absent from every [DrawerGroup].
+    // A bottom-bar tab, so like Today it is absent from [moreCards].
     Metrics("metrics", R.string.nav_metrics, Icons.Outlined.GridView),
+    // Not on More: a row in Settings > Advanced opens it.
     Intelligence("intelligence", R.string.nav_intelligence, Icons.Filled.Psychology),
-    // Optional, default-OFF (task #43): the Coupled view (WHOOP-style day read). Reached ONLY via the
-    // Today dashboard "Coupled view" card tap-through, so it is deliberately NOT in any [DrawerGroup].
+    // Optional, default-OFF (task #43): the Coupled view (WHOOP-style day read). Reached from the Today
+    // dashboard "Coupled view" card tap-through and a row in Settings > Advanced, never from More.
     CoupledView("coupled_view", R.string.nav_coupled_view, Icons.Filled.Hexagon),
 
     // Group: Live
@@ -193,7 +196,7 @@ internal enum class Destination(
     // Experimental and intentionally absent from More: reachable only through Settings > Advanced.
     SelfHostedPush("self_hosted_push", R.string.nav_self_hosted_push, Icons.Filled.CloudSync),
     // Nested Settings destination shared by the Settings row and a blank WHOOP 4.0 Steps tile (#1515).
-    // Deliberately absent from [drawerGroups]: it is contextual, not another top-level More item.
+    // Deliberately absent from [moreCards]: it is contextual, not another top-level More item.
     StepsCalibration(
         "steps_calibration",
         R.string.l10n_settings_screen_steps_estimate_ce7a604d,
@@ -202,8 +205,8 @@ internal enum class Destination(
     TestCentre("test_centre", R.string.nav_test_centre, Icons.Filled.BugReport),
     GroundTruthCollector("ground_truth_collector", R.string.ground_truth_title, Icons.Filled.Sensors),
 
-    // The "More" tab: its own navigated page (mirroring the iOS More tab) that hosts the full
-    // grouped destination list. It is NOT itself in any [DrawerGroup] — it's the door to them.
+    // The "More" tab: its own navigated page (mirroring the iOS More tab) that hosts [moreCards]. It is
+    // NOT itself one of those rows; it's the door to them.
     More("more", R.string.nav_more, Icons.Filled.MoreHoriz);
 
     companion object {
@@ -217,74 +220,40 @@ internal enum class Destination(
     }
 }
 
-/** More-page groups, mirroring the iOS More tab exactly: Insights · Body · Data · App. `defaultExpanded`
- *  mirrors the iOS S2 default: Insights + Body open at rest, Data + App collapsed to just their header. */
-// [header] is the STABLE persistence key (stored in SharedPreferences and kept byte-identical to iOS's
-// `more.expandedSections` CSV — see [MoreSectionPrefs]); it must NEVER be localized. [headerRes] is the
-// localized DISPLAY label the More page shows. Decoupling the two lets the label translate without
-// touching the persisted open/closed state or the iOS parity of the stored string.
-internal data class DrawerGroup(
-    val header: String,
-    @StringRes val headerRes: Int,
-    val items: List<Destination>,
-    val defaultExpanded: Boolean,
+/** One tappable row that opens a destination: on the More page, or as a link inside another screen. The
+ *  label is the destination's own title unless the row needs its own words ("Explore and compare"). */
+internal data class NavLink(
+    val dest: Destination,
+    @StringRes val labelRes: Int = dest.titleRes,
 )
-
-// Mirrors the iOS RootTabView `moreTab` grouping + order one-for-one. Today / Metrics / Trends / Sleep
-// are NOT listed (they're bottom-bar tabs, exactly as on iOS). Android-only screens (Vital Signs, Wake
-// Window, Notifications, Devices) are slotted into the matching iOS group.
-internal val drawerGroups: List<DrawerGroup> = listOf(
-    DrawerGroup("Insights", R.string.more_group_insights, listOf(
-        Destination.Intelligence,
-        Destination.Insights, Destination.Explore, Destination.Compare,
-    ), defaultExpanded = true),
-    DrawerGroup("Body", R.string.more_group_body, listOf(
-        Destination.Live, Destination.Workouts, Destination.Health, Destination.VitalSigns,
-        Destination.Stress, Destination.Breathe,
-        Destination.Rhythm,
-    ), defaultExpanded = true),
-    DrawerGroup("Data", R.string.more_group_data, listOf(
-        Destination.DataSources, Destination.BackupSync, Destination.Devices, Destination.NoopLimitations,
-    ), defaultExpanded = false),
-    DrawerGroup("App", R.string.more_group_app, listOf(
-        Destination.Automations, Destination.SmartAlarm, Destination.Notifications,
-        Destination.TestCentre, Destination.PowerSaving, Destination.Settings,
-    ), defaultExpanded = false),
-)
-
-/** The headers open by default at first run, derived from [drawerGroups.defaultExpanded] (Insights +
- *  Body), so the seed lives in one place and the persistence default can't drift from the UI default. */
-private fun defaultExpandedHeaders(): Set<String> =
-    drawerGroups.filter { it.defaultExpanded }.map { it.header }.toSet()
 
 /**
- * Persisted open/closed state of the More page's collapsible groups (#860 item 2) - the Android twin of
- * the iOS `MoreSectionPrefs`. The set of EXPANDED group headers is stored as one sorted comma-joined
- * string under a single SharedPreferences key, encoded identically to iOS (same `more.expandedSections`
- * suffix, same CSV-of-headers, same Insights+Body default) so the two platforms behave the same. An empty
- * stored string is a valid state (everything collapsed), distinct from "never set" (which yields the seed).
+ * The More page: three plain cards of rows, with no group headers and nothing to open or close.
+ *
+ * Today, Metrics, Trends and Sleep are bottom-bar tabs, so none of them is listed. The screens More no
+ * longer lists open from a link inside the screen they belong to (Compare from Explore, Backup & Sync from
+ * Data Sources, Alarms from Automations, Vital Signs from Health) or from a row in Settings (Notifications,
+ * Power saving, Rhythm, Intelligence, Strap limitations, Coupled view, Test Centre).
  */
-internal object MoreSectionPrefs {
-    const val KEY = "noop.more.expandedSections"
-
-    /** Read the expanded-header set; returns [default] when the key was never written (first run). */
-    fun read(prefs: android.content.SharedPreferences, default: Set<String>): Set<String> {
-        val raw = prefs.getString(KEY, null) ?: return default
-        return decode(raw)
-    }
-
-    /** Persist the expanded-header set as a sorted, comma-joined string. */
-    fun write(prefs: android.content.SharedPreferences, headers: Set<String>) {
-        prefs.edit().putString(KEY, encode(headers)).apply()
-    }
-
-    /** Encode the set of expanded headers to a sorted, comma-joined string. */
-    fun encode(headers: Set<String>): String = headers.sorted().joinToString(",")
-
-    /** Decode the stored string to a set of expanded headers; blank tokens dropped, empty string -> empty set. */
-    fun decode(raw: String): Set<String> =
-        raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
-}
+internal val moreCards: List<List<NavLink>> = listOf(
+    listOf(
+        NavLink(Destination.Live, R.string.more_row_live_heart_rate),
+        NavLink(Destination.Workouts),
+        NavLink(Destination.Health),
+        NavLink(Destination.Stress),
+        NavLink(Destination.Breathe),
+    ),
+    listOf(
+        NavLink(Destination.Insights),
+        NavLink(Destination.Explore, R.string.more_row_explore_compare),
+    ),
+    listOf(
+        NavLink(Destination.Devices),
+        NavLink(Destination.DataSources, R.string.more_row_import_backup),
+        NavLink(Destination.Automations, R.string.more_row_alarms_automations),
+        NavLink(Destination.Settings),
+    ),
+)
 
 /**
  * #1839: should the overlay bar be hidden right now?
@@ -460,9 +429,10 @@ object BottomBarStyleStore {
 /**
  * App shell: a single [Scaffold] with a floating [GlassBottomBar] (Today · Metrics · Trends · Sleep · More)
  * driving one [NavHost], mirroring the iOS RootTabView. There is NO global toolbar and no nav drawer
- * — every screen self-titles via [ScreenScaffold], and the "More" sheet (opened from the bar) reaches
- * every destination in [drawerGroups], so nothing is lost. A single [AppViewModel] is created here and
- * shared with every screen, so the BLE connection and cached metrics stay app-wide singletons.
+ * — every screen self-titles via [ScreenScaffold], and the "More" page (opened from the bar) lists
+ * [moreCards]; every other destination opens from a link in its host screen or from Settings, so nothing
+ * is lost. A single [AppViewModel] is created here and shared with every screen, so the BLE connection and
+ * cached metrics stay app-wide singletons.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -476,6 +446,9 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
     // The Updates inbox sheet (opened by the Today header bell). The store is a process singleton so
     // the Today cards and the import path post to the same inbox this sheet renders.
     val context = androidx.compose.ui.platform.LocalContext.current
+    // The scope the quick-actions sheet's sleep-mark writes run in (logSleepMark). It belongs to the app root,
+    // so closing the sheet never cancels a write in flight.
+    val markScope = rememberCoroutineScope()
     val updateStore = remember { UpdateStore.from(context) }
     var showUpdatesInbox by remember { mutableStateOf(false) }
     // #984: the changelog sheet a What's New inbox row opens. Held here (not inside the inbox) so it
@@ -536,8 +509,8 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 // One unified "glass" bar: four evenly-spaced tabs — Today · Trends · Sleep · More
                 // (matches the iOS FloatingTabBar). The quick-action "+" lives in the Today header's
                 // top-right (balancing the avatar), so the bar is clean tabs only. "More" navigates to
-                // its own page (mirroring the iOS More tab) that reaches every grouped destination, so no
-                // destination is lost without the drawer.
+                // its own page (mirroring the iOS More tab), which with the in-screen links and Settings
+                // reaches every destination, so no destination is lost without the drawer.
                 // DEFAULT path: the shipped reserved slot, unchanged. Empty only when the overlay is
                 // on, where the bar is drawn below as a sibling and the slot must reserve nothing.
                 if (!BottomBarStyleStore.overlay) {
@@ -635,6 +608,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                     SleepScreen(
                         vm = viewModel,
                         onOpenAlarms = { nav.navigate(Destination.SmartAlarm.route) },
+                        onQuickActions = { showQuickActions = true },
                     )
                 }
                 composable(Destination.CoupledView.route) {
@@ -645,8 +619,14 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                     )
                 }
                 composable(Destination.Breathe.route) { BreatheScreen(viewModel) }
-                composable(Destination.Explore.route) { TrendsExploreScreen(viewModel) }
-                composable(Destination.Automations.route) { AutomationsScreen(viewModel) }
+                // Compare, Alarms, Backup & Sync and Vital Signs left the More page: each opens from a
+                // link inside its host screen. A push, so Back returns to that screen.
+                composable(Destination.Explore.route) {
+                    TrendsExploreScreen(viewModel, onOpenCompare = { nav.navigate(Destination.Compare.route) })
+                }
+                composable(Destination.Automations.route) {
+                    AutomationsScreen(viewModel, onOpenSmartAlarm = { nav.navigate(Destination.SmartAlarm.route) })
+                }
                 composable(Destination.SmartAlarm.route) { SmartAlarmScreen(viewModel) }
                 composable(Destination.Workouts.route) { WorkoutsScreen(viewModel) }
                 composable(Destination.Intelligence.route) { IntelligenceScreen(viewModel) }
@@ -666,6 +646,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                         vm = viewModel,
                         onVitalClick = { nav.navigate("vital_detail/$it") },
                         onOpenSettings = { nav.navigateTopLevel(Destination.Settings.route) },
+                        onOpenVitalSigns = { nav.navigate(Destination.VitalSigns.route) },
                     )
                 }
                 composable(Destination.Hydration.route) { HydrationScreen(viewModel) }
@@ -691,7 +672,9 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                         onUseFileImport = { nav.navigateTopLevel(Destination.DataSources.route) },
                     )
                 }
-                composable(Destination.DataSources.route) { DataSourcesScreen(viewModel) }
+                composable(Destination.DataSources.route) {
+                    DataSourcesScreen(viewModel, onOpenBackupSync = { nav.navigate(Destination.BackupSync.route) })
+                }
                 composable(Destination.NoopLimitations.route) { NoopLimitationsScreen() }
                 composable(Destination.BackupSync.route) { BackupSyncScreen() }
                 composable(Destination.Notifications.route) { NotificationsSettingsScreen(viewModel) }
@@ -699,10 +682,16 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 composable(Destination.Settings.route) {
                     SettingsScreen(
                         viewModel,
-                        onOpenTestCentre = { nav.navigate(Destination.TestCentre.route) },
                         onOpenBackupSync = { nav.navigate(Destination.BackupSync.route) },
-                        onOpenSelfHostedPush = { nav.navigate(Destination.SelfHostedPush.route) },
                         onOpenStepsCalibration = { nav.navigate(Destination.StepsCalibration.route) },
+                        // The Settings rows that open other screens: Notifications on the landing list,
+                        // Power saving on the Strap page, and Rhythm, Intelligence, Strap limitations,
+                        // Coupled view, Self-hosted push and Test Centre on the Advanced page. A push, so
+                        // Back returns to Settings on the page it was opened from.
+                        onOpenRoute = { nav.navigate(it) },
+                        // A page change inside Settings is not a route change, so reset the auto-hide here
+                        // too: every page, and the list it returns to, opens with its navigation present.
+                        onPageChange = { scrollingDown = false },
                     )
                 }
                 composable(Destination.StepsCalibration.route) {
@@ -725,17 +714,18 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                     })
                 }
                 composable(Destination.GroundTruthCollector.route) { GroundTruthCollectorScreen(viewModel) }
-                // The "More" page — the iOS More tab's twin: a navigated ScreenScaffold page hosting the
-                // full grouped destination list (was a pull-up sheet). A row pushes its destination so
-                // Android Back returns to More instead of skipping straight to Today.
+                // The "More" page — the iOS More tab's twin: a navigated ScreenScaffold page hosting
+                // [moreCards] (was a pull-up sheet). A row pushes its destination so Android Back returns
+                // to More instead of skipping straight to Today.
                 composable(Destination.More.route) {
                     MoreScreen(onNavigate = { nav.navigate(it) })
                 }
             }
         }
 
-        // Quick-actions sheet, opened by the raised gold centre FAB. Each row routes to an
-        // existing destination — nothing new is built here, the FAB is just a faster door in.
+        // Quick-actions sheet, opened by the Today and Sleep header bolts. Each row routes to an
+        // existing destination, except the two sleep marks at the end, which log a "Going to bed" /
+        // "Woke up" mark in place (logSleepMark, #461) exactly as the hosted Sleep marks card does.
         if (showQuickActions) {
             ModalBottomSheet(
                 onDismissRequest = { showQuickActions = false },
@@ -792,6 +782,25 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                             },
                             icon = { Icon(action.icon, contentDescription = null) },
                             label = { Text(stringResource(action.titleRes), style = NoopType.body) },
+                            colors = NavigationDrawerItemDefaults.colors(
+                                unselectedContainerColor = Palette.surfaceRaised,
+                                unselectedIconColor = Palette.accent,
+                                unselectedTextColor = Palette.textPrimary,
+                            ),
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                        )
+                    }
+                    // Sleep marks (#461): logged in place, never a navigation. LOGGING ONLY: a mark goes to the
+                    // `sleep_mark` series and the shareable strap log, and never changes the detected night.
+                    sleepMarkActions.forEach { mark ->
+                        NavigationDrawerItem(
+                            selected = false,
+                            onClick = {
+                                showQuickActions = false
+                                logSleepMark(viewModel, markScope, context, mark.type)
+                            },
+                            icon = { Icon(mark.icon, contentDescription = null) },
+                            label = { Text(stringResource(mark.titleRes), style = NoopType.body) },
                             colors = NavigationDrawerItemDefaults.colors(
                                 unselectedContainerColor = Palette.surfaceRaised,
                                 unselectedIconColor = Palette.accent,
@@ -891,30 +900,16 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
 // MARK: - More page
 //
 // The "More" tab's destination — a full navigated page (mirroring the iOS More tab's NavigationStack
-// List), replacing the old pull-up ModalBottomSheet. It hosts the SAME grouped destinations
-// ([drawerGroups]) inside a [ScreenScaffold], with the exact section-header + row styling the sheet
-// used (uppercase [Overline] group labels, icon + label [NavigationDrawerItem] rows) — now with a
-// trailing chevron so each row reads as a navigation push, matching the iOS disclosure rows. Tapping a
-// row pushes its destination; there is no sheet to dismiss. The floating bottom bar stays visible because
-// this is just another NavHost destination under the same Scaffold.
+// List), replacing the old pull-up ModalBottomSheet. It is three plain cards of rows ([moreCards]) inside
+// a [ScreenScaffold]: no group headers and nothing to open or close. Each row is an accent icon, a label
+// and a trailing chevron, so it reads as a navigation push. Tapping a row pushes its destination; there is
+// no sheet to dismiss. The floating bottom bar stays visible because this is just another NavHost
+// destination under the same Scaffold.
 
-/** The full grouped destination list as a navigated page (the iOS More tab's twin). */
-@OptIn(ExperimentalMaterial3Api::class)
+/** The More page: every card in [moreCards], one after another (the iOS More tab's twin). */
 @Composable
 private fun MoreScreen(onNavigate: (String) -> Unit) {
-    // S2 parity: each group's open/closed state, seeded from `defaultExpanded` (Insights + Body open,
-    // Data + App collapsed). PERSISTED (#860 item 2): the user's open/closed choice must survive leaving
-    // and re-entering the More page (and relaunch), not reset to the seed every visit. Backed by
-    // [MoreSectionPrefs] (a CSV of expanded headers in SharedPreferences), mirroring the iOS
-    // @AppStorage("more.expandedSections"). Seeded ONCE from the stored value so first run still shows the
-    // Insights+Body default; every toggle writes through so the next visit reflects the saved state.
     val context = androidx.compose.ui.platform.LocalContext.current
-    val expanded = remember {
-        val stored = MoreSectionPrefs.read(NoopPrefs.of(context), defaultExpandedHeaders())
-        androidx.compose.runtime.mutableStateMapOf<String, Boolean>().apply {
-            drawerGroups.forEach { put(it.header, stored.contains(it.header)) }
-        }
-    }
     // Day-cycle sky backdrop + sky-behind-cards, the SAME two gates every other tab honours (Today /
     // Trends / Sleep / metric detail) — More was the one tab still on the flat canvas, so switching to
     // it visibly "lost" the theme. SharedPreferences isn't reactive; read once like the other tabs.
@@ -922,101 +917,64 @@ private fun MoreScreen(onNavigate: (String) -> Unit) {
     val skyBehindCards = remember { NoopPrefs.skyBehindCards(context) }
     ScreenScaffold(
         title = uiString(R.string.l10n_app_root_more_4bab2d8f),
-        subtitle = "Everything else, one tap away",
         topBackground = screenBackdropSlot(showDayCycleBackground, skyBehindCards),
         // Sky-behind-cards fills the viewport so the transparent cards reveal the sky the whole way down.
         fullBleedBackground = screenBackdropFullBleed(showDayCycleBackground, skyBehindCards),
     ) {
-        // Mirror the iOS More page: each group is a tappable UPPERCASE overline header (with a disclosure
-        // chevron) over a single grouped white NoopCard whose rows are tight (accent icon + title +
-        // chevron) and separated by inset hairlines (NOT loose NavigationDrawerItems on the bare surface).
-        drawerGroups.forEach { group ->
-            val isOpen = expanded[group.header] ?: group.defaultExpanded
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                MoreGroupHeader(
-                    title = stringResource(group.headerRes),
-                    expanded = isOpen,
-                    onToggle = {
-                        expanded[group.header] = !isOpen
-                        // Persist the new open set so the choice survives leaving + re-entering the page
-                        // and relaunch (#860 item 2), mirroring the iOS @AppStorage write.
-                        val open = drawerGroups.map { it.header }.filter { expanded[it] == true }.toSet()
-                        MoreSectionPrefs.write(NoopPrefs.of(context), open)
-                    },
-                )
-                if (isOpen) {
-                    NoopCard(padding = 0.dp) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            group.items.forEachIndexed { i, dest ->
-                                MoreRow(dest = dest, onClick = { onNavigate(dest.route) })
-                                if (i < group.items.lastIndex) {
-                                    HorizontalDivider(
-                                        color = Palette.hairline,
-                                        modifier = Modifier.padding(start = 50.dp),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        moreCards.forEach { card -> NavLinkCard(card, onOpen = { onNavigate(it.route) }) }
     }
 }
 
-/** A tappable group header for the More page (S2): the same UPPERCASE [Overline] label as before, now
- *  with a trailing chevron that rotates between open (0deg) and closed (-90deg), mirroring the iOS
- *  collapsible More sections. Tapping toggles the group; the whole row is the tap target. */
+/** One tappable destination row — accent icon + label + trailing chevron in a comfortable tap target,
+ *  mirroring the iOS More tab's rows. The More page and the links inside other screens draw this row. */
 @Composable
-private fun MoreGroupHeader(title: String, expanded: Boolean, onToggle: () -> Unit) {
-    val rotation by animateFloatAsState(
-        targetValue = if (expanded) 0f else -90f,
-        animationSpec = tween(durationMillis = 240, easing = NavEasing),
-        label = uiString(R.string.l10n_app_root_moregroupchevron_b2b36ec6),
-    )
+internal fun NavLinkRow(link: NavLink, onClick: () -> Unit, enabled: Boolean = true) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onToggle)
-            .semantics {
-                contentDescription = title
-                stateDescription = if (expanded) "Expanded" else "Collapsed"
-            },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Overline(title, modifier = Modifier.weight(1f), color = Palette.textTertiary)
-        Icon(
-            Icons.Filled.ChevronRight,
-            contentDescription = null,
-            tint = Palette.textTertiary,
-            modifier = Modifier
-                .size(Metrics.iconSmall)
-                .rotate(rotation),
-        )
-    }
-}
-
-/** One tappable destination row in the More page — accent icon + title + trailing chevron in a
- *  comfortable tap target, mirroring the iOS MoreRow. */
-@Composable
-private fun MoreRow(dest: Destination, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(dest.icon, contentDescription = null, tint = Palette.accent, modifier = Modifier.size(20.dp))
+        Icon(
+            link.dest.icon,
+            contentDescription = null,
+            tint = if (enabled) Palette.accent else Palette.textTertiary,
+            modifier = Modifier.size(20.dp),
+        )
         Spacer(Modifier.width(14.dp))
-        Text(stringResource(dest.titleRes), style = NoopType.body, color = Palette.textPrimary, modifier = Modifier.weight(1f))
+        Text(
+            stringResource(link.labelRes),
+            style = NoopType.body,
+            color = if (enabled) Palette.textPrimary else Palette.textTertiary,
+            modifier = Modifier.weight(1f),
+        )
         Icon(
             Icons.Filled.ChevronRight,
             contentDescription = null,
             tint = Palette.textTertiary,
             modifier = Modifier.size(Metrics.iconSmall),
         )
+    }
+}
+
+/** A plain card of [NavLinkRow]s separated by inset hairlines: no header, nothing to collapse. Tapping a
+ *  row hands its destination to [onOpen]; the caller decides how to navigate there. With [enabled] false
+ *  the rows are dimmed and ignore taps. */
+@Composable
+internal fun NavLinkCard(links: List<NavLink>, enabled: Boolean = true, onOpen: (Destination) -> Unit) {
+    NoopCard(padding = 0.dp) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            links.forEachIndexed { i, link ->
+                NavLinkRow(link, onClick = { onOpen(link.dest) }, enabled = enabled)
+                if (i < links.lastIndex) {
+                    HorizontalDivider(
+                        color = Palette.hairline,
+                        modifier = Modifier.padding(start = 50.dp),
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -1207,6 +1165,16 @@ private data class QuickAction(@StringRes val titleRes: Int, val icon: ImageVect
 private val quickActions: List<QuickAction> = listOf(
     QuickAction(R.string.action_live_hr, Destination.Live.icon, Destination.Live.route),
     QuickAction(R.string.action_breathe, Icons.Filled.Air, Destination.Breathe.route),
+)
+
+/** A quick-actions sleep mark: a display title, an icon and the mark it logs. */
+private data class SleepMarkAction(@StringRes val titleRes: Int, val icon: ImageVector, val type: SleepMarkType)
+
+/** The sleep marks at the end of the quick-actions sheet, the same two the hosted Sleep marks card offers,
+ *  under the same names. */
+private val sleepMarkActions: List<SleepMarkAction> = listOf(
+    SleepMarkAction(R.string.action_going_to_bed, Icons.Filled.Bedtime, SleepMarkType.BEDTIME),
+    SleepMarkAction(R.string.action_woke_up, Icons.Filled.WbSunny, SleepMarkType.WAKE),
 )
 
 // MARK: - Navigation motion (README §Motion)

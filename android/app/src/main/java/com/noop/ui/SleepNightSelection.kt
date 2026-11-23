@@ -1,10 +1,54 @@
 package com.noop.ui
 
 import com.noop.analytics.AnalyticsEngine
+import com.noop.analytics.SleepEditGuard
 import com.noop.analytics.SleepStageTotals
 import com.noop.data.DailyMetric
 import com.noop.data.SleepSession
 import java.util.TimeZone
+
+/**
+ * The sessions a time edit of [edited] rewrites. An edit from the Last night card applies to the main
+ * night's whole bridged group (#1492), so a corrected bedtime moves the fragments that define it. An edit
+ * from a row of the Naps card ([fromNapRow]) applies to that nap alone: planning a nap's window against the
+ * main night's group either found no overlap and dropped the edit, or clipped the main night to the nap's
+ * times. The caller says which card the edit came from because the session cannot: when the single-block
+ * anchor ([HeroNight.session]) falls outside the bridged group, the same session is also a Naps card row.
+ */
+internal fun sleepEditTargets(night: HeroNight?, edited: SleepSession, fromNapRow: Boolean): List<SleepSession> =
+    if (fromNapRow) listOf(edited) else night?.heroGroup.orEmpty().ifEmpty { listOf(edited) }
+
+/**
+ * Whether a Naps card row may apply [newStart]..[newEnd] to [nap]: only a window that overlaps the nap's
+ * recorded span. The row has no "Move this sleep?" confirm, and its time-only pickers can land a window on
+ * the wrong day by accident (a start moved back past midnight keeps the nap's own date), so a window clear
+ * of the nap is refused rather than moving the nap there unasked. The Last night card confirms a move first.
+ */
+internal fun napRowWindowApplies(nap: SleepSession, newStart: Long, newEnd: Long): Boolean =
+    !SleepEditGuard.isDisjoint(newStart, newEnd, minOf(nap.startTs, nap.effectiveStartTs), nap.endTs)
+
+/**
+ * The [DailyMetric.day] that holds the figures (Rest, sleep debt, the day's stage totals) for the night
+ * whose main block is [session]. Since 2.11.1 every row is keyed by the LOCAL calendar day the night wakes
+ * on, on-device and imported alike (#277), so the local wake day comes first. Rows written before that
+ * were keyed by the UTC day, which differs for a wake east of UTC before the UTC date turns (Perth before
+ * 08:00) or west of UTC after it turns; the UTC day is tried second, and only when no other night in
+ * [navDays] wakes on that local day, so the key never lands on another night's row. With no stage-bearing
+ * row under either key it is the local wake day. (#160, #277)
+ */
+internal fun nightDayKey(
+    session: SleepSession,
+    navDays: List<List<SleepSession>>,
+    days: List<DailyMetric>,
+): String {
+    val localKey = localDayString(session.endTs)
+    val utcKey = AnalyticsEngine.dayString(session.endTs)
+    val utcKeyIsAnotherNight = navDays.any { night -> night.any { localDayString(it.endTs) == utcKey } }
+    val candidates = if (utcKey == localKey || utcKeyIsAnotherNight) listOf(localKey) else listOf(localKey, utcKey)
+    return candidates.firstOrNull { key ->
+        days.any { it.day == key && (it.deepMin ?: 0.0) + (it.remMin ?: 0.0) + (it.lightMin ?: 0.0) > 0.0 }
+    } ?: localKey
+}
 
 /**
  * Pick the night for the DAY [offset] stops back from the most recent (0 = latest). [navDays]
@@ -18,9 +62,7 @@ import java.util.TimeZone
  * the same calendar day, so both bucket here); the OLD `maxByOrNull { endTs }` picked the
  * latest-ending block, which is the afternoon nap — so the overnight vanished from the Sleep tab.
  * Picking the longest overnight block fixes it; the other blocks are carried as `napBlocks` for
- * the naps card. The day key tries UTC then local-tz attribution of the MAIN block's wake — imported
- * DailyMetric.day is local-tz while dayString is UTC, so a near-midnight-UTC wake needs the second
- * key; both derive from THIS night's endTs, never another night. (#160, #518)
+ * the naps card. The day key is [nightDayKey] of the MAIN block's wake. (#160, #518)
  */
 internal fun selectNight(
     navDays: List<List<SleepSession>>,
@@ -70,11 +112,7 @@ internal fun selectNight(
     val heroGroup = group.dropWhile {
         it.effectiveStartTs < onsetTsForHero && isPreOnsetAwakeStub(it, groupRefAsleepMin)
     }
-    val utcKey = AnalyticsEngine.dayString(session.endTs)
-    val localKey = localDayString(session.endTs)
-    val dayKey = listOf(utcKey, localKey).firstOrNull { key ->
-        days.any { it.day == key && (it.deepMin ?: 0.0) + (it.remMin ?: 0.0) + (it.lightMin ?: 0.0) > 0.0 }
-    } ?: utcKey
+    val dayKey = nightDayKey(session, navDays, days)
     // Lay every fragment's persisted segments end-to-end so a biphasic night draws as one continuous
     // hypnogram, and SUM their stage minutes for the hero. Built from `heroGroup` (the group minus a leading
     // spurious stub, #736) so the chart and minutes start at the displayed bedtime. Null for a single-block

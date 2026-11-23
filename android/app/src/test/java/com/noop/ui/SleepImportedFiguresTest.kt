@@ -234,4 +234,18 @@ class SleepImportedFiguresTest {
         // The HERO does follow the browsed night — its stages come from the selected day's row.
         assertNotEquals(latestView.stages, browsedView.stages)
     }
+
+    /** The Sleep hero shows the BROWSED night's debt from [SleepModel.sleepDebtByDay], so that map must be the
+     *  very series the Sleep debt figure summarises: its newest day is the latest debt, an imported day keeps
+     *  the export's own figure there, and the series is exactly its values in day order. */
+    @Test
+    fun debtByDayIsTheSeriesTheLatestDebtSummarises() {
+        val days = listOf(day("2026-06-01", 420.0), day("2026-06-02", 300.0), day("2026-06-03", 410.0))
+        val imported = ImportedSleepSeries(debtMin = mapOf("2026-06-01" to 25.0))
+        val m = buildSleepModel(days, session = null, imported = imported, todayKey = pinnedToday)!!
+        val byDay = m.sleepDebtByDay
+        assertEquals(m.sleepDebt.latest!!, byDay.getValue("2026-06-03"), 1e-9)
+        assertEquals(25.0, byDay.getValue("2026-06-01"), 1e-9)
+        assertEquals(m.sleepDebt.series, days.mapNotNull { byDay[it.day] })
+    }
 }

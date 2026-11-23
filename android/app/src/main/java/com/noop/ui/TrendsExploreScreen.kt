@@ -32,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -238,7 +239,7 @@ private fun statOf(values: List<Double>): Stat {
 // MARK: - Screen
 
 @Composable
-fun TrendsExploreScreen(vm: AppViewModel) {
+fun TrendsExploreScreen(vm: AppViewModel, onOpenCompare: () -> Unit = {}) {
     // The Deep Timeline (#575) is presented INLINE from Explore , no NavHost route needed, so this stays
     // self-contained in the Explore entry-point file. System back / the in-screen reset returns here.
     var showDeepTimeline by remember { mutableStateOf(false) }
@@ -312,8 +313,10 @@ fun TrendsExploreScreen(vm: AppViewModel) {
     // follow the toggle through every read-out (hero, footer stats, Y-axis). Display-only.
     val effortScale = UnitPrefs.effortScale(LocalContext.current)
 
-    var selectedKey by remember { mutableStateOf(builtInMetrics.first().key) }
-    var range by remember { mutableStateOf(ExploreRange.Month) }
+    // Saveable, so Back from Compare (pushed from the link below) returns to the metric and range the
+    // user picked rather than the defaults: a pushed screen takes this one out of composition.
+    var selectedKey by rememberSaveable { mutableStateOf(builtInMetrics.first().key) }
+    var range by rememberSaveable { mutableStateOf(ExploreRange.Month) }
     val selected = (metrics.firstOrNull { it.key == selectedKey } ?: metrics.first())
         .copy(effortScale = effortScale)
 
@@ -377,7 +380,12 @@ fun TrendsExploreScreen(vm: AppViewModel) {
     // are accessibility-walked on scroll. Each top-level child is one `item { }` in the same order; the
     // conditional empty-state note uses `if (cond) { item {} }` so it adds no row when hidden. No standalone
     // Spacers here , the LazyColumn's `spacedBy(20.dp)` reproduces the eager column's row spacing exactly.
-    LazyScreenScaffold(title = stringResource(R.string.nav_explore), subtitle = stringResource(R.string.explore_subtitle)) {
+    LazyScreenScaffold(title = stringResource(R.string.nav_explore)) {
+
+        // Compare left the More page ("Explore and compare" opens this screen), so its door is the first row.
+        item {
+            NavLinkCard(listOf(NavLink(Destination.Compare, R.string.explore_compare_row)), onOpen = { onOpenCompare() })
+        }
 
         // The headline tap-through (#575): a full-day, full-resolution, zoomable timeline. Sits above the
         // per-metric catalog because it's a different kind of view , every second of one day, not one

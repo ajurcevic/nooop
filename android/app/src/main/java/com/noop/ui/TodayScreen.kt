@@ -1400,10 +1400,9 @@ fun TodayScreen(
         // Design Reset (iOS parity): the "New here?" first-run card is off the Today dashboard for the
         // clean look, the scoring guide stays reachable from the i on each score and in Settings.
 
-        // When there is no daily score yet (today's recovery is null / no history),
-        // lead with the "live now, history one import away" note so the empty tiles
-        // below are explained rather than just dashed out. A small × dismisses it INTO
-        // the Updates inbox (restorable from there). Only anchored to today (offset 0).
+        // When there is no daily score yet (today's recovery is null / no history), the Metrics tab
+        // explains the empty tiles below (syncing, calibrating, carried night). The first-week line that
+        // used to sit here now follows this block, so Home shows it too.
         if (!homeMode && displayMetric?.recovery == null) {
             item {
             // While the strap is mid-offload, say so, empty tiles read as final otherwise (#77).
@@ -1478,27 +1477,32 @@ fun TodayScreen(
                     }
                 }
             }
-            if (selectedDayOffset != 0 || !scoresBuildingDismissed) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    DataPendingNote(
-                        title = uiString(R.string.l10n_today_screen_live_now_your_scores_are_building_cb05a4e8),
-                        body = uiString(R.string.today_pending_scores_body),
-                    )
-                    // The × is only meaningful for today's card (a past day's note isn't dismissed).
-                    if (selectedDayOffset == 0 && updateStore != null) {
-                        TodayCardDismissButton(
-                            modifier = Modifier.align(Alignment.TopEnd),
-                            onClick = {
-                                dismissTodayCard(
-                                    CARD_SCORES_BUILDING,
-                                    context.getString(R.string.today_update_scores_building_title),
-                                    context.getString(R.string.today_update_scores_building_message),
-                                )
-                            },
-                        )
-                    }
-                }
             }
+        }
+
+        // The first-week line: one short sentence while there is no daily score yet. Today it shows on
+        // both tabs (Home leads with it, above the heart card) until dismissed; a past day keeps it on
+        // Metrics only. Both read the one scoresBuildingDismissed flag through this one gate, so the two
+        // tabs cannot disagree, and the × files one restorable Updates entry. Only today's line has a ×
+        // (a past day's line isn't dismissed).
+        if (displayMetric?.recovery == null &&
+            ((selectedDayOffset == 0 && !scoresBuildingDismissed) || (!homeMode && selectedDayOffset != 0))
+        ) {
+            item {
+                TodayPendingLine(
+                    text = uiString(R.string.today_scores_start_line),
+                    onDismiss = if (selectedDayOffset == 0 && updateStore != null) {
+                        {
+                            dismissTodayCard(
+                                CARD_SCORES_BUILDING,
+                                context.getString(R.string.today_update_scores_building_title),
+                                context.getString(R.string.today_update_scores_building_message),
+                            )
+                        }
+                    } else {
+                        null
+                    },
+                )
             }
         }
 
@@ -1508,16 +1512,17 @@ fun TodayScreen(
             days.lastOrNull()?.day == resolveTodayRow(days, todayDate.toString(), LocalDate.now().toString())?.day
         ) item { IllnessBanner(alert!!) }
 
-        // HOME: live heart rate, the three scores, the three recovery vitals. Nothing else, so the tab
-        // fits one phone screen; everything else lives on the Metrics tab.
+        // HOME: live heart rate, then one summary card with the three scores and the three recovery
+        // vitals. Nothing else, so the tab fits one phone screen; everything else lives on the Metrics tab.
         if (homeMode) {
             item {
                 HeartRateTrendCard(viewModel, days, selectedDay, todayDate, displayMetric,
                     effortScale, effortForDay, dayCycleMode, compact = true)
             }
             item {
-                HomeScoreCard(
+                HomeSummaryCard(
                     day = displayMetric,
+                    vitalsDay = lastVitalsDay,
                     days = days,
                     selectedDayKey = selectedDayKey,
                     effortForDay = effortForDay,
@@ -1526,15 +1531,6 @@ fun TodayScreen(
                     restHistory = restHistory,
                     chargeConfidence = chargeConfidenceTier(chargeBaselines, displayMetric),
                     onChargeTap = { showChargeBreakdown = true },
-                    onOpenMetric = onOpenMetric,
-                )
-            }
-            item {
-                HomeVitalsCard(
-                    day = displayMetric,
-                    vitalsDay = lastVitalsDay,
-                    days = days,
-                    selectedDayKey = selectedDayKey,
                     onOpenMetric = onOpenMetric,
                 )
             }
@@ -1658,30 +1654,29 @@ fun TodayScreen(
                                 }
                             }
                         }
-                        // The plain-English read-out: the Synthesis word and line, the readiness pill, and
-                        // the chips that drove it. Carries the last scored day's read at the rollover (#543).
+                        // The one-line readiness card: the readiness word, "vs 30-day baseline" and an info
+                        // button holding the colour legend and the read. Carries the last scored day (#543).
                         TodaySection.SYNTHESIS -> Box(modifier = Modifier.fillMaxWidth().staggeredAppear(stagger)) {
                             SynthesisHeroCard(
                                 day = displayMetric,
                                 recoveryCalibration = recoveryCalibration,
                                 carriedDay = lastScoredRecoveryDay,
                                 days = days,
-                                drivers = metricDrivers(metricTiles),
+                                // Today only, the same gate as the breakdown sheet's Readiness card.
+                                showReadiness = selectedDayOffset == 0,
                                 onOpenReadiness = { showChargeBreakdown = true },
                             )
                         }
-                        // METRICS: the one line that explains every arrow, then the Recovery, Sleep, Training
-                        // and Body cards (each enabled metric in its group, a tap opening it in place), then
-                        // the Customize button that picks the metrics (#251). One keyed item for the drag.
+                        // METRICS: the Recovery, Sleep, Training and Body cards, each enabled metric a row in
+                        // its group (a tap opens its detail under the row), then the Customize button that
+                        // picks the metrics (#251). One keyed item for the drag.
                         TodaySection.KEY_METRICS -> Column(
                             modifier = Modifier.fillMaxWidth().staggeredAppear(stagger),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            MetricsArrowCaption()
                             MetricCategoryCards(
                                 tiles = metricTiles,
                                 enabled = enabledKeyMetrics,
-                                isToday = selectedDayOffset == 0,
                                 expandedId = expandedMetric,
                                 onToggle = { id -> expandedMetric = if (expandedMetric == id) null else id },
                             )

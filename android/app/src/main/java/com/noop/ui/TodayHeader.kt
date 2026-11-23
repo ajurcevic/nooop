@@ -63,7 +63,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import android.app.DatePickerDialog
@@ -73,7 +72,7 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.Calendar
 
-// Today tab: header (title, strap pill, sync line), wordmark, header discs and the scoring-guide affordances.
+// Today tab: header (title, battery chip, sync line), wordmark, header discs and the scoring-guide affordances.
 // Split out of TodayScreen.kt; behaviour unchanged.
 
 /**
@@ -109,7 +108,7 @@ internal fun TodayCardDismissButton(onClick: () -> Unit, modifier: Modifier = Mo
  * about 139dp, so it would ellipsize a title that fits today.
  *
  * Greys out and stops taking taps while a scan is running, which is the same rule the Settings and Live
- * buttons follow. No spinner: the sync chip two controls away is already the thing that reports state.
+ * buttons follow. No spinner: the header battery chip is already the thing that reports state.
  */
 @Composable
 internal fun RescanDisc(scanning: Boolean, onClick: () -> Unit) {
@@ -164,7 +163,7 @@ internal fun CustomizeDisc(onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
-            // Level with the avatar / + / battery ring (shared size), so the cluster reads as one row.
+            // Level with the avatar and the + (shared size), so the cluster reads as one row.
             .size(HeaderClusterControl)
             .liquidPress(interaction)
             .clip(CircleShape)
@@ -192,14 +191,15 @@ internal fun CustomizeDisc(onClick: () -> Unit) {
  * The accent quick-action "+" in the Today header's top-right. Moved off the bottom bar (now four clean
  * tabs) to balance the header and open the existing quick-action sheet. A small CONTAINED accent disc,  * the accented primary among an otherwise-neutral icon set, ~36dp, no float and no glow: a flat reset-blue
  * accent fill with a hairline rim, the "+" glyph in crisp white. Mirrors the iOS quick-action + (a glyph on
- * Circle().fill(StrandPalette.accent)).
+ * Circle().fill(StrandPalette.accent)). The Sleep header carries the same disc, so the sheet opens the same
+ * way from both tabs.
  */
 @Composable
-private fun QuickActionDisc(onClick: () -> Unit) {
+internal fun QuickActionDisc(onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
-            // Sit level with the avatar / battery ring in the liquid header cluster (shared size).
+            // Sit level with the avatar in the liquid header cluster (shared size).
             .size(HeaderClusterControl)
             .liquidPress(interaction)
             .clip(CircleShape)
@@ -303,9 +303,10 @@ private fun ScoringGuideIntroCard(onOpen: () -> Unit, onDismiss: () -> Unit) {
 // MARK: - Today header
 //
 // LEFT: a tappable title block, the big day title over a human date line ("Friday, 3 July"); tap opens the
-// day picker. RIGHT: two round controls, quick actions (bolt, opens the quick-actions sheet that also holds
-// the Updates inbox) and the profile avatar (Settings). BELOW: the strap pill (charge and sync state, tap
-// opens Devices or reconnects) and, only while history offloads, the thin catch-up line.
+// day picker. RIGHT: the battery chip (charge as a glyph and a percentage, words only when the strap needs
+// attention; tap opens Devices or reconnects), then two round controls, quick actions (bolt, opens the
+// quick-actions sheet that also holds the Updates inbox) and the profile avatar (Settings). BELOW: only
+// while history offloads, the thin catch-up line.
 
 /** The diameter of the round Today-header controls (quick actions and the profile avatar), so they sit
  *  level. Single source of truth so a size tweak keeps both in lockstep. */
@@ -316,11 +317,11 @@ internal fun LiquidTodayHeader(
     dayTitle: String,
     humanDate: String,
     selectedDay: LocalDate,
-    /** What the battery ring shows for the ACTIVE device, resolved by [HeaderBatteryDisplay]: the strap's
+    /** What the battery chip shows for the ACTIVE device, resolved by [HeaderBatteryDisplay]: the strap's
      *  charge (or its offline / no-reading-yet glyph) under an active strap, the ring's own charge under an
      *  active ring, and nothing at all when the active device is neither. (#2208) */
     battery: HeaderBatteryDisplay.State,
-    // #245: sync state, shown in the strap pill under the title row.
+    // #245: sync state, shown in the battery chip in the header's control row.
     backfilling: Boolean = false,
     syncChunksThisSession: Int = 0,
     lastSyncAt: Long? = null,
@@ -370,6 +371,21 @@ internal fun LiquidTodayHeader(
     // width. The line sits under the row instead of inside the trailing cluster, so syncing costs the
     // day title no width at all.
     Column(modifier = modifier.fillMaxWidth()) {
+        // The battery chip: the active device's charge, plus a word when the sync state needs a look. Tap
+        // opens Devices, or starts a scan while the strap is offline.
+        val pill = StrapStatusPill.resolve(
+            battery = battery,
+            sync = SyncChipState.resolve(
+                backfilling = backfilling,
+                chunks = syncChunksThisSession,
+                lastSyncAtSec = lastSyncAt,
+                historySyncExperimental = historySyncExperimental,
+                nowSec = System.currentTimeMillis() / 1000L,
+                pagesBehind = pagesBehindAtConnect,
+            ),
+            canReconnect = onRescan != null,
+            scanning = scanning,
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,
@@ -410,15 +426,23 @@ internal fun LiquidTodayHeader(
                 )
             }
 
-            // RIGHT: quick actions and the profile, 40dp each, 8dp apart. Kept to two controls on purpose:
-            // the title Column beside this is weight(1f) with maxLines=1 + Ellipsis, so every control added
-            // here is width taken from the day title (#2110). Battery and sync live in the strap pill below.
+            // RIGHT: the battery chip, quick actions and the profile, 8dp apart. Kept small on purpose: the
+            // title Column beside this is weight(1f) with maxLines=1 + Ellipsis, so every control added
+            // here is width taken from the day title (#2110). The chip is a glyph and a percentage in the
+            // usual case, and spells out words only when the strap needs attention.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                // Quick actions first, then the profile. Battery and sync moved to the strap pill under
-                // this row, so the cluster is two controls and the day title keeps its width.
+                if (pill != null && StrapStatusPill.showsChip(pill)) {
+                    BatteryChip(
+                        model = pill,
+                        onClick = when (pill.tap) {
+                            StrapStatusPill.Tap.Reconnect -> onRescan ?: onOpenDevices
+                            StrapStatusPill.Tap.OpenDevices -> onOpenDevices
+                        },
+                    )
+                }
                 QuickActionDisc(onClick = onQuickActions)
                 // (a) Profile avatar (the photo set in Settings, or the NOOP loop mark) → Settings. Mirrors iOS.
                 Box(
@@ -436,31 +460,6 @@ internal fun LiquidTodayHeader(
                     ProfileAvatar(size = HeaderClusterControl)
                 }
             }
-        }
-        // The strap pill: the active device's charge and its sync state in one line. Tap opens Devices,
-        // or starts a scan while the strap is offline.
-        val pill = StrapStatusPill.resolve(
-            battery = battery,
-            sync = SyncChipState.resolve(
-                backfilling = backfilling,
-                chunks = syncChunksThisSession,
-                lastSyncAtSec = lastSyncAt,
-                historySyncExperimental = historySyncExperimental,
-                nowSec = System.currentTimeMillis() / 1000L,
-                pagesBehind = pagesBehindAtConnect,
-            ),
-            canReconnect = onRescan != null,
-            scanning = scanning,
-        )
-        if (pill != null) {
-            StrapPill(
-                model = pill,
-                onClick = when (pill.tap) {
-                    StrapStatusPill.Tap.Reconnect -> onRescan ?: onOpenDevices
-                    StrapStatusPill.Tap.OpenDevices -> onOpenDevices
-                },
-                modifier = Modifier.padding(top = Metrics.space10),
-            )
         }
         if (backfilling) {
             SyncProgressLine(
@@ -531,12 +530,11 @@ private fun SyncProgressLine(chunks: Int, pagesBehind: Int?, modifier: Modifier 
 /** Thickness of the header catch-up line: a hairline that reads as status, not as a control. */
 private val SyncLineThickness = 3.dp
 
-/** The Today header's strap pill: a small battery glyph, the device and its charge ("Strap 11%"), and
- *  the sync state ("synced 3m ago", "catching up", "tap to reconnect"), all decided by
- *  [StrapStatusPill.resolve]. It replaces the separate battery ring and sync chip. Content-sized and
- *  start-aligned under the title, so it never takes width from the day title. */
+/** The Today header's battery chip, in the control row beside quick actions: a small battery glyph and
+ *  the charge ("64%"), or a short word when the state needs attention ("Syncing", "Not connected",
+ *  "Looking…"), all decided by [StrapStatusPill]. The full state, sync age included, goes to TalkBack. */
 @Composable
-private fun StrapPill(model: StrapStatusPill.Model, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun BatteryChip(model: StrapStatusPill.Model, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val battery = model.battery
     val levelColor = when (battery) {
         is StrapStatusPill.Battery.Charge -> when (battery.level) {
@@ -546,6 +544,7 @@ private fun StrapPill(model: StrapStatusPill.Model, onClick: () -> Unit, modifie
         }
         else -> Palette.textTertiary
     }
+    // TalkBack reads the whole state ("Strap 64%, synced 3m ago"), which the chip itself no longer spells out.
     val lead: String? = when (battery) {
         StrapStatusPill.Battery.None -> null
         StrapStatusPill.Battery.Offline -> uiString(R.string.strap_pill_offline)
@@ -562,20 +561,25 @@ private fun StrapPill(model: StrapStatusPill.Model, onClick: () -> Unit, modifie
         StrapStatusPill.Status.Looking -> uiString(R.string.strap_pill_looking)
         StrapStatusPill.Status.TapToReconnect -> uiString(R.string.strap_pill_tap_to_reconnect)
     }
+    val desc = when {
+        lead != null && status != null -> uiString(R.string.strap_chip_desc, lead, status)
+        else -> lead ?: status ?: ""
+    }
     val clickLabel = uiString(
         if (model.tap == StrapStatusPill.Tap.Reconnect) R.string.l10n_today_screen_scan_and_connect_40157030
         else R.string.strap_pill_open_devices,
     )
+    val chipText = StrapStatusPill.chipText(model)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Metrics.space6),
         modifier = modifier
-            .heightIn(min = StrapPillHeight)
+            .heightIn(min = BatteryChipHeight)
             .clip(RoundedCornerShape(50))
             .background(Palette.surfaceInset)
             .clickable(onClickLabel = clickLabel, onClick = onClick)
-            .semantics(mergeDescendants = true) {}
-            .padding(horizontal = Metrics.space12),
+            .semantics { contentDescription = desc }
+            .padding(horizontal = Metrics.space8),
     ) {
         if (battery != StrapStatusPill.Battery.None) {
             BatteryGlyph(
@@ -583,26 +587,31 @@ private fun StrapPill(model: StrapStatusPill.Model, onClick: () -> Unit, modifie
                 color = levelColor,
             )
         }
-        if (lead != null) {
-            Text(
-                lead,
-                style = NoopType.caption,
+        when (chipText) {
+            is StrapStatusPill.ChipText.Percent -> Text(
+                uiString(R.string.strap_chip_pct, chipText.pct),
+                style = NoopType.captionNumber,
                 color = Palette.textPrimary,
-                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
+                modifier = Modifier.clearAndSetSemantics {},
             )
-        }
-        if (lead != null && status != null) {
-            Text("·", style = NoopType.caption, color = Palette.textTertiary)
-        }
-        if (status != null) {
-            Text(
-                status,
+            StrapStatusPill.ChipText.Syncing,
+            StrapStatusPill.ChipText.NotConnected,
+            StrapStatusPill.ChipText.Looking -> Text(
+                uiString(
+                    when (chipText) {
+                        StrapStatusPill.ChipText.Syncing -> R.string.strap_chip_syncing
+                        StrapStatusPill.ChipText.NotConnected -> R.string.strap_chip_not_connected
+                        else -> R.string.strap_chip_looking
+                    },
+                ),
                 style = NoopType.caption,
                 color = Palette.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.clearAndSetSemantics {},
             )
+            StrapStatusPill.ChipText.None -> Unit
         }
     }
 }
@@ -644,8 +653,8 @@ private fun BatteryGlyph(fraction: Float?, color: Color) {
     }
 }
 
-/** Minimum height of the strap pill: a comfortable tap target that still reads as a caption. */
-private val StrapPillHeight = 32.dp
+/** Minimum height of the battery chip: a comfortable tap target that still reads as a caption. */
+private val BatteryChipHeight = 32.dp
 
 
 // MARK: - Zoop wordmark (centred, with a tap easter egg)

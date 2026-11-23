@@ -87,3 +87,14 @@ internal fun vitalTrendTone(
     val improved = if (higherIsBetter) change > 0 else change < 0
     return if (improved) HomeTone.GOOD else HomeTone.POOR
 }
+
+/**
+ * The tone of a Home change chip, from a [vitalTrendTone]: green when the day moved the healthy way,
+ * amber (not critical red) when it moved the other way, and neutral (null) inside the tolerance or with
+ * nothing to compare. A one-day dip against a 7-day average is a nudge, not an alarm.
+ */
+internal fun homeChipTone(tone: HomeTone?): HomeTone? = when (tone) {
+    HomeTone.GOOD -> HomeTone.GOOD
+    HomeTone.POOR -> HomeTone.FAIR
+    HomeTone.FAIR, null -> null
+}

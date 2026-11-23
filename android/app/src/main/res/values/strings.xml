@@ -54,7 +54,7 @@
     <string name="nav_more">More</string>
 
     <string name="push_title">Self-hosted push</string>
-    <string name="push_subtitle">Experimental · Android</string>
+    <string name="push_subtitle">Experimental</string>
     <string name="push_destination_title">Your endpoint</string>
     <string name="push_disclosure">When enabled, Zoop sends raw health records from this phone to the endpoint you control. This is explicit data egress from the device.</string>
     <string name="push_one_way_warning">One-way export only. Zoop cannot restore data from this endpoint and does not provide a receiver.</string>
@@ -124,7 +124,6 @@
     <string name="push_state_retrying">Retrying after an error</string>
     <string name="push_state_complete">Up to date</string>
     <string name="push_state_failed">Paused after an error</string>
-    <string name="push_settings_row_detail">Experimental one-way export to an endpoint you control. Off by default.</string>
     <string name="push_endpoint_error_malformed">Enter a valid URL.</string>
     <string name="push_endpoint_error_missing_scheme">The URL needs http:// or https://.</string>
     <string name="push_endpoint_error_unsupported_scheme">Only HTTP and HTTPS are supported.</string>
@@ -136,16 +135,23 @@
     <string name="push_endpoint_error_http_requires_local">Plain HTTP requires a numeric local or private IP address.</string>
     <string name="push_error_enqueue_failed">Push could not be queued.</string>
 
-    <!-- More-page section headers (DISPLAY only; the stored expand/collapse key stays the English
-         literal in MoreSectionPrefs so persistence and iOS parity are unaffected). -->
-    <string name="more_group_insights">Insights</string>
-    <string name="more_group_body">Body</string>
-    <string name="more_group_data">Data</string>
-    <string name="more_group_app">App</string>
+    <!-- More page rows whose label is not the screen's own title, and the in-screen links to the
+         screens the More page no longer lists. -->
+    <string name="more_row_live_heart_rate">Live heart rate</string>
+    <string name="more_row_explore_compare">Explore and compare</string>
+    <string name="more_row_import_backup">Import and backup</string>
+    <string name="more_row_alarms_automations">Alarms and automations</string>
+    <string name="explore_compare_row">Compare metrics</string>
+    <string name="data_sources_backup_row">Backup and sync</string>
+    <string name="automations_smart_alarm_row">Smart alarm</string>
+    <string name="health_vital_signs_row">All vital signs</string>
+    <string name="settings_row_strap_limitations">Strap limitations</string>
 
     <!-- Quick actions on the centre action button. -->
     <string name="action_live_hr">Live HR</string>
     <string name="action_breathe">Breathe</string>
+    <string name="action_going_to_bed">Going to bed</string>
+    <string name="action_woke_up">Woke up</string>
 
     <!-- Today screen: header of the workouts feed. Renamed from "Last Workouts" ("Last" read as
          "final", #34/#53 follow-up); wording mirrored on iOS in Localizable.xcstrings. -->
@@ -195,7 +201,6 @@
     <!-- Trends / Explore / Deep Timeline (#448, completed by #453): these screens originally used
          hardcoded English throughout. Direct Compose copy and data-driven MetricSpec/TimelineMetric
          labels now live in resources; German wording follows the Apple catalogs where available. -->
-    <string name="trends_subtitle">The thread of you over time.</string>
     <string name="trends_trailing">Trailing</string>
     <string name="trends_trailing_days">Trailing %1$d days</string>
     <string name="trends_all_history">All history</string>
@@ -210,25 +215,16 @@
     <string name="trends_rest">Rest</string>
     <string name="trends_hrv_full">Heart rate variability</string>
     <string name="trends_resting_hr_full">Resting heart rate</string>
-    <string name="trends_no_readings_this_week">No readings this week</string>
     <string name="trends_no_readings_body">Step to another week with the arrows above to see its review.</string>
-    <string name="trends_this_week">This week</string>
     <string name="trends_range_all">All</string>
     <string name="trends_caption_lead_days">Trailing %1$d days.</string>
     <string name="trends_caption_lead_all">All history.</string>
-    <string name="trends_caption_period">Numbers are averages for the period, arrows compare with the %1$d days before, and shaded bands show your normal range.</string>
-    <string name="trends_caption_all">Numbers are averages across your whole history, and shaded bands show your normal range.</string>
-    <string name="trends_week_subtitle">%1$s · arrows vs the week before</string>
-    <string name="trends_avg_suffix">avg</string>
-    <string name="trends_unit_avg">%1$s avg</string>
-    <string name="trends_seven_day_average">7-day average</string>
-    <string name="trends_weekly">Weekly</string>
-    <string name="trends_monthly">Monthly</string>
-    <string name="trends_daily_out_of">Daily, out of %1$s</string>
-    <string name="trends_every_day_charge">Every day\'s Charge</string>
-    <string name="trends_low_peak">Low %1$s · Peak %2$s</string>
+    <string name="trends_caption_period">Charge, Effort and Rest are averages for the period, arrows compare with the %1$d days before, and shaded bands show your normal range.</string>
+    <string name="trends_caption_all">Charge, Effort and Rest are averages across your whole history, and shaded bands show your normal range.</string>
+    <string name="trends_method_charts_weekly">The Charge line is a 7-day average. Each Rest bar averages one week. Weight and skin temperature show your latest reading.</string>
+    <string name="trends_method_charts_monthly">The Charge line is a 7-day average. Each Rest bar averages one month. Weight and skin temperature show your latest reading.</string>
+    <string name="trends_action_about_numbers">About these numbers</string>
     <string name="trends_point_label">%1$s · %2$s</string>
-    <string name="trends_value_unit">%1$s %2$s</string>
     <string name="trends_form_chip">Form %1$s · %2$s</string>
     <string name="trends_fitness">Fitness</string>
     <string name="trends_fatigue">Fatigue</string>
@@ -266,18 +262,10 @@
     <string name="trends_body_skin_down">Skin temperature is down %1$s on the previous %2$d days.</string>
     <string name="trends_body_skin_steady">Skin temperature is steady.</string>
     <string name="trends_body_skin_average">Skin temperature has averaged %1$s over this period.</string>
-    <string name="trends_body_empty">Weight and skin temperature show up here once they\'re recorded.</string>
-    <string name="trends_last_week">Last week</string>
-    <string name="trends_previous_week">Previous week</string>
-    <string name="trends_next_week">Next week</string>
     <string name="trends_daily_signals">Daily signals</string>
     <string name="trends_week_in_review">Week in review</string>
     <string name="trends_charge_effort_rest">Charge · Effort · Rest</string>
     <string name="trends_calendar">Calendar</string>
-    <string name="trends_avg">Avg</string>
-    <string name="trends_peak">Peak</string>
-    <string name="trends_low">Low</string>
-    <string name="trends_days">Days</string>
     <string name="trends_mean">Mean</string>
     <string name="trends_min">Min</string>
     <string name="trends_max">Max</string>
@@ -286,7 +274,6 @@
     <string name="trends_empty_title">Trends need history to draw</string>
     <string name="trends_empty_body">Trends need history to draw. Import your WHOOP export in Data Sources to see weeks, months and years instantly.</string>
 
-    <string name="explore_subtitle">Every signal, one tap deep.</string>
     <string name="explore_import_title">Import your history first</string>
     <string name="explore_import_body">Import your history first. A WHOOP export in Data Sources fills every metric you can explore here in about a minute.</string>
     <string name="deep_timeline_title">Deep Timeline</string>
@@ -308,7 +295,6 @@
     <string name="explore_chart_window">Window</string>
     <string name="explore_chart_points">Points</string>
 
-    <string name="timeline_subtitle">Every second of your day. Drag back up to 3 days.</string>
     <string name="timeline_my_whoop">My WHOOP</string>
     <string name="timeline_owned">Owned</string>
     <string name="timeline_all">All</string>
@@ -325,10 +311,10 @@
 
     <!-- Power saving (#477) -->
     <string name="fast_link_phy">Faster Bluetooth link (experimental)</string>
-    <string name="fast_link_phy_desc">Ask for a faster Bluetooth radio mode while your strap hands over its stored history. Sends the same data in less airtime, so it may sync sooner and use a little less strap battery — but your strap has to support it, and it trades some range for speed. New and unproven: if syncing gets flaky when your phone is further away, turn it back off.</string>
+    <string name="fast_link_phy_desc">May reduce Bluetooth range</string>
     <string name="fast_history_sync">Faster history sync (experimental)</string>
-    <string name="fast_history_sync_desc">Ask Android for a faster Bluetooth link while your strap hands over its stored history, so a big backlog catches up sooner. Only during the sync itself — your live heart rate and the overnight stream are untouched. New and unproven: if it doesn\'t help, or costs more battery than it\'s worth, turn it back off and say so on the issue tracker.</string>
-    <string name="keep_alive_needed_vendor">Your phone (%1$s) can stop background apps to save battery, which can make Zoop miss overnight sleep and recovery data. Tap Allow to whitelist Zoop.\n\nAndroid will ask “Stop optimising battery usage?” and warn that Zoop may drain your battery — that\'s its standard wording for any app allowed to run in the background. Tap Allow. The battery goes on the overnight sync you already switched on above; this only stops Android cutting it short.</string>
+    <string name="fast_history_sync_desc">May use more battery</string>
+    <string name="keep_alive_needed_vendor">Your %1$s phone can stop Zoop overnight. Tap Allow to keep it running.</string>
     <string name="power_saving">Power saving</string>
     <string name="power_saving_blurb">Ease the load on your strap when its battery is running low. The strap keeps banking data on its own, so nothing is lost — Zoop just talks to it less often to help it last until you can charge it.</string>
     <string name="power_saving_mode">Power saving mode</string>
@@ -376,7 +362,6 @@
     <string name="l10n_add_device_wizard_whoop_5_0_mg_support_is_e452e686">WHOOP 5.0 / MG support is newer and still experimental in Zoop.</string>
     <string name="l10n_add_device_wizard_whoop_is_noop_s_primary_fully_ac6fa33b">WHOOP is Zoop\'s primary, fully-supported band. Other heart-rate straps stream live heart rate and HRV, but not WHOOP\'s deeper sleep and recovery data.</string>
     <string name="l10n_app_root_more_4bab2d8f">More</string>
-    <string name="l10n_app_root_moregroupchevron_b2b36ec6">moreGroupChevron</string>
     <string name="l10n_apple_health_screen_apple_health_b19b87da">Apple Health</string>
     <string name="l10n_apple_health_screen_no_readings_recorded_05018b26">No readings recorded.</string>
     <string name="l10n_apple_health_screen_nothing_imported_yet_f457cdbe">Nothing imported yet</string>
@@ -789,7 +774,6 @@
     <string name="l10n_scoring_guide_screen_vs_whoop_9a8126a7">VS WHOOP</string>
     <string name="l10n_settings_screen_12_hour_41c18ba0">12-hour</string>
     <string name="l10n_settings_screen_24_hour_18e86819">24-hour</string>
-    <string name="l10n_settings_screen_advancedchevron_f22dfa01">advancedChevron</string>
     <string name="l10n_settings_screen_bottom_bar_overlay_f257c96f">Bottom bar overlay</string>
     <string name="l10n_settings_screen_clock_04f6b3ea">Clock</string>
     <string name="l10n_settings_screen_hide_bar_when_scrolling_b077d9f3">Hide bar when scrolling</string>
@@ -797,21 +781,15 @@
     <string name="l10n_skin_temp_cards_screen_noop_can_read_a_coarse_menstrual_c79e4b85">Zoop can read a coarse menstrual-cycle phase from your nightly skin temperature, entirely on your device. It is awareness only: not contraception, not a fertility predictor, not a medical service.</string>
     <string name="l10n_skin_temp_cards_screen_turn_on_cycle_awareness_7c2d328f">Turn on cycle awareness</string>
     <string name="l10n_sleep_screen_about_this_nap_e2719b9b">About this nap</string>
-    <string name="l10n_sleep_screen_about_your_main_sleep_1da8a640">About your main sleep</string>
     <string name="l10n_sleep_screen_as_of_latest_first_726f20bb">as of %1$s</string>
     <string name="l10n_sleep_screen_asleep_b9692bbe">Asleep</string>
     <string name="l10n_sleep_screen_asleep_duration_3638413f">Asleep duration</string>
-    <string name="l10n_sleep_screen_asleep_last_night_b969b068">asleep last night</string>
     <string name="l10n_sleep_screen_bedtime_wake_time_b2a22c32">Bedtime &amp; wake time</string>
     <string name="l10n_sleep_screen_consistency_0ea7b95e">Consistency</string>
     <string name="l10n_sleep_screen_consistencypct_roundtoint_b23a9d40">%1$s%%</string>
     <string name="l10n_sleep_screen_delete_this_nap_1adf0a3f">Delete this nap</string>
-    <string name="l10n_sleep_screen_fell_asleep_at_asleep_woke_at_80465b2d">Fell asleep at %1$s, woke at %2$s</string>
-    <string name="l10n_sleep_screen_going_to_sleep_9c6c63fd">Going to sleep</string>
-    <string name="l10n_sleep_screen_hours_asleep_06f68993">Hours asleep</string>
-    <string name="l10n_sleep_screen_hours_vs_needed_500a0aca">Hours vs Needed</string>
+    <string name="l10n_sleep_screen_hours_vs_needed_500a0aca">Hours vs needed</string>
     <string name="l10n_sleep_screen_hours_vs_needed_progress_bar_score_4baad051">Hours vs Needed progress bar, %1$s percent</string>
-    <string name="l10n_sleep_screen_i_m_awake_2caf0e7f">I\'m awake</string>
     <string name="l10n_sleep_screen_label_durationtext_minutes_percent_percent_of_6ab7ae87">%1$s: %2$s, %3$s percent of the night</string>
     <string name="l10n_sleep_screen_label_minutes_vs_your_typical_bar_b8f6a482">%1$s minutes vs your typical bar</string>
     <string name="l10n_sleep_screen_log_going_to_sleep_6c2b519d">Log going to sleep</string>
@@ -829,13 +807,12 @@
     <string name="l10n_sleep_screen_percent_2281d326">%1$s%%</string>
     <string name="l10n_sleep_screen_score_roundtoint_a2d1cc99">%1$s%%</string>
     <string name="l10n_sleep_screen_sleep_consistency_nightly_bed_and_wake_14526f89">Sleep consistency nightly bed and wake chart</string>
-    <string name="l10n_sleep_screen_sleep_debt_3aec7d9c">Sleep Debt</string>
-    <string name="l10n_sleep_screen_sleep_debt_ledger_8cc9a992">Sleep-debt ledger</string>
+    <string name="l10n_sleep_screen_sleep_debt_3aec7d9c">Sleep debt</string>
+    <string name="l10n_sleep_screen_sleep_debt_ledger_8cc9a992">Sleep debt</string>
     <string name="l10n_sleep_screen_sleep_debt_trend_chart_9e178776">Sleep debt trend chart</string>
     <string name="l10n_sleep_screen_sleep_hours_trend_chart_a6fbc46d">Sleep hours trend chart</string>
     <string name="l10n_sleep_screen_sleep_heart_rate_chart_8ec47ae1">Sleep heart rate chart</string>
     <string name="l10n_sleep_screen_sleep_marks_8e9b86f0">Sleep marks</string>
-    <string name="l10n_sleep_screen_sleep_window_over_recent_nights_cc5fd9b8">Sleep window over recent nights</string>
     <string name="l10n_sleep_screen_spec_format_avgv_spec_unit_46bf7fdc">%1$s %2$s</string>
     <string name="l10n_sleep_screen_spec_format_latest_second_spec_unit_18433019">%1$s %2$s</string>
     <string name="l10n_sleep_screen_spec_format_maxv_spec_unit_65091104">%1$s %2$s</string>
@@ -850,9 +827,6 @@
     <string name="l10n_sleep_screen_undo_39fc7212">Undo</string>
     <string name="l10n_sleep_screen_undo_sleep_deletion_1774a23c">Undo sleep deletion</string>
     <string name="l10n_sleep_screen_why_this_is_logged_as_a_83ed7c06">Why this is logged as a nap</string>
-    <string name="l10n_sleep_screen_why_this_is_your_main_sleep_71efd756">Why this is your main sleep</string>
-    <string name="l10n_sleep_screen_why_this_sleep_ab42b016">Why this sleep?</string>
-    <string name="l10n_sleep_screen_woke_cfbb59a8">Woke</string>
     <string name="l10n_smart_alarm_screen_a_backup_alarm_is_set_for_cf8b94fb">A backup alarm is set for %1$s. It fires even if Bluetooth drops, the strap isn\'t worn, or Zoop is closed.</string>
     <string name="l10n_smart_alarm_screen_alarms_131dd3d6">Alarms</string>
     <string name="l10n_smart_alarm_screen_buzz_strapname_813772f4">Buzz %1$s</string>
@@ -972,7 +946,6 @@
     <string name="l10n_today_screen_strap_history_still_offloading_80140264">strap history still offloading</string>
     <string name="l10n_today_screen_pct_roundtoint_05ba4549">%1$s</string>
     <string name="l10n_today_screen_quick_actions_e47e8042">Quick actions</string>
-    <string name="l10n_today_screen_readiness_word_749b3330">Readiness: %1$s</string>
     <string name="l10n_today_screen_reset_44c57abd">Reset</string>
     <string name="l10n_today_screen_see_how_charge_effort_and_rest_80243197">See how Charge, Effort and Rest are calculated, and how they differ from WHOOP.</string>
     <string name="l10n_today_screen_see_how_it_works_f7b38f07">See how it works</string>
@@ -1436,15 +1409,15 @@
     <string name="l10n_rhythm_screen_this_is_a_wellness_visualization_not_3409b935">This is a wellness visualization, not a screening test. It does not tell you to see a clinician and it names no condition. This is not legal or medical advice.</string>
     <string name="l10n_rhythm_screen_turn_on_rhythm_2275168c">Turn on Rhythm</string>
     <string name="l10n_settings_screen_1f_cardopacity_100_toint_51f10397">%1$s%%</string>
-    <string name="l10n_settings_screen_a_standalone_companion_for_your_whoop_7a132b5a">A standalone companion for your WHOOP. Everything stays on this phone: your history, your live stream, your numbers. Nothing is uploaded.</string>
-    <string name="l10n_settings_screen_a_transparent_cardiorespiratory_recipe_that_recovers_eebe00c2">A transparent cardiorespiratory recipe that recovers deep and REM better than the older V1 staging, and is now the default. It only changes how already-detected nights are split into stages (detection and scores are unchanged); turn it off to fall back to V1. Takes effect on the next nights staged.</string>
+    <string name="l10n_settings_screen_a_standalone_companion_for_your_whoop_7a132b5a">Everything stays on this phone.</string>
+    <string name="l10n_settings_screen_a_transparent_cardiorespiratory_recipe_that_recovers_eebe00c2">Default. Off falls back to V1.</string>
     <string name="l10n_settings_screen_about_6b21fb79">About</string>
     <string name="l10n_settings_screen_advanced_4d064726">Advanced</string>
     <string name="l10n_settings_screen_age_ff9f1ff3">Age</string>
     <string name="l10n_settings_screen_app_icon_abde7a74">App icon</string>
     <string name="l10n_settings_screen_appearance_41def7a0">Appearance</string>
-    <string name="l10n_settings_screen_reduce_motion_in_noop_59a6180d">Reduce motion in Zoop</string>
-    <string name="l10n_settings_screen_holds_the_liquid_gauges_the_sky_41872b57">Holds the liquid gauges, the sky and the tilt response still, and turns off the motion sensor that drives them. Saves battery. Low Power Mode and the system Reduce Motion setting already do this.</string>
+    <string name="l10n_settings_screen_reduce_motion_in_noop_59a6180d">Reduce motion</string>
+    <string name="l10n_settings_screen_holds_the_liquid_gauges_the_sky_41872b57">Also saves battery</string>
     <string name="l10n_settings_screen_auto_detect_workouts_bed4cf2a">Auto-detect workouts</string>
     <string name="l10n_settings_screen_automatic_backups_8a772f3c">Automatic backups</string>
     <string name="l10n_settings_screen_backup_restore_a1616284">Backup &amp; restore</string>
@@ -1459,17 +1432,15 @@
     <string name="l10n_settings_screen_restore_3cbe6d6b">Restore</string>
     <string name="l10n_settings_screen_card_transparency_c5c7b4f3">Card transparency</string>
     <string name="l10n_settings_screen_charge_d4e1aee4">Charge</string>
-    <string name="l10n_settings_screen_charge_effort_and_rest_and_how_d2c423a4">Charge, Effort and Rest, and how they differ from WHOOP</string>
     <string name="l10n_settings_screen_chart_colours_525f4a37">Chart colours</string>
     <string name="l10n_settings_screen_check_for_updates_736b9062">Check for updates</string>
     <string name="l10n_settings_screen_checking_820d6004">Checking…</string>
-    <string name="l10n_settings_screen_checks_github_for_the_latest_version_c10a81e2">Checks GitHub for the latest version when you tap. Nothing else is sent.</string>
     <string name="l10n_settings_screen_continuous_hrv_capture_1f0805d8">Continuous HRV capture</string>
     <string name="l10n_settings_screen_couldn_t_check_try_again_b3c885d9">Couldn\'t check. Try again.</string>
-    <string name="l10n_settings_screen_counter_ticks_per_step_leave_at_3ce8c1d5">Counter ticks per step. Leave at 1.0 unless your steps run high. On a WHOOP 5/MG they can run very high (10× or more), so this goes up to 30. Walk a known 1,000 steps and divide Zoop\'s count by the real count to get your value.</string>
+    <string name="l10n_settings_screen_counter_ticks_per_step_leave_at_3ce8c1d5">Leave at 1.0 unless your steps run high.</string>
     <string name="l10n_settings_screen_show_cycle_awareness_59709019">Show cycle awareness</string>
     <string name="l10n_settings_screen_cycle_awareness_ffb94783">Cycle awareness</string>
-    <string name="l10n_settings_screen_day_cycle_background_8c254f01">Day-cycle background</string>
+    <string name="l10n_settings_screen_day_cycle_background_8c254f01">Sky background</string>
     <string name="l10n_settings_screen_diagnostics_3af2279f">Diagnostics</string>
     <string name="l10n_settings_screen_disconnect_ed28e068">Disconnect</string>
     <string name="l10n_settings_screen_download_a479c9c3">Download</string>
@@ -1479,26 +1450,24 @@
     <string name="l10n_settings_screen_export_csv_6bce63a3">Export CSV…</string>
     <string name="l10n_settings_screen_export_raw_log_matched_pair_d65390bf">Export raw + log (matched pair)</string>
     <string name="l10n_settings_screen_export_raw_sensor_data_csv_a171b81e">Raw sensor data (CSV)</string>
-    <string name="l10n_settings_screen_extends_the_sky_behind_the_whole_39bb82cc">Extends the sky behind the whole Today screen, so lowering Card transparency lets it show through every card. Needs the day-cycle background on.</string>
-    <string name="l10n_settings_screen_feel_the_current_time_as_a_8ca41db1">Feel the current time as a sequence of buzzes (#460). Does nothing unless your strap is connected.</string>
+    <string name="l10n_settings_screen_extends_the_sky_behind_the_whole_39bb82cc">Needs Sky background</string>
+    <string name="l10n_settings_screen_feel_the_current_time_as_a_8ca41db1">Needs a connected strap</string>
     <string name="l10n_settings_screen_flags_accepted_but_the_enable_sequence_542b2595">Flags accepted, but the enable sequence doesn\'t start a separate live stream. The deep records arrive as part of the normal history sync (#494).</string>
-    <string name="l10n_settings_screen_for_a_whoop_4_0_which_df865854">For a WHOOP 4.0, which sends no step count: Zoop estimates steps from motion, calibrated to your phone. Tap to see how close it is and adjust it.</string>
-    <string name="l10n_settings_screen_github_code_releases_issues_and_the_50b41e25">GitHub: code, releases, issues and the wiki.</string>
+    <string name="l10n_settings_screen_for_a_whoop_4_0_which_df865854">For WHOOP 4.0, which sends no step count.</string>
     <string name="l10n_settings_screen_health_wellness_93475778">Health &amp; wellness</string>
     <string name="l10n_settings_screen_height_3f608b49">Height</string>
-    <string name="l10n_settings_screen_how_see_through_the_cards_heart_436105b9">How see-through the cards (Heart Rate, Key Metrics, Recovery Vitals, …) are. Left = solid, right = clear.</string>
     <string name="l10n_settings_screen_how_your_scores_work_21a0e2be">How your scores work</string>
     <string name="l10n_settings_screen_hrv_window_e74320b8">HRV window</string>
     <string name="l10n_settings_screen_hydration_tracking_579a2b32">Hydration tracking</string>
     <string name="l10n_settings_screen_icon_716f63b9">Icon</string>
     <string name="l10n_settings_screen_illness_heads_up_97e10035">Illness heads-up</string>
     <string name="l10n_settings_screen_import_4834caf8">Import…</string>
-    <string name="l10n_settings_screen_importing_overwrites_everything_currently_on_this_297b76ae">Importing overwrites everything currently on this phone. Your old data is kept in a side file just in case. Zoop needs a relaunch for an import to take effect. Export CSV writes a WHOOP-format zip of your days, sleeps, workouts and journal that re-imports into Zoop on Android or Mac. On-device computed rows are marked APPROXIMATE in its Source column; the .noopbak backup stays the lossless restore path.</string>
+    <string name="l10n_settings_screen_importing_overwrites_everything_currently_on_this_297b76ae">Importing replaces all data on this phone, then needs a relaunch.</string>
     <string name="l10n_settings_screen_keep_connected_in_the_background_44499d45">Keep connected in the background</string>
     <string name="l10n_settings_screen_keep_noop_alive_overnight_e43b2fba">Keep Zoop alive overnight</string>
     <string name="l10n_settings_screen_allow_3ad0e369">Allow</string>
-    <string name="l10n_settings_screen_keeps_streaming_from_your_strap_with_d31b4af9">Keeps streaming from your strap with an ongoing notification, even after you close Zoop. Turn off to disconnect when the app is closed.</string>
-    <string name="l10n_settings_screen_keeps_the_detailed_beat_to_beat_87b78edd">Keeps the detailed beat-to-beat stream running all day and night, not just while a live screen is open, so Zoop captures much more for overnight HRV, recovery and sleep. Uses more battery (your strap streams heart rate continuously). Needs "Keep connected in the background" on.</string>
+    <string name="l10n_settings_screen_keeps_streaming_from_your_strap_with_d31b4af9">Shows an ongoing notification</string>
+    <string name="l10n_settings_screen_keeps_the_detailed_beat_to_beat_87b78edd">Uses more battery. Needs background connection.</string>
     <string name="l10n_settings_screen_live_deeppacketsthissession_type_0x2f_historical_offload_8fef3d84">%1$s type-0x2F historical-offload frame(s) seen outside our sync. These are history (e.g. another app pulling the strap\'s backlog), not a live R22 stream (#494).</string>
     <string name="l10n_settings_screen_makes_your_whoop_5_0_mg_b26b94c7">Makes your WHOOP 5.0/MG advertise its heart rate as a standard Bluetooth HR sensor, so a Garmin (Edge/watch), Zwift or gym equipment can use it during a workout. Applied on the next connection (and immediately if connected); writes the strap\'s whoop_live_hr_in_adv_ind_pkt flag. Reversible. 5/MG only.</string>
     <string name="l10n_settings_screen_max_heart_rate_3d4ed858">Max heart rate</string>
@@ -1506,7 +1475,6 @@
     <string name="l10n_settings_screen_motion_aware_wake_refinement_67a91e47">Motion-aware wake refinement</string>
     <string name="l10n_settings_screen_offer_a_breath_automatically_6c709dee">Offer a breath automatically</string>
     <string name="l10n_settings_screen_on_a_5_mg_connection_noop_4557c8f8">On a 5/MG connection Zoop will send a puffin realtime-stream request after the handshake, and log what comes back. If you have a 5/MG strap, turning this on and sharing your strap log helps map the protocol. No effect on WHOOP 4.0.</string>
-    <string name="l10n_settings_screen_open_test_centre_a7fbe4e9">Open Test Centre</string>
     <string name="l10n_settings_screen_overnight_only_05747985">Overnight only</string>
     <string name="l10n_settings_screen_profile_ff4fc027">Profile</string>
     <string name="l10n_settings_screen_profile_photo_33f385bb">Profile photo</string>
@@ -1521,23 +1489,22 @@
     <string name="l10n_settings_screen_records_the_raw_frames_of_each_98a284df">Records the raw frames of each 5/MG history sync to a file on this phone, so you can share them and help Zoop learn to decode 5/MG sleep, recovery and strain. The file contains raw biometric frames (heart rate, R-R, skin temperature, motion) and the strap\'s own diagnostic text. Nothing leaves the phone unless you share it. Off by default.</string>
     <string name="l10n_settings_screen_remove_photo_c8f5eda8">Remove photo</string>
     <string name="l10n_settings_screen_rename_d3f4cb89">Rename</string>
-    <string name="l10n_settings_screen_rename_your_strap_s_bluetooth_name_6032668b">Rename your strap\'s Bluetooth name, useful for a second-hand band. The strap reboots to apply, then reconnects with the new name.</string>
-    <string name="l10n_settings_screen_restarts_the_roughly_4_night_build_84f9f8d0">Restarts the roughly 4-night build-up for Charge and your HRV baseline from tonight. Use it if a bad first week set your baseline off. Your history stays.</string>
-    <string name="l10n_settings_screen_reviews_each_scored_wake_block_for_537924ea">Reviews each scored wake block for real evidence of getting up (walking cadence, a change in body position) instead of just a heart-rate rise. A wake block with no locomotion and a stable posture -- a hot night, a brief turn-over -- is folded back into light sleep; a real get-up is left alone. Self-checks how much motion detail your strap actually recorded and stays off on a night that\'s too sparse to trust (older WHOOP 4.0 firmware, mainly). Off by default; takes effect on the next nights staged.</string>
+    <string name="l10n_settings_screen_rename_your_strap_s_bluetooth_name_6032668b">The strap reboots to apply.</string>
+    <string name="l10n_settings_screen_restarts_the_roughly_4_night_build_84f9f8d0">Re-learns your baseline from tonight. Your history stays.</string>
+    <string name="l10n_settings_screen_reviews_each_scored_wake_block_for_537924ea">Ignores wakes without movement</string>
     <string name="l10n_settings_screen_rhythm_experimental_12d357da">Rhythm (experimental)</string>
-    <string name="l10n_settings_screen_runs_the_continuous_hrv_stream_only_3fed47c5">Runs the continuous HRV stream only during your quiet hours window (22:00–07:00 by default), roughly halving the battery cost. Daytime Stress readings will be sparser. Note: continuous background HRV capture (including daytime naps) is paused outside this window. For on-demand daytime HRV readings (including naps), use the \"Take an HRV reading\" button on the Live screen.</string>
-    <string name="l10n_settings_screen_saves_the_last_24h_of_decoded_f7026f47">Saves the last 24h of decoded sensor samples (heart rate, R-R, motion, steps and any 5/MG deep streams you\'ve unlocked) as one CSV you can share, for tinkering with your own data. Nothing leaves the phone unless you share it.</string>
+    <string name="l10n_settings_screen_runs_the_continuous_hrv_stream_only_3fed47c5">Only during quiet hours. About half the battery.</string>
+    <string name="l10n_settings_screen_saves_the_last_24h_of_decoded_f7026f47">The last 24 hours, as one CSV</string>
     <string name="l10n_settings_screen_send_enable_sequence_to_strap_04ff8a22">Send enable sequence</string>
     <string name="l10n_settings_screen_set_up_automatic_backups_00b4780c">Set up automatic backups</string>
     <string name="l10n_settings_screen_settings_c7f73bb5">Settings</string>
     <string name="l10n_settings_screen_sex_e301dd60">Sex</string>
     <string name="l10n_settings_screen_share_5_mg_capture_for_the_e41ac6bd">Share 5/MG capture (for the decode effort)</string>
     <string name="l10n_settings_screen_share_strap_log_for_bug_reports_b9802500">Share strap log</string>
-    <string name="l10n_settings_screen_shows_a_soft_sunrise_day_dusk_2d20b417">Shows a soft sunrise, day, dusk and night scene behind the Today screen. Turn it off for a plain dark canvas. Your cards stay exactly as readable.</string>
     <string name="l10n_settings_screen_sky_behind_cards_efbe5cb8">Sky behind cards</string>
     <string name="l10n_settings_screen_sleep_staging_v2_3a007e4a">Sleep staging V2</string>
     <string name="l10n_settings_screen_sleep_staging_v2_a4176770">Sleep staging (V2)</string>
-    <string name="l10n_settings_screen_some_phones_also_need_auto_start_79b7147b">Some phones also need auto-start enabled — open that screen</string>
+    <string name="l10n_settings_screen_some_phones_also_need_auto_start_79b7147b">Open auto-start settings</string>
     <string name="l10n_settings_screen_step_calibration_351c09bf">Step calibration</string>
     <string name="l10n_settings_screen_steps_estimate_calibration_stepssummary_opens_the_d6fbf995">Steps estimate calibration. %1$s. Opens the calibration screen.</string>
     <string name="l10n_settings_screen_steps_estimate_ce7a604d">Steps estimate</string>
@@ -1545,10 +1512,9 @@
     <string name="l10n_settings_screen_strap_name_350de547">Strap name</string>
     <string name="l10n_settings_screen_stress_check_ins_haptic_bf2746ba">Stress check-ins (haptic)</string>
     <string name="l10n_settings_screen_temperature_0a9062a9">Temperature</string>
-    <string name="l10n_settings_screen_test_centre_37b36828">Test Centre</string>
     <string name="l10n_settings_screen_theme_a797e309">Theme</string>
-    <string name="l10n_settings_screen_this_is_a_plain_unencrypted_archive_b0dfe63d">This is a plain, unencrypted archive — anyone who gets the file can open it with any zip tool. Store it somewhere you trust.</string>
-    <string name="l10n_settings_screen_this_restarts_the_roughly_4_night_c610a93d">This restarts the roughly 4-night build-up for Charge and your HRV baseline. Your history stays. Use it if a bad first week, like wearing it while sick, set your baseline off.</string>
+    <string name="l10n_settings_screen_this_is_a_plain_unencrypted_archive_b0dfe63d">The file isn\'t encrypted. Store it somewhere you trust.</string>
+    <string name="l10n_settings_screen_this_restarts_the_roughly_4_night_c610a93d">Charge re-learns your baseline over about 4 nights. Your history stays.</string>
     <string name="l10n_settings_screen_trend_charts_19085c81">Trend charts</string>
     <string name="l10n_settings_screen_try_history_sync_without_pairing_experimental_54c31ea2">Try history sync without pairing (experimental)</string>
     <string name="l10n_settings_screen_try_history_sync_without_pairing_33ae8594">Try history sync without pairing</string>
@@ -1560,11 +1526,10 @@
     <string name="l10n_settings_screen_waist_optional_d5356703">Waist (optional)</string>
     <string name="l10n_settings_screen_weight_69c0b815">Weight</string>
     <string name="l10n_settings_screen_use_weight_from_health_connect_c1fe3e2a">Use weight from Health Connect</string>
-    <string name="l10n_settings_screen_use_weight_from_health_connect_detail_40238f8a">After every sync, your profile weight takes the newest Health Connect reading. Turn off to set it by hand.</string>
+    <string name="l10n_settings_screen_use_weight_from_health_connect_detail_40238f8a">Updates after each sync</string>
     <string name="l10n_settings_screen_weight_from_health_connect_caption_5ca6ea7d">From Health Connect · %1$s</string>
     <string name="l10n_settings_screen_weight_from_health_connect_none_dd3f4884">From Health Connect · no weight yet</string>
-    <string name="l10n_settings_screen_what_each_strap_can_read_and_51e7d3fc">What each strap can read, and why some features differ.</string>
-    <string name="l10n_settings_screen_whole_night_is_noop_s_default_fbfff434">Whole night is Zoop\'s default measure; Deep sleep pools HRV over slow-wave sleep only, reading lower and matching WHOOP. Switching re-scores your recent nights over the new window and takes effect right away once you have a few nights of data.</string>
+    <string name="l10n_settings_screen_whole_night_is_noop_s_default_fbfff434">Deep sleep reads lower, like WHOOP.</string>
     <string name="l10n_settings_screen_whoop_4_0_versus_5_0_a54c5504">WHOOP 4.0 versus 5.0: what each can read and why</string>
     <string name="l10n_settings_screen_whoop_4_0_vs_5_0_2babb05a">WHOOP 4.0 vs 5.0/MG</string>
     <string name="l10n_settings_screen_whoop_5_mg_straps_hand_a_b8b239e6">Legacy R22 feature-flag experiment. The strap accepts these writes, but Zoop has not observed them enabling a separate live stream. This is not required for normal WHOOP 5/MG support or for the Raw Data Collector. It writes persistent strap settings and may do nothing on your firmware.</string>
@@ -1583,7 +1548,6 @@
     <string name="l10n_sleep_screen_adjust_sleep_times_1e325561">Adjust sleep times</string>
     <string name="l10n_sleep_screen_cancel_77dfd213">Cancel</string>
     <string name="l10n_sleep_screen_save_efc007a3">Save</string>
-    <string name="l10n_sleep_screen_daytime_sleep_871c03ca">DAYTIME SLEEP</string>
     <string name="l10n_sleep_screen_delete_f6fdbe48">Delete</string>
     <string name="l10n_sleep_screen_delete_this_sleep_session_6932e931">Delete this sleep session</string>
     <string name="l10n_sleep_screen_delete_this_sleep_session_c347b909">Delete this sleep session?</string>
@@ -1610,7 +1574,6 @@
     <string name="l10n_sleep_screen_recomputing_6f8e54e3">Recomputing…</string>
     <string name="l10n_sleep_screen_sleep_3cac34e6">Sleep</string>
     <string name="l10n_sleep_screen_sleep_detection_reran_using_the_data_01757aad">Sleep detection reran using the data available for this night.</string>
-    <string name="l10n_sleep_screen_stage_breakdown_e9b714f9">Stage breakdown</string>
     <string name="l10n_sleep_screen_this_moves_the_night_to_a_fac2fb46">This moves the night to a time with no recorded data. Stages can\'t be derived there, so it may show as empty until data covers it.</string>
     <string name="l10n_stress_screen_autonomic_balance_lf_hf_776cb6f7">Autonomic balance (LF/HF)</string>
     <string name="l10n_stress_screen_avg_a178769d">avg</string>
@@ -1644,7 +1607,6 @@
     <string name="l10n_today_screen_heart_rate_variability_a137586d">Heart-rate variability</string>
     <string name="l10n_today_screen_how_domain_label_is_calculated_8897768c">How %1$s is calculated</string>
     <string name="l10n_today_screen_latest_bpm_e7bec767">%1$s bpm</string>
-    <string name="l10n_today_screen_live_now_your_scores_are_building_cb05a4e8">Live now. Your scores are building.</string>
     <string name="l10n_today_screen_move_item_metric_title_down_890afe60">Move %1$s down</string>
     <string name="l10n_today_screen_move_item_metric_title_up_52d2104c">Move %1$s up</string>
     <string name="l10n_today_screen_new_data_added_e59345b4">New data added</string>
@@ -1751,10 +1713,6 @@
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
     </plurals>
-    <plurals name="trends_weeks_ago">
-        <item quantity="one">%1$d week ago</item>
-        <item quantity="other">%1$d weeks ago</item>
-    </plurals>
     <plurals name="explore_n_days">
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
@@ -1765,15 +1723,19 @@
     </plurals>
     <string name="timeline_spo2_not_on_whoop5">This strap doesn\'t send SpO₂ over Bluetooth. Import a WHOOP export or Health Connect to see it.</string>
     <string name="timeline_resp_not_on_whoop5">This strap sends no raw respiration stream. Your estimated respiratory rate appears on the Health screen.</string>
-    <string name="settings_disclosure_expanded">Expanded</string>
-    <string name="settings_disclosure_collapsed">Collapsed</string>
-    <string name="settings_tab_you">You</string>
+    <string name="settings_tab_you">Profile</string>
     <string name="settings_tab_strap">Strap</string>
     <string name="settings_tab_health">Health</string>
     <string name="settings_tab_look">Look</string>
     <string name="settings_tab_data">Data</string>
     <string name="settings_tab_about">About</string>
-    <string name="settings_tabs_label">Settings sections</string>
+    <string name="settings_experiments_title">Experiments</string>
+    <string name="settings_page_profile_summary">Body, heart-rate zones, units</string>
+    <string name="settings_page_look_summary">Theme, background, charts</string>
+    <string name="settings_page_health_summary">Wellness signals, Charge</string>
+    <string name="settings_page_data_summary">Backup, import, export</string>
+    <string name="settings_page_advanced_summary">Experiments and Test Centre</string>
+    <string name="settings_back_to_list">Back to Settings</string>
     <string name="l10n_data_sources_screen_last_shared_6bf8389c">"Last shared "%1$s</string>
     <string name="l10n_data_sources_screen_sharing_paused_health_connect_permission_was_e8950315">Sharing paused — Health Connect permission was revoked. Tap to re-grant.</string>
     <string name="l10n_data_sources_screen_last_share_didn_t_finish_noop_0d6c27f0">Last share didn’t finish — Zoop will retry automatically.</string>
@@ -1901,7 +1863,7 @@
     <string name="onboarding_notifications_status_body">Zoop holds the Bluetooth link open in the background so your data stays current. One low-priority notification shows it\'s connected. Nothing noisy.</string>
     <string name="onboarding_notifications_alerts">Wrist alerts (strain nudges and your smart alarm) arrive as notifications too.</string>
     <string name="onboarding_notifications_permission">When Android asks, allow notifications so Zoop can keep you informed.</string>
-    <string name="onboarding_appearance_subtitle">Zoop follows your system by default, or pick Light or Dark. You can change this any time in Settings → Appearance.</string>
+    <string name="onboarding_appearance_subtitle">Zoop follows your system by default, or pick Light or Dark. You can change this any time in Settings → Look.</string>
     <string name="onboarding_system">System</string>
     <string name="onboarding_theme_follow_system">Following your phone\'s light/dark setting.</string>
     <string name="onboarding_theme_light_description">Deep blue accent on warm paper.</string>
@@ -1917,7 +1879,6 @@
     <string name="recording_chip_detail_connected_no_data">No live heart rate or synced history yet this session.</string>
     <string name="score_state_title_calibrating">Calibrating</string>
     <string name="l10n_stress_glance_widget_resumes_in_the_morning_a640b49f">Resumes in the morning</string>
-    <string name="stress_screen_subtitle">Autonomic load across your waking day</string>
     <string name="stress_timeline_caption_day">The line is each waking hour\'s 0–3 proxy, scored against your own calm hours today. The bar below splits your day into calm, moderate and high stress time.</string>
     <string name="stress_timeline_caption_personal">The line is each waking hour\'s 0–3 proxy, scored against your personal daytime baseline (how your own days usually run). The bar below splits your day into calm, moderate and high stress time.</string>
     <plurals name="stress_hours_excluded_moving">
@@ -1950,7 +1911,6 @@
     <string name="l10n_settings_screen_accent">Accent</string>
     <string name="l10n_settings_screen_preset">Preset</string>
     <string name="settings_language_system">System default</string>
-    <string name="settings_appearance_detail">Choose Light, Dark, or follow your system. Dark is the signature near-black; Light keeps the same clean look on a bright canvas.</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_chart_default">Default</string>
@@ -2004,7 +1964,7 @@
     <string name="skin_temp_vs_baseline">vs baseline</string>
     <string name="l10n_app_changelog_make_noop_yours_theme_colours_and_6bdef2a7">Make NOOP yours — theme colours and custom backgrounds, forty more sports with GPS routes, and a calorie heatmap</string>
     <string name="l10n_settings_screen_custom_hr_zones_84736ca5">Custom HR zones</string>
-    <string name="l10n_settings_screen_custom_hr_zones_hint_f7fa3bae">Set the BPM where each zone begins. Turn off to restore the default percentage-of-max zones.</string>
+    <string name="l10n_settings_screen_custom_hr_zones_hint_f7fa3bae">Set where each zone starts</string>
     <string name="l10n_settings_screen_zone_starts_a0a60d45">Zone %1$d starts</string>
     <string name="l10n_health_screen_add_your_waist_for_a_more_accurate_vo_max_829f5e1e">Add your waist for a more accurate VO₂max</string>
     <string name="l10n_health_screen_fix_in_settings_d7472915">Fix in Settings</string>
@@ -2176,6 +2136,11 @@
     <string name="strap_pill_looking">looking for it…</string>
     <string name="strap_pill_tap_to_reconnect">tap to reconnect</string>
     <string name="strap_pill_open_devices">Open devices</string>
+    <string name="strap_chip_pct">%1$d%%</string>
+    <string name="strap_chip_syncing">Syncing</string>
+    <string name="strap_chip_not_connected">Not connected</string>
+    <string name="strap_chip_looking">Looking…</string>
+    <string name="strap_chip_desc">%1$s, %2$s</string>
     <string name="today_strap_battery">Strap battery</string>
     <string name="today_strap_battery_percent">Strap battery %1$d percent</string>
     <string name="today_ring_battery_percent">Ring battery %1$d percent</string>
@@ -2336,7 +2301,7 @@
     <string name="today_update_building_baseline_message">Charge, Effort and Rest become personal after a few nights of wear.</string>
     <string name="today_update_scores_building_title">Live now. Your scores are building.</string>
     <string name="today_update_scores_building_message">Charge, Effort and Rest build over your next few nights of wear.</string>
-    <string name="today_pending_scores_body">Your live heart rate is working from the strap, and recovery, strain and sleep build from it over your next few nights of wear, sharpening as it learns your baseline. Want your full history instantly? Import your WHOOP export in Data Sources and it backfills in about a minute.</string>
+    <string name="today_scores_start_line">Scores start after a few nights of wear</string>
     <string name="today_sleep_source_last_night">%1$s · last night</string>
     <string name="today_dashboard_editor_description">Choose which cards show on Today. Cards with no value yet show a dash.</string>
     <string name="today_charge_driver_guidance">Each line shows how many points that signal moved Charge versus your on-device baseline. Approximate, not medical advice.</string>
@@ -2436,33 +2401,30 @@
     <string name="scoring_guide_solid">Solid</string>
     <string name="scoring_guide_building">Building</string>
     <string name="scoring_guide_confidence_body">Each score shows its reliability. Calibrating means Zoop is learning your baseline or needs more data. Building means enough data exists for a score, but it is still limited. Solid means all inputs are present. If Zoop cannot calculate a score reliably, it shows no score instead of guessing.</string>
-    <string name="trends_training_load">Training Load</string>
+    <string name="trends_training_load">Training load</string>
     <string name="trends_tl_legend_ctl">CTL · Fitness</string>
     <string name="trends_tl_legend_atl">ATL · Fatigue</string>
-    <string name="trends_tl_established">42-day fitness vs 7-day fatigue</string>
     <string name="trends_tl_building">Building — %1$d of %2$d days</string>
-    <string name="trends_tl_unavailable">Chronic vs acute load</string>
     <string name="trends_tl_needs">Needs %1$d+ consecutive days of Effort to begin. %2$d so far.</string>
     <string name="trends_tl_form">Form</string>
     <string name="sleep_delete_user_edited_body">Removes this sleep and recomputes the day without it. You can undo for a few seconds after.</string>
     <string name="sleep_delete_recorded_body">Removes this recorded sleep and recomputes the day without it. Zoop won\'t re-detect sleep in this window. You can undo for a few seconds after.</string>
-    <string name="settings_waist_footnote_unset">Optional · VO₂max builds from ~4 nights of heart rate; a waist makes it more accurate. The Fitness Age itself doesn’t need it. Measure around your middle, at the navel.</string>
-    <string name="settings_waist_footnote_set">Your VO₂max uses your waist for a more accurate estimate</string>
+    <string name="settings_waist_footnote_unset">Optional. Makes VO₂max more accurate.</string>
+    <string name="settings_waist_footnote_set">Improves your VO₂max estimate</string>
     <string name="power_saving_low_refresh">Low refresh</string>
     <string name="power_saving_low_refresh_desc">Sync in the background every hour instead of every 15 minutes, whatever the strap\'s charge — fewer reconnections is the biggest saving on a WHOOP 4.0. Nothing is lost: the strap banks everything and hands it over in larger batches. Pull to sync still runs straight away, and live heart rate is untouched.</string>
     <string name="nav_power_saving">Power saving</string>
     <string name="l10n_app_changelog_training_load_a_vo_max_without_f9205a67">Training load, a VO₂max without a tape measure, and far less battery spent re-scoring</string>
     <string name="l10n_sleep_screen_sleep_outside_the_new_times_was_6229881e">Sleep outside the new times was removed. Zoop won\'t detect it again.</string>
     <string name="l10n_settings_screen_effort_exponential_scale">Effort: exponential intensity scale</string>
-    <string name="l10n_settings_screen_effort_exponential_scale_desc">Scores Effort on an exponential intensity curve (Banister TRIMP) instead of the default heart-rate zones (Edwards). The default earns nothing below half of your heart-rate reserve, so an hour of lifting — where hard sets average out against the rests — can score close to zero. The exponential curve has no floor and weights short, hard efforts far more heavily. Re-scores your history, and both scales reach the same maximum. Off by default.</string>
+    <string name="l10n_settings_screen_effort_exponential_scale_desc">Better for lifting. Re-scores your history.</string>
     <string name="l10n_app_changelog_an_effort_scale_you_choose_a_a7c2478d">An Effort scale you choose, a ring that gets to sleep, and far fewer wasted re-scores</string>
     <string name="l10n_health_screen_this_vital_needs_at_least_two_0e41b8b0">This vital needs at least two historical readings before Zoop can chart it.</string>
     <string name="l10n_health_screen_the_blood_oxygen_estimate_is_turned_4c403ab2">The blood oxygen estimate is turned off</string>
-    <string name="l10n_health_screen_your_strap_reports_a_blood_oxygen_349fe34a">Your strap reports a blood oxygen estimate, but it is unverified and off by default. Turn on the strap estimate in Settings to see it, or import a WHOOP export in Data Sources for the calibrated value.</string>
+    <string name="l10n_health_screen_your_strap_reports_a_blood_oxygen_349fe34a">Your strap reports a blood oxygen estimate, but it is unverified and off by default. Turn on the strap estimate in Settings → Advanced to see it, or import a WHOOP export in Data Sources for the calibrated value.</string>
     <string name="l10n_health_screen_no_blood_oxygen_percentage_from_a_1d3d383e">No blood oxygen percentage from a WHOOP 4.0</string>
     <string name="l10n_health_screen_your_strap_banks_the_raw_optical_b52a0f80">Your strap banks the raw optical channels, but Zoop does not turn them into a blood oxygen percentage, so this stays empty however long you wear it. Import a WHOOP export in Data Sources to fill it from your account history.</string>
     <string name="ground_truth_title">5/MG Raw Data Collector</string>
-    <string name="ground_truth_subtitle">Record a bounded 100 Hz motion session, recover Bluetooth gaps from strap history, and export the complete timeline.</string>
     <string name="ground_truth_test_centre_desc">Record, annotate, recover, and export a bounded 5/MG 100 Hz motion capture.</string>
     <string name="ground_truth_open">Open raw-data collector</string>
     <string name="ground_truth_start">Start raw-data session</string>
@@ -2539,7 +2501,7 @@
     <string name="l10n_settings_screen_send_hello_despite_bond_refusal_experimental_2f8de795">Send hello despite bond refusal (experimental)</string>
     <string name="l10n_settings_screen_send_hello_despite_bond_refusal_65c9d9fd">Send hello despite bond refusal</string>
     <string name="l10n_settings_screen_check_automatically_7cd229d2">Check automatically</string>
-    <string name="l10n_settings_screen_once_a_day_noop_asks_github_5683aad3">Once a day, Zoop asks GitHub for the latest version number and puts a note in Updates if there’s a newer one. Nothing about you is sent, and it never installs anything.</string>
+    <string name="l10n_settings_screen_once_a_day_noop_asks_github_5683aad3">Daily check. Never installs anything.</string>
     <string name="l10n_updates_noop_1s_is_available_05d8ef55">Zoop %1$s is available</string>
     <string name="l10n_updates_youre_on_1s_open_settings_and_35b9e135">You\'re on %1$s. Open Settings and use Check for updates to see what\'s new and download %2$s.</string>
     <string name="crash_recovery_title">Zoop stopped unexpectedly</string>
@@ -2547,7 +2509,6 @@
     <string name="crash_recovery_copy">Copy error</string>
     <string name="crash_recovery_continue">Try opening Zoop</string>
     <string name="l10n_body_clock_dial_card_body_clock_b0b9b988">Body clock</string>
-    <string name="l10n_body_clock_dial_card_last_night_against_your_clock_9183a37c">Last night against your clock</string>
     <string name="l10n_body_clock_dial_card_in_sync_with_your_body_clock_4b5181c8">In sync with your body clock</string>
     <string name="l10n_body_clock_dial_card_1_s_later_than_your_body_50b7d966">%1$s later than your body clock</string>
     <string name="l10n_body_clock_dial_card_1_s_earlier_than_your_body_68877f50">%1$s earlier than your body clock</string>
@@ -2565,21 +2526,17 @@
     <string name="l10n_health_screen_only_nights_with_a_measured_temperature_are_shown_the_others_b6f7c45b">Only nights with a measured temperature are shown; the others recorded a baseline difference only.</string>
     <string name="l10n_today_screen_this_night_was_staged_from_heart_rate_4d0f1f9b">This night was staged from heart rate alone, with no motion recorded, so HRV and resting heart rate could not be measured. A strap that is not fully paired is the usual cause.</string>
     <string name="settings_day_cycle_title">Day cycle</string>
-    <string name="settings_day_cycle_description">Choose when steps and in-progress Effort start over. Naps never start a new day.</string>
     <string name="settings_day_cycle_starts">Day starts</string>
     <string name="settings_day_cycle_sleep">Main sleep</string>
     <string name="settings_day_cycle_midnight">00:00</string>
-    <string name="settings_day_cycle_sleep_description">Default. The cycle follows the beginning of your detected main sleep. Before a main sleep is detected, local midnight is used.</string>
-    <string name="settings_day_cycle_midnight_description">Uses a conventional local calendar day from 00:00 to 00:00.</string>
+    <string name="settings_day_cycle_sleep_description">Steps and Effort restart when you fall asleep.</string>
+    <string name="settings_day_cycle_midnight_description">Steps and Effort restart at midnight.</string>
     <string name="l10n_settings_screen_bottom_bar_f84098a9">Bottom bar</string>
-    <string name="l10n_settings_screen_how_the_navigation_bar_looks_f186b099">How the navigation bar looks — its size, and how much of the screen shows through it.</string>
     <string name="l10n_settings_screen_bar_size_2304bfbb">Bar size</string>
     <string name="l10n_settings_screen_bar_transparency_3f648fbb">Bar transparency</string>
-    <string name="l10n_settings_screen_how_see_through_the_bar_is_ddb0c208">How see-through the bar is. The faintest step still shows its rim, so it can always be found.</string>
 
     <!-- Generic "Time" label (name kept from the removed Coach settings; WorkoutsScreen uses it). -->
     <string name="coach_morning_brief_time">Time</string>
-    <string name="units_settings_blurb">Choose body measurements and exercise distance separately. Your data is always stored the same way; these settings only change its display.</string>
     <string name="units_body_measurements">Body measurements</string>
     <string name="units_exercise_distance_pace">Exercise distance &amp; pace</string>
     <string name="units_kilometres">Kilometres</string>
@@ -2604,13 +2561,13 @@
     <string name="l10n_live_screen_live_heart_rate_is_flowing_from_f7f6c4fe">Live heart rate is flowing from the ring.</string>
     <string name="l10n_live_screen_reconnect_drops_the_current_link_if_afc27801">Reconnect drops the current link, if any, and connects to the ring again. To pair or switch bands, open Devices.</string>
     <string name="l10n_settings_screen_ring_gauges_on_today_7a532de2">Ring gauges on Today</string>
-    <string name="l10n_settings_screen_off_returns_the_liquid_vessels_6bb9236e">Off returns the liquid vessels.</string>
+    <string name="l10n_settings_screen_off_returns_the_liquid_vessels_6bb9236e">Off shows the liquid gauges</string>
     <string name="l10n_sleep_screen_low_confidence_99d4ceae">Low confidence</string>
     <string name="l10n_sleep_screen_this_night_scored_high_efficiency_but_a11d90eb">This night scored high efficiency but very little deep or REM, more likely a staging estimate miss than a real restorative shortfall. The totals are kept as-is; read the split with care.</string>
     <string name="l10n_health_screen_over_reports_r_r_so_no_9d050d53">Over-reports R-R, so no value is shown</string>
     <string name="l10n_settings_screen_check_current_name_read_only_acb2f01a">Check current name</string>
-    <string name="l10n_settings_screen_renaming_is_not_supported_on_a_02f7af2c">Renaming is not supported on a WHOOP 5.0 or MG yet. Zoop can ask the strap for its current name, which is the step that decides whether renaming is possible at all.</string>
-    <string name="l10n_settings_screen_experimental_on_a_whoop_5_0_711d5341">Experimental on a WHOOP 5.0 or MG: this command has never been confirmed on this strap generation. It is reversible, so rename again if it misbehaves, and use Check current name to see whether it took.</string>
+    <string name="l10n_settings_screen_renaming_is_not_supported_on_a_02f7af2c">Not supported on WHOOP 5.0 or MG yet.</string>
+    <string name="l10n_settings_screen_experimental_on_a_whoop_5_0_711d5341">Unconfirmed on WHOOP 5.0 or MG, but reversible.</string>
     <string name="l10n_smart_alarm_screen_alarm_in_1_s_688166e3">Alarm in %1$s</string>
     <string name="l10n_smart_alarm_screen_alarm_in_less_than_a_minute_9821dce0">Alarm in less than a minute</string>
     <plurals name="alarm_countdown_days">
@@ -2655,15 +2612,11 @@
     <string name="home_hr_zone">Zone %1$d</string>
     <string name="home_hr_below_zones">Easy</string>
     <string name="home_hr_not_streaming">Last reading</string>
-    <string name="home_vs_7day_avg">%1$s vs last 7 days</string>
-    <string name="home_no_7day_avg">Still learning your normal</string>
+    <string name="home_vs_last_7_days">vs last 7 days</string>
     <string name="metrics_category_training">Training</string>
     <string name="metrics_category_body">Body</string>
     <string name="metrics_two_sentences">%1$s %2$s</string>
     <string name="metrics_action_open_tile">Show details</string>
-    <string name="metrics_vs_baseline">vs %1$s</string>
-    <string name="metrics_vs_normal">vs normal</string>
-    <string name="metrics_baseline_value">Baseline %1$s</string>
     <string name="metrics_open_trend">See full trend</string>
     <string name="metrics_normal_range">Normal range</string>
     <string name="metrics_last_30_days">Last 30 days</string>
@@ -2671,8 +2624,9 @@
     <string name="metrics_range_value">%1$s–%2$s</string>
     <string name="metrics_average_7_days">7-day avg</string>
     <string name="metrics_effort_so_far">today so far</string>
-    <string name="metrics_slept">Slept %1$s</string>
     <string name="metrics_arrow_caption">Arrows compare each number with your 30-day baseline. Green is better, amber is about usual, orange is worse.</string>
+    <string name="metrics_vs_30_day_baseline">vs 30-day baseline</string>
+    <string name="metrics_action_about_comparisons">About these comparisons</string>
     <string name="metrics_sentence_above_baseline">Above your baseline.</string>
     <string name="metrics_sentence_close_to_baseline">Close to your baseline.</string>
     <string name="metrics_sentence_below_baseline">Below your baseline.</string>
@@ -2690,7 +2644,6 @@
     <string name="metrics_recovery_rhr_down">Resting HR is lower than your baseline.</string>
     <string name="metrics_recovery_rhr_up">Resting HR is higher than your baseline.</string>
     <string name="metrics_recovery_rhr_close">Resting HR is close to your baseline.</string>
-    <string name="metrics_recovery_empty">Wear your strap overnight to see how you\'ve recovered.</string>
     <string name="metrics_sleep_good">A solid night.</string>
     <string name="metrics_sleep_fair">A fair night.</string>
     <string name="metrics_sleep_poor">Not your best night.</string>
@@ -2698,7 +2651,6 @@
     <string name="metrics_sleep_less">You slept %1$s, %2$s less than usual.</string>
     <string name="metrics_sleep_usual">You slept %1$s, about your usual.</string>
     <string name="metrics_sleep_plain">You slept %1$s.</string>
-    <string name="metrics_sleep_empty">Wear your strap to bed to see your sleep.</string>
     <string name="metrics_training_lighter_today">A lighter day so far. Effort is under your baseline.</string>
     <string name="metrics_training_typical_today">A typical day so far. Effort is close to your baseline.</string>
     <string name="metrics_training_bigger_today">A big day so far. Effort is above your baseline.</string>
@@ -2724,4 +2676,10 @@
     <string name="trends_chart_summary">Latest %1$s, lowest %2$s, highest %3$s.</string>
     <string name="trends_chart_no_data">No data for this period.</string>
     <string name="sleep_bedtime_suggestion">Bed by %1$s for your %2$s of sleep before %3$s</string>
+    <string name="sleep_bedtime_tonight">Bed by %1$s tonight</string>
+    <string name="sleep_action_about_chart">About this chart</string>
+    <string name="sleep_rest">Rest</string>
+    <string name="sleep_efficiency">Efficiency</string>
+    <string name="sleep_restorative">Restorative</string>
+    <string name="sleep_respiratory">Respiratory</string>
 </resources>

@@ -25,8 +25,8 @@ import com.noop.R
 import kotlin.math.roundToInt
 
 /**
- * Power saving (#477) — lifted out of Settings into its own screen so the strap-battery levers are a
- * first-class More row (between Test Centre and Settings) instead of one card buried mid-scroll. Twin of
+ * Power saving (#477) — lifted out of Settings into its own screen so the strap-battery levers get a
+ * page of their own (a row in Settings opens it) instead of one card buried mid-scroll. Twin of
  * the Apple `PowerSavingView`.
  *
  * The controls, their prefs and their wiring are UNCHANGED: [AppViewModel.applyPowerSaving] still reads
@@ -44,7 +44,6 @@ fun PowerSavingScreen(vm: AppViewModel) {
 
     ScreenScaffold(
         title = stringResource(R.string.power_saving),
-        subtitle = "Ease the load on your strap when its battery is running low.",
     ) {
     // #477 Power saving. Two BENIGN battery levers only: the offload-cadence stretch (%-gated) and
     // the HRV-capture pause (Battery-Saver-gated). The riskier connection-priority idle throttle is

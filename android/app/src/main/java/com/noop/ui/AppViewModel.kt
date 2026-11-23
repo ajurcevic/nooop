@@ -248,7 +248,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Re-read the active device row and republish its display name. Called at launch + after a setActive. */
+    /** Re-read the active device row and republish its display name. Called at launch, after a setActive,
+     *  and after a rename or removal. */
     fun refreshActiveDeviceName() {
         viewModelScope.launch {
             val all = runCatching { noopApp.deviceRegistry.all() }.getOrDefault(emptyList())
@@ -269,11 +270,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val devices = runCatching { noopApp.deviceRegistry.all() }.getOrDefault(emptyList())
         noopApp.deviceRegistry.archive(id)
         if (com.noop.ble.SourceCoordinator.isWhoop(id, devices)) ble.releaseStrap()
+        // The removed device may have been the active one: republish so Live and the Settings strap row
+        // stop naming it.
+        refreshActiveDeviceName()
     }
 
-    /** Rename a device (blank clears the nickname → falls back to brand+model). */
-    suspend fun renamePairedDevice(id: String, nickname: String?) =
+    /** Rename a device (blank clears the nickname → falls back to brand+model). Republishes the active
+     *  device's name, so Live and the Settings strap row show the new one straight away. */
+    suspend fun renamePairedDevice(id: String, nickname: String?) {
         noopApp.deviceRegistry.rename(id, nickname)
+        refreshActiveDeviceName()
+    }
 
     /** Permanently delete all of a device's recorded data (its registry row is kept). */
     suspend fun deletePairedDeviceData(id: String) {

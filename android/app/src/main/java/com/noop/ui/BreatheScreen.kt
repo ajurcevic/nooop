@@ -466,7 +466,6 @@ fun BreatheScreen(viewModel: AppViewModel) {
     val skyBehindCards = remember { NoopPrefs.skyBehindCards(skyCtx) }
     ScreenScaffold(
         title = uiString(R.string.l10n_breathe_screen_breathe_282be568),
-        subtitle = "Haptic-paced breathing · find your pace · calm down",
         // LIQUID SKY BACKDROP (the pilot pattern — LiquidScreenSky.kt): the time-of-day liquid sky settles
         // into the theme canvas behind the header + top card and bleeds full-width up behind the status bar
         // via the scaffold's topBackground plumbing. The Android equivalent of the iOS

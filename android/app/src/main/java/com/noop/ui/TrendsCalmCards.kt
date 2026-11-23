@@ -18,15 +18,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ChevronLeft
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -36,7 +31,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -49,13 +43,9 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.noop.R
@@ -67,10 +57,10 @@ import kotlin.math.roundToInt
 
 // MARK: - Trends cards (Zoop "Calm" redesign)
 //
-// The cards the Trends tab draws for a period: This week, then Recovery, Sleep, Training and Body. Each section
-// has a plain-English line, a headline average with an arrow against the period before, and charts that shade
-// the owner's normal range. Every number arrives worked out (TrendsInsight.kt); this file only lays it out.
-// Charts draw on a Canvas and place their labels with small Layouts, so all text keeps the app's typeface.
+// The cards the Trends tab draws for a period: one summary of Charge, Effort and Rest, each with a chip against
+// the span before, then a card per chart under a plain title (Charge, Rest, Effort, Training load and Body). The
+// charts shade the owner's normal range. Every number arrives worked out (TrendsInsight.kt); this file only lays
+// it out. Charts draw on a Canvas and place their labels with small Layouts, so all text keeps the app's typeface.
 
 /** Shown in place of an average the period does not have. Matches the Home and Metrics tabs. */
 internal const val TRENDS_EMPTY_VALUE = "—"
@@ -87,9 +77,6 @@ private val LineChartHeight = 132.dp
 /** Height of the Rest and Effort bar charts' plots. */
 private val BarChartHeight = 96.dp
 
-/** Height of the every-day Charge strip. */
-private val StripHeight = 40.dp
-
 /** Height of a small card's sparkline. */
 private val SparkHeight = 44.dp
 
@@ -99,52 +86,27 @@ private val LoadChartHeight = 96.dp
 /** Narrowest a day's bar may get before neighbouring days share one bar. */
 private val MinBarSlot = 3.dp
 
-/** Widest bar on the This-week card. */
-private val WeekBarWidth = 8.dp
-
-/** Tallest bar on the This-week card. */
-private val WeekBarHeight = 26.dp
-
-/** The round week buttons on the This-week card. */
-private val WeekButtonSize = 32.dp
-
-/** One score on the This-week card: its week average, the arrow against the week before and its seven days. */
-internal data class WeekScoreUi(
+/** One score on the summary card: its period average and the chip against the same span just before it. */
+internal data class TrendSummaryScoreUi(
     val label: String,
     val value: String?,
     val valueColor: Color,
+    /** The period average less the previous one; null for all history or a previous span with too few days. */
     val delta: Double?,
     val tone: HomeTone?,
     val formatDelta: (Double) -> String,
-    /** Monday to Sunday on the stored 0-100 scale, null on a day without a value. */
-    val daily: List<Double?>,
-    /** A day's bar colour from its value. */
-    val barColor: (Double) -> Color,
 )
 
-/** A section's headline: the metric, a quiet note on the right, its period average and the arrow. */
-internal data class TrendHeadlineUi(
-    val label: String,
-    val detail: String?,
-    val value: String?,
-    val valueColor: Color,
-    val delta: Double?,
-    val tone: HomeTone?,
-    val formatDelta: (Double) -> String,
-    val deltaUnit: String? = null,
-)
-
-/** One of the small paired cards (HRV, resting heart rate, weight, skin temperature). */
+/** One of the small paired cards on the Body card: the latest reading over a sparkline of the period. */
 internal data class TrendMiniUi(
     val title: String,
-    val value: String?,
-    /** The unit and "avg" after the number, such as "ms avg". */
-    val unitAvg: String,
+    /** The latest reading, formatted. */
+    val value: String,
+    /** The unit after the number, such as "kg". */
+    val unit: String,
     val valueColor: Color,
-    val delta: Double?,
-    val tone: HomeTone?,
-    val formatDelta: (Double) -> String,
-    val deltaUnit: String?,
+    /** A reading as text, for the sparkline's spoken summary. */
+    val format: (Double) -> String,
     /** The period's readings as epoch days. */
     val points: List<Pair<Long, Double>>,
     val band: Pair<Double, Double>?,
@@ -153,7 +115,7 @@ internal data class TrendMiniUi(
     val maxGapDays: Int = TRENDS_ROLLING_DAYS,
 )
 
-/** Fitness and fatigue for the Training card, on the owner's Effort scale. */
+/** Fitness and fatigue for the Training load card, on the owner's Effort scale. */
 internal data class TrainingLoadUi(
     val fitness: List<Pair<Long, Double>>,
     val fatigue: List<Pair<Long, Double>>,
@@ -168,245 +130,135 @@ private data class EdgeLabel(val fraction: Float, val text: String, val color: C
 
 // MARK: - Page furniture
 
-/** The one caption under the range control: the period in brighter grey, then what every number means. */
+/**
+ * What the Trends numbers mean, opened from the info button at the end of the range control: the period and
+ * what the averages, chips and bands stand for, then how the Charge line, the Rest bars (a week each up to six
+ * months, a month each beyond) and the Body readings are drawn. A null [days] is all history, which has no
+ * earlier span to compare with.
+ */
 @Composable
-internal fun TrendsPeriodCaption(lead: String, body: String, modifier: Modifier = Modifier) {
-    val text = uiString(R.string.metrics_two_sentences, lead, body)
-    val start = text.indexOf(lead)
-    val brighter = Palette.textSecondary
-    val annotated = buildAnnotatedString {
-        append(text)
-        if (start >= 0) addStyle(SpanStyle(color = brighter), start, start + lead.length)
-    }
-    Text(
-        annotated,
-        style = NoopType.caption,
-        color = Palette.textTertiary,
-        modifier = modifier.fillMaxWidth().padding(horizontal = Metrics.space4),
+internal fun TrendsMethodDialog(days: Int?, onDismiss: () -> Unit) {
+    val lead = if (days != null) uiString(R.string.trends_caption_lead_days, days) else uiString(R.string.trends_caption_lead_all)
+    val body = if (days != null) uiString(R.string.trends_caption_period, days) else uiString(R.string.trends_caption_all)
+    val charts = uiString(
+        if (barPeriodFor(days) == BarPeriod.WEEK) R.string.trends_method_charts_weekly else R.string.trends_method_charts_monthly,
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Palette.surfaceOverlay,
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space12)) {
+                Text(uiString(R.string.metrics_two_sentences, lead, body), style = NoopType.subhead, color = Palette.textSecondary)
+                Text(charts, style = NoopType.subhead, color = Palette.textSecondary)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(uiString(R.string.l10n_components_close_bbfa773e), color = Palette.accent)
+            }
+        },
     )
 }
 
-/** A Trends section: the category's icon and title, its plain line, then [content]. */
+/** A Trends card: its plain title, with [trailing] at the end of the title row when given, then [content]. */
 @Composable
 internal fun TrendsSectionCard(
-    category: MetricCategory,
-    line: String,
+    title: String,
     modifier: Modifier = Modifier,
+    trailing: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     NoopCard(modifier = modifier) {
-        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space14)) {
-            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space8)) {
-                CategoryHeading(category)
-                Text(line, style = NoopType.body, color = Palette.textSecondary)
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space12)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(title, style = NoopType.headline, color = Palette.textPrimary, modifier = Modifier.weight(1f))
+                if (trailing != null) {
+                    Spacer(Modifier.width(Metrics.space8))
+                    trailing()
+                }
             }
             content()
         }
     }
 }
 
-/** The hairline between the blocks of a section card. */
+/** The quiet line a card shows in place of a chart its period has too few readings for. */
 @Composable
-internal fun TrendsBlockDivider() {
-    HorizontalDivider(color = Palette.hairline)
+internal fun TrendsNoChart() {
+    Text(uiString(R.string.trends_not_enough_data), style = NoopType.caption, color = Palette.textTertiary)
 }
 
-/** A section's headline: label and note, then the big period average with "avg" and its arrow chip. */
-@Composable
-internal fun TrendHeadline(headline: TrendHeadlineUi) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space6)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                headline.label,
-                style = NoopType.subhead,
-                color = Palette.textSecondary,
-                maxLines = 1,
-                modifier = Modifier.weight(1f),
-            )
-            headline.detail?.let {
-                Text(it, style = NoopType.caption, color = Palette.textTertiary, maxLines = 1)
-            }
-        }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space10),
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space6)) {
-                Text(
-                    headline.value ?: TRENDS_EMPTY_VALUE,
-                    style = NoopType.number(34f),
-                    color = if (headline.value != null) headline.valueColor else Palette.textTertiary,
-                    maxLines = 1,
-                    modifier = Modifier.alignByBaseline(),
-                )
-                if (headline.value != null) {
-                    Text(
-                        uiString(R.string.trends_avg_suffix),
-                        style = NoopType.subhead,
-                        color = Palette.textTertiary,
-                        maxLines = 1,
-                        modifier = Modifier.alignByBaseline(),
-                    )
-                }
-            }
-            headline.delta?.let { delta ->
-                ComparisonChip(
-                    delta = delta,
-                    tone = headline.tone,
-                    formatDelta = headline.formatDelta,
-                    unit = headline.deltaUnit,
-                )
-            }
-        }
-    }
-}
-
-/** Period stats in even columns: a quiet label over each number. */
-@Composable
-internal fun TrendStatsRow(stats: List<Pair<String, String>>) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Metrics.space8)) {
-        stats.forEach { (label, value) ->
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                Text(
-                    label,
-                    style = NoopType.caption,
-                    color = Palette.textTertiary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(value, style = NoopType.bodyNumber, color = Palette.textPrimary, maxLines = 1)
-            }
-        }
-    }
-}
-
-// MARK: - This week
+// MARK: - Summary
 
 /**
- * The This-week card: Charge, Effort and Rest for one Monday-to-Sunday week, each with its average, the arrow
- * against the week before and a bar per day. The round buttons step to earlier weeks and back.
+ * The summary card: Charge, Effort and Rest side by side, each with its period average in its colour and the
+ * chip against the same span just before it. All history has no earlier span, so it shows no chips.
  */
 @Composable
-internal fun TrendsWeekCard(
-    title: String,
-    subtitle: String,
-    scores: List<WeekScoreUi>,
-    canGoBack: Boolean,
-    canGoForward: Boolean,
-    onStep: (Int) -> Unit,
+internal fun TrendsSummaryCard(scores: List<TrendSummaryScoreUi>, modifier: Modifier = Modifier) {
+    NoopCard(modifier = modifier) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Metrics.space12)) {
+            scores.forEach { score ->
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Metrics.space6)) {
+                    Text(score.label, style = NoopType.subhead, color = Palette.textSecondary, maxLines = 1)
+                    Text(
+                        score.value ?: TRENDS_EMPTY_VALUE,
+                        style = NoopType.number(26f),
+                        color = if (score.value != null) score.valueColor else Palette.textTertiary,
+                        maxLines = 1,
+                    )
+                    score.delta?.let { ComparisonChip(delta = it, tone = score.tone, formatDelta = score.formatDelta) }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Charge
+
+/**
+ * The Charge card: each day's 7-day average across the period as a line, or the not-enough-data note while the
+ * period has too few days for one. A tap or drag picks a day, and its date and value show at the end of the title
+ * row, so picking a day never moves the chart.
+ */
+@Composable
+internal fun TrendsChargeCard(
+    line: List<Pair<Long, Double>>,
+    axis: TrendAxis,
+    band: Pair<Double, Double>?,
     modifier: Modifier = Modifier,
 ) {
-    NoopCard(modifier = modifier) {
-        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space12)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(title, style = NoopType.headline, color = Palette.textPrimary, maxLines = 1)
-                    Text(
-                        subtitle,
-                        style = NoopType.caption,
-                        color = Palette.textTertiary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                WeekStepButton(Icons.Rounded.ChevronLeft, uiString(R.string.trends_previous_week), canGoBack) { onStep(-1) }
-                WeekStepButton(Icons.Rounded.ChevronRight, uiString(R.string.trends_next_week), canGoForward) { onStep(1) }
-            }
-            if (scores.all { it.value == null }) {
-                Text(
-                    uiString(R.string.trends_no_readings_this_week),
-                    style = NoopType.body,
-                    color = Palette.textTertiary,
-                )
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space12),
-                ) {
-                    scores.forEach { score ->
-                        WeekScoreColumn(score, Modifier.weight(1f).fillMaxHeight())
-                    }
-                }
-            }
-        }
-    }
-}
-
-/** A round week button with the full touch target around it; dimmed and inert at either end of the history. */
-@Composable
-private fun WeekStepButton(icon: ImageVector, label: String, enabled: Boolean, onClick: () -> Unit) {
-    IconButton(onClick = onClick, enabled = enabled) {
-        Box(
-            modifier = Modifier
-                .alpha(if (enabled) 1f else Palette.disabledOpacity)
-                .size(WeekButtonSize)
-                .clip(CircleShape)
-                .background(Palette.surfaceInset),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icon, contentDescription = label, tint = Palette.textSecondary, modifier = Modifier.size(Metrics.barIcon))
-        }
-    }
-}
-
-/** One score's column: label, week average in its colour, the arrow chip and the seven daily bars. */
-@Composable
-private fun WeekScoreColumn(score: WeekScoreUi, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Metrics.space8)) {
-        Text(score.label, style = NoopType.subhead, color = Palette.textSecondary, maxLines = 1)
-        Text(
-            score.value ?: TRENDS_EMPTY_VALUE,
-            style = NoopType.number(26f),
-            color = if (score.value != null) score.valueColor else Palette.textTertiary,
-            maxLines = 1,
-        )
-        score.delta?.let { ComparisonChip(delta = it, tone = score.tone, formatDelta = score.formatDelta) }
-        Spacer(Modifier.weight(1f))
-        WeekBars(score.daily, score.barColor)
-    }
-}
-
-/** Seven bars, Monday to Sunday, from the 0-100 scale; a day without a value keeps a short grey stub. */
-@Composable
-private fun WeekBars(daily: List<Double?>, barColor: (Double) -> Color) {
-    val stub = Palette.hairlineStrong
-    Canvas(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(WeekBarHeight)
-            .trendSummary(daily.filterNotNull()) { it.roundToInt().toString() },
+    var selected by remember(line) { mutableIntStateOf(-1) }
+    val picked = line.getOrNull(selected)
+    TrendsSectionCard(
+        title = uiString(R.string.trends_charge),
+        modifier = modifier,
+        trailing = if (picked != null) {
+            { PickedDayPill(uiString(R.string.trends_point_label, pointDate(picked.first), picked.second.roundToInt().toString())) }
+        } else {
+            null
+        },
     ) {
-        val gap = Metrics.space4.toPx()
-        val slots = daily.size.coerceAtLeast(1)
-        val barWidth = minOf(WeekBarWidth.toPx(), (size.width - gap * (slots - 1)) / slots).coerceAtLeast(1f)
-        val minHeight = 3.dp.toPx()
-        daily.forEachIndexed { index, value ->
-            val height = if (value == null) {
-                minHeight
-            } else {
-                maxOf((value / 100.0).toFloat().coerceIn(0f, 1f) * size.height, minHeight)
-            }
-            drawRoundRect(
-                if (value == null) stub else barColor(value),
-                topLeft = Offset(index * (barWidth + gap), size.height - height),
-                size = Size(barWidth, height),
-                cornerRadius = CornerRadius(barWidth / 2f),
-            )
+        if (line.size >= 2) {
+            ChargeLineChart(line, axis, band, selected = selected, onSelect = { selected = it })
+        } else {
+            TrendsNoChart()
         }
     }
 }
-
-// MARK: - Recovery
 
 /**
  * The Charge line: each day's 7-day average across the period in the recovery colours, over the shaded normal
- * band and round gridlines labelled on the right. A tap or drag picks a day and labels it above the plot.
+ * band and round gridlines labelled on the right. A tap or drag hands the day under the finger to [onSelect],
+ * and the day at [selected] (an index into [line], -1 for none) gets a marker line and a ringed dot.
  */
 @Composable
 internal fun ChargeLineChart(
     line: List<Pair<Long, Double>>,
     axis: TrendAxis,
     band: Pair<Double, Double>?,
+    selected: Int,
+    onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (line.isEmpty()) return
@@ -414,7 +266,6 @@ internal fun ChargeLineChart(
     val runs = remember(days) { contiguousRuns(days, TRENDS_ROLLING_DAYS) }
     val floor = remember(line, band) { chargeAxisFloor(minOf(line.minOf { it.second }, band?.first ?: 100.0)) }
     val grid = remember(floor) { gridValues(floor, 100.0, 20.0) }
-    var selected by remember(line) { mutableIntStateOf(-1) }
     val picked = line.getOrNull(selected)
     val stops = Palette.recoveryStops.toTypedArray()
     val gridColor = Palette.hairline
@@ -427,13 +278,6 @@ internal fun ChargeLineChart(
     val pickedColor = picked?.let { Palette.recoveryColor(it.second) } ?: endColor
     fun share(value: Double): Float = (1.0 - (value - floor) / (100.0 - floor)).toFloat()
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
-        ChartHeader(
-            caption = uiString(R.string.trends_seven_day_average),
-            pill = picked?.let { (day, value) ->
-                uiString(R.string.trends_point_label, pointDate(day), value.roundToInt().toString())
-            },
-            pillAt = picked?.let { axis.fraction(it.first) } ?: 0f,
-        )
         Box(modifier = Modifier.fillMaxWidth().height(LineChartHeight + PlotInset * 2)) {
             Canvas(
                 modifier = Modifier
@@ -441,7 +285,7 @@ internal fun ChargeLineChart(
                     .padding(top = PlotInset, bottom = PlotInset, end = AxisGutter)
                     .trendSummary(line.map { it.second }) { it.roundToInt().toString() }
                     .pickAlongX(line) { at ->
-                        selected = nearestIndex(days, axis.startDay + at.toDouble() * (axis.endDay - axis.startDay))
+                        onSelect(nearestIndex(days, axis.startDay + at.toDouble() * (axis.endDay - axis.startDay)))
                     },
             ) {
                 val width = size.width
@@ -501,24 +345,7 @@ internal fun ChargeLineChart(
     }
 }
 
-/** Every day's Charge as a bar in its recovery colour, under its title and the period's low and peak. */
-@Composable
-internal fun ChargeDayStrip(points: List<Pair<Long, Double>>, axis: TrendAxis, lowPeak: String?) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space8)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                uiString(R.string.trends_every_day_charge),
-                style = NoopType.subhead,
-                color = Palette.textSecondary,
-                maxLines = 1,
-                modifier = Modifier.weight(1f),
-            )
-            lowPeak?.let { Text(it, style = NoopType.caption, color = Palette.textTertiary, maxLines = 1) }
-        }
-        DayBars(points, axis, maxValue = 100.0, height = StripHeight, barColor = { Palette.recoveryColor(it) })
-        AxisTicks(axis.ticks)
-    }
-}
+// MARK: - Body
 
 /** Two small cards side by side, bottom-aligned so their sparklines line up whatever their titles wrap to. */
 @Composable
@@ -532,35 +359,30 @@ internal fun TrendMiniPair(left: TrendMiniUi?, right: TrendMiniUi?, axis: TrendA
     }
 }
 
-/** A small card: title, period average with its unit, the arrow chip, then a sparkline over the period. */
+/** A small card: title, the latest reading with its unit, then a sparkline over the period. */
 @Composable
 private fun TrendMini(mini: TrendMiniUi, axis: TrendAxis, modifier: Modifier = Modifier) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Metrics.space8)) {
         Text(mini.title, style = NoopType.subhead, color = Palette.textSecondary, maxLines = 2)
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space4)) {
             Text(
-                mini.value ?: TRENDS_EMPTY_VALUE,
+                mini.value,
                 style = NoopType.number(22f),
-                color = if (mini.value != null) mini.valueColor else Palette.textTertiary,
+                color = mini.valueColor,
                 maxLines = 1,
                 modifier = Modifier.alignByBaseline(),
             )
-            if (mini.value != null) {
-                Text(
-                    mini.unitAvg,
-                    style = NoopType.caption,
-                    color = Palette.textTertiary,
-                    maxLines = 1,
-                    modifier = Modifier.alignByBaseline(),
-                )
-            }
-        }
-        mini.delta?.let {
-            ComparisonChip(delta = it, tone = mini.tone, formatDelta = mini.formatDelta, unit = mini.deltaUnit)
+            Text(
+                mini.unit,
+                style = NoopType.caption,
+                color = Palette.textTertiary,
+                maxLines = 1,
+                modifier = Modifier.alignByBaseline(),
+            )
         }
         Spacer(Modifier.weight(1f))
         if (mini.points.isNotEmpty()) {
-            TrendSparkline(mini.points, axis, mini.band, mini.lineColor, mini.maxGapDays, mini.formatDelta)
+            TrendSparkline(mini.points, axis, mini.band, mini.lineColor, mini.maxGapDays, mini.format)
             Row(modifier = Modifier.fillMaxWidth()) {
                 Text(axis.startLabel, style = NoopType.footnote, color = Palette.textTertiary, maxLines = 1)
                 Spacer(Modifier.weight(1f))
@@ -618,7 +440,7 @@ private fun TrendSparkline(
     }
 }
 
-// MARK: - Sleep
+// MARK: - Rest
 
 /** The Rest bars: one per week or month on the 0-100 scale, the latest bright and labelled with its value. */
 @Composable
@@ -687,7 +509,7 @@ internal fun RestPeriodBars(
     }
 }
 
-// MARK: - Training
+// MARK: - Effort and training load
 
 /**
  * Daily Effort bars on the owner's scale, gridlines labelled on the right, the normal band behind them and the
@@ -734,31 +556,29 @@ internal fun EffortDayBars(
 }
 
 /**
- * The training-load block: title, what it compares and the form chip, then fitness and fatigue as two lines
- * with their latest values on the right. With no [load] it shows [note] instead, such as how many days it needs.
+ * The Training load card: the form chip at the end of its title, fitness and fatigue named in a legend, then the
+ * two lines with their latest values on the right. [note] comes last, such as how far the model has come; with
+ * no [load] it is all the card shows, such as how many days the model needs.
  */
 @Composable
-internal fun TrainingLoadBlock(subtitle: String, load: TrainingLoadUi?, note: String?, axis: TrendAxis) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space10)) {
-        Row(verticalAlignment = Alignment.Top) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(uiString(R.string.trends_training_load), style = NoopType.subhead, color = Palette.textSecondary)
-                Text(subtitle, style = NoopType.caption, color = Palette.textTertiary)
-            }
-            if (load != null) {
-                Spacer(Modifier.width(Metrics.space8))
-                FormChip(load.formText, formColor(load.form))
-            }
-        }
-        if (load == null) {
-            note?.let { Text(it, style = NoopType.caption, color = Palette.textTertiary) }
+internal fun TrainingLoadCard(load: TrainingLoadUi?, note: String?, axis: TrendAxis, modifier: Modifier = Modifier) {
+    TrendsSectionCard(
+        title = uiString(R.string.trends_training_load),
+        modifier = modifier,
+        trailing = if (load != null) {
+            { FormChip(load.formText, formColor(load.form)) }
         } else {
+            null
+        },
+    ) {
+        if (load != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space16)) {
                 LegendLine(Palette.metricPurple, uiString(R.string.trends_fitness))
                 LegendLine(Palette.effortColor, uiString(R.string.trends_fatigue))
             }
             LoadChart(load, axis)
         }
+        note?.let { Text(it, style = NoopType.caption, color = Palette.textTertiary) }
     }
 }
 
@@ -1008,44 +828,18 @@ private fun AxisTicks(ticks: List<AxisTick>, modifier: Modifier = Modifier) {
 }
 
 /**
- * The row above a line chart: [caption] on the left and, while a day is picked, its [pill] centred over it at
- * [pillAt] (a share of the plot's width). The caption steps aside when the pill would cover it. The row keeps
- * its height either way, so picking a day never moves the chart.
+ * A picked day's date and value on a quiet pill. Its padding keeps it shorter than a card title, so it can appear
+ * at the end of the title row without making the row taller.
  */
 @Composable
-private fun ChartHeader(caption: String, pill: String?, pillAt: Float) {
-    Layout(
-        modifier = Modifier.fillMaxWidth(),
-        content = {
-            Text(caption, style = NoopType.caption, color = Palette.textTertiary, maxLines = 1)
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(Palette.surfaceInset)
-                    .padding(horizontal = Metrics.space10, vertical = Metrics.space4),
-            ) {
-                Text(pill.orEmpty(), style = NoopType.caption, color = Palette.textPrimary, maxLines = 1)
-            }
-        },
-    ) { measurables, constraints ->
-        val loose = constraints.copy(minWidth = 0, minHeight = 0)
-        val captionPlaceable = measurables[0].measure(loose)
-        val pillPlaceable = measurables[1].measure(loose)
-        val width = constraints.maxWidth
-        val plotWidth = (width - AxisGutter.roundToPx()).coerceAtLeast(0)
-        val height = maxOf(captionPlaceable.height, pillPlaceable.height)
-        val pillLeft = (pillAt * plotWidth - pillPlaceable.width / 2f).roundToInt()
-            .coerceIn(0, (width - pillPlaceable.width).coerceAtLeast(0))
-        val gap = Metrics.space8.roundToPx()
-        layout(width, height) {
-            val captionTop = (height - captionPlaceable.height) / 2
-            if (pill == null) {
-                captionPlaceable.place(0, captionTop)
-            } else {
-                if (captionPlaceable.width + gap <= pillLeft) captionPlaceable.place(0, captionTop)
-                pillPlaceable.place(pillLeft, (height - pillPlaceable.height) / 2)
-            }
-        }
+private fun PickedDayPill(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(Palette.surfaceInset)
+            .padding(horizontal = Metrics.space10, vertical = Metrics.space2),
+    ) {
+        Text(text, style = NoopType.caption, color = Palette.textPrimary, maxLines = 1)
     }
 }
 

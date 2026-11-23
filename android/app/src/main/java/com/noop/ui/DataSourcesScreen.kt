@@ -78,11 +78,11 @@ import kotlinx.coroutines.withContext
  *   - Health Connect— native Android import (steps/HR/HRV/sleep/SpO₂/weight/workouts) via
  *                     [com.noop.ingest.HealthConnectImporter], gated on runtime permission.
  *   - WHOOP Strap   — the live BLE bond/stream status, straight from the LiveState flow.
- *   - Backup        — Export / Import the whole on-device database through [DataBackup],
- *                     wired to ActivityResult document launchers.
+ *   - Backup        — the first row opens Backup & Sync, which exports and imports the whole
+ *                     on-device database through [DataBackup].
  */
 @Composable
-fun DataSourcesScreen(vm: AppViewModel) {
+fun DataSourcesScreen(vm: AppViewModel, onOpenBackupSync: () -> Unit = {}) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val live by vm.live.collectAsStateWithLifecycle()
@@ -302,8 +302,17 @@ fun DataSourcesScreen(vm: AppViewModel) {
     // confirm dialogs below the scaffold are untouched.
     LazyScreenScaffold(
         title = uiString(R.string.l10n_data_sources_screen_data_sources_5e43d6bb),
-        subtitle = "Everything stays on this phone. Bring your history in once, then it's yours.",
     ) {
+        // Backup & Sync left the More page ("Import and backup" opens this screen), so its door is the first row.
+        // Disabled while an import runs: leaving this screen cancels the import part-way through its writes.
+        item {
+            NavLinkCard(
+                listOf(NavLink(Destination.BackupSync, R.string.data_sources_backup_row)),
+                enabled = !busy,
+                onOpen = { onOpenBackupSync() },
+            )
+        }
+
         // --- WHOOP data (cached history) ---
         item {
         SourceCard(

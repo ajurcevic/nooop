@@ -28,8 +28,9 @@ import com.noop.R
  * [SleepLayoutPrefs]. Nothing Sleep-specific but the section type + the persistence namespace, so the
  * reorder UX is byte-for-byte the one Today already ships.
  *
- * `onSave` receives the FULL order (shown ++ hidden, so a hidden card keeps its stable slot for when it's
- * re-shown) and the hidden set separately, matching `SleepLayoutPrefs.setOrder`/`setHidden`.
+ * `onSave` receives the order (shown ++ hidden, so a hidden card keeps its stable slot for when it's
+ * re-shown) and the hidden set separately, matching `SleepLayoutPrefs.setOrder`/`setHidden`. Sections in
+ * [SleepSection.retiredFromSleepTab] are left out of both; the next read re-inserts them at their default slot.
  */
 @Composable
 fun SleepArrangeSheet(
@@ -39,11 +40,16 @@ fun SleepArrangeSheet(
     onSave: (order: List<SleepSection>, hidden: List<SleepSection>) -> Unit,
 ) {
     val hiddenSet = remember(initialHidden) { initialHidden.toSet() }
+    // A section retired from the Sleep tab (Sleep marks) draws nothing there, so the editor doesn't offer
+    // it. Saving without it is safe: SleepLayoutPrefs.decodeOrder re-inserts it at its default slot.
+    val arrangeable = remember(initialOrder) {
+        initialOrder.filterNot { it in SleepSection.retiredFromSleepTab }
+    }
     val shown = remember {
-        mutableStateListOf<SleepSection>().apply { addAll(initialOrder.filterNot { it in hiddenSet }) }
+        mutableStateListOf<SleepSection>().apply { addAll(arrangeable.filterNot { it in hiddenSet }) }
     }
     val hidden = remember {
-        mutableStateListOf<SleepSection>().apply { addAll(initialOrder.filter { it in hiddenSet }) }
+        mutableStateListOf<SleepSection>().apply { addAll(arrangeable.filter { it in hiddenSet }) }
     }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -75,7 +81,7 @@ fun SleepArrangeSheet(
                     TextButton(
                         onClick = {
                             shown.clear()
-                            shown.addAll(SleepSection.defaultOrder)
+                            shown.addAll(SleepSection.defaultOrder.filterNot { it in SleepSection.retiredFromSleepTab })
                             hidden.clear()
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = Palette.textSecondary),

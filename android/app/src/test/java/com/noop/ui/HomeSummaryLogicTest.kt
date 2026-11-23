@@ -92,4 +92,12 @@ class HomeToneTest {
         assertNull(vitalTrendTone(50.0, null, higherIsBetter = true))
         assertNull(vitalTrendTone(50.0, 0.0, higherIsBetter = true))
     }
+
+    @Test
+    fun homeChipToneIsGreenForBetterAmberForWorseAndNeutralOtherwise() {
+        assertEquals(HomeTone.GOOD, homeChipTone(HomeTone.GOOD))
+        assertEquals(HomeTone.FAIR, homeChipTone(HomeTone.POOR))
+        assertNull(homeChipTone(HomeTone.FAIR))
+        assertNull(homeChipTone(null))
+    }
 }

@@ -101,11 +101,11 @@ fun UpdatesInboxScreen(
             .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
     ) {
-        // Header — "INBOX" overline + "Updates" title + a live subtitle.
+        // Header — "INBOX" overline + "Updates" title + a live subtitle (omitted while the inbox is empty).
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Overline("Inbox", color = Palette.textTertiary)
             Text(uiString(R.string.l10n_updates_inbox_screen_updates_c76d1807), style = NoopType.title1, color = Palette.textPrimary)
-            Text(subtitle(store), style = NoopType.caption, color = Palette.textSecondary)
+            subtitle(store)?.let { Text(it, style = NoopType.caption, color = Palette.textSecondary) }
         }
 
         if (store.items.isEmpty()) {
@@ -178,8 +178,8 @@ fun UpdatesInboxScreen(
     }
 }
 
-private fun subtitle(store: UpdateStore): String {
-    if (store.items.isEmpty()) return "What's new in the app and your data"
+private fun subtitle(store: UpdateStore): String? {
+    if (store.items.isEmpty()) return null
     val n = store.unreadCount
     return if (n == 0) "All caught up" else "$n unread"
 }

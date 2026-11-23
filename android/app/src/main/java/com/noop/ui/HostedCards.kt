@@ -51,9 +51,9 @@ enum class HostedCard(
     /** Sleep tab · "Stages vs typical" — last night's Deep/REM/Light vs the wearer's personal per-stage
      *  means (#today-hosted-cards). First of the SleepModel-backed sleep cards hosted in Today. */
     STAGES_VS_TYPICAL("sleep.stagesVsTypical", "Stages vs typical", "Sleep", Icons.Filled.StackedBarChart),
-    /** Sleep tab · "Night detail" — the metric grid (Rest/Efficiency/Consistency/Hours vs Needed/
-     *  Restorative/Respiratory/Sleep Debt) from the wearer's SleepModel (#today-hosted-cards). Second of
-     *  the SleepModel-backed sleep cards hosted in Today. */
+    /** Sleep tab · "Night detail" — the metric rows (Sleep debt/Rest/Efficiency/Consistency/Hours vs
+     *  needed/Restorative/Respiratory) from the wearer's SleepModel (#today-hosted-cards). Second of the
+     *  SleepModel-backed sleep cards hosted in Today. */
     NIGHT_DETAIL("sleep.nightDetail", "Night detail", "Sleep", Icons.Filled.GridView),
     /** Sleep tab · "Sleep-debt ledger" — the rolling 14-night running balance of (slept − personal need)
      *  from the wearer's SleepModel (#today-hosted-cards). Third of the SleepModel-backed sleep cards

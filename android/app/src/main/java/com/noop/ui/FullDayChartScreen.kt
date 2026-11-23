@@ -208,7 +208,6 @@ fun FullDayChartScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     ScreenScaffold(
         title = stringResource(R.string.deep_timeline_title),
-        subtitle = stringResource(R.string.timeline_subtitle),
     ) {
         // METRIC PILLS — horizontally scrollable so all six fit on a phone.
         Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {

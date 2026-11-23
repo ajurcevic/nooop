@@ -1,6 +1,5 @@
 package com.noop.ui
 
-import android.content.SharedPreferences
 import kotlin.math.roundToInt
 
 // MARK: - Waist stepper (optional VO₂max input)
@@ -91,49 +90,61 @@ internal val SEX_OPTIONS = listOf(
     SexOption("nonbinary", "Non-binary"),
 )
 
-// MARK: - Advanced disclosure persistence (S3)
+// MARK: - Settings pages
 
 /**
- * The persisted open/closed state of the Settings "Advanced" disclosure. Keyed identically to the iOS
- * `@AppStorage("settingsAdvancedOpen")` (here under the `noop.` SharedPreferences namespace), and it
- * DEFAULTS to false so a first-run user lands collapsed. Pulled out so the default is a single testable
- * fact: a regression that ships it defaulting open would dump the full wall of cards on first run again.
+ * The pages the Settings landing list opens. A new Settings screen starts on the list. The open page is
+ * saveable screen state, never persisted: it comes back only with the rest of the screen's saved state
+ * (Back from a screen pushed off the page, or a tab switch that restores Settings), so no stored token can
+ * strand a user on a page that was renamed or removed.
  */
-internal object SettingsDisclosurePrefs {
-    const val KEY = "noop.settingsAdvancedOpen"
-    const val DEFAULT_OPEN = false
-
-    fun read(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY, DEFAULT_OPEN)
-    fun write(prefs: SharedPreferences, open: Boolean) { prefs.edit().putBoolean(KEY, open).apply() }
+internal enum class SettingsPage {
+    PROFILE,
+    LOOK,
+    STRAP,
+    HEALTH,
+    DATA,
+    ABOUT,
+    ADVANCED,
 }
 
-// MARK: - Settings tabs
+/** The everyday pages, in landing-list order. [SettingsPage.ADVANCED] sits apart in its own card below. */
+internal val SETTINGS_LANDING_PAGES: List<SettingsPage> = listOf(
+    SettingsPage.PROFILE,
+    SettingsPage.LOOK,
+    SettingsPage.STRAP,
+    SettingsPage.HEALTH,
+    SettingsPage.DATA,
+    SettingsPage.ABOUT,
+)
 
 /**
- * The groups the Settings screen is split into, shown one at a time behind a tab row. [prefValue] is
- * the stable persisted token, kept separate from the enum name so a rename cannot strand a saved choice.
+ * The strap battery Settings may show, on the landing list's strap row and the Strap page's battery pill
+ * alike: the active strap's last reported charge, only while the strap is linked, or null. It resolves
+ * through [HeaderBatteryDisplay.resolve] and clamps to 0..100 as the Today header's battery chip does, so
+ * the three readouts agree. The strap's `batteryPct` is never cleared on disconnect, so an ungated read
+ * would keep showing the last link's charge (or, after a switch, another strap's) while nothing is linked.
+ * A ring's charge is not the strap's, so it is never shown here.
  */
-internal enum class SettingsTab(val prefValue: String) {
-    YOU("you"),
-    STRAP("strap"),
-    HEALTH("health"),
-    LOOK("look"),
-    DATA("data"),
-    ABOUT("about"),
-}
+internal fun settingsStrapBatteryPct(activeIsWhoop: Boolean, connected: Boolean, batteryPct: Double?): Double? =
+    (HeaderBatteryDisplay.resolve(activeIsWhoop, connected, batteryPct, ringPct = null) as? HeaderBatteryDisplay.State.Charge)
+        ?.takeIf { !it.isRing }
+        ?.pct
+        ?.coerceIn(0.0, 100.0)
 
 /**
- * The persisted Settings tab, so reopening Settings lands where the user left it. A fresh install, or a
- * stored token no current tab carries, reads as [SettingsTab.YOU].
+ * The strap row's summary on the landing list: the active strap's name and its battery, for example
+ * "WHOOP 4.0, 64%". [batteryPct] is the gated reading from [settingsStrapBatteryPct], the same value the
+ * Strap page's battery pill shows, rounded the same way. Either half is left out when unknown, and with
+ * neither the row shows no summary rather than a placeholder.
  */
-internal object SettingsTabPrefs {
-    const val KEY = "noop.settingsTab"
-    val DEFAULT = SettingsTab.YOU
-
-    fun read(prefs: SharedPreferences): SettingsTab {
-        val stored = prefs.getString(KEY, null) ?: return DEFAULT
-        return SettingsTab.entries.firstOrNull { it.prefValue == stored } ?: DEFAULT
+internal fun strapLandingSummary(name: String?, batteryPct: Double?): String? {
+    val label = name?.trim()?.takeIf { it.isNotEmpty() }
+    val pct = batteryPct?.roundToInt()
+    return when {
+        label != null && pct != null -> "$label, $pct%"
+        label != null -> label
+        pct != null -> "$pct%"
+        else -> null
     }
-
-    fun write(prefs: SharedPreferences, tab: SettingsTab) { prefs.edit().putString(KEY, tab.prefValue).apply() }
 }

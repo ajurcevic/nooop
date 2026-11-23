@@ -67,7 +67,6 @@ fun GroundTruthCollectorScreen(vm: AppViewModel) {
 
     ScreenScaffold(
         title = stringResource(R.string.ground_truth_title),
-        subtitle = stringResource(R.string.ground_truth_subtitle),
     ) {
         NoopCard {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

@@ -14,35 +14,6 @@ internal fun pct(minutes: Double, total: Double): Int =
 
 internal fun pctValue(v: Double?): String = v?.let { "${it.roundToInt()}%" } ?: "—"
 
-/** "+12% vs typical" / "−0.4 rpm vs typical" — the latest-vs-mean caption every tile carries. */
-internal fun vsTypical(latest: Double?, typical: Double?, suffix: String, decimals: Int = 0): String {
-    if (latest == null || typical == null || typical == 0.0) return "vs typical - "
-    val diff = latest - typical
-    val sign = if (diff >= 0) "+" else "−"
-    val mag = abs(diff)
-    val num = if (decimals == 0) "${mag.roundToInt()}" else String.format(java.util.Locale.US, "%.${decimals}f", mag)
-    return "$sign$num$suffix vs typical"
-}
-
-/** #1946: a carried prior-day value is stamped "Carried · <date>" instead of "vs typical", so it is
- *  never passed off as tonight's read. Falls through to [vsTypical] when the value is today's own
- *  (or there is no value). Mirror EXACTLY in Swift. */
-internal fun tileCaption(
-    latestDay: String?, latest: Double?, typical: Double?,
-    suffix: String, decimals: Int = 0,
-): String {
-    Metric.carriedMetricCaption(latestDay, latest)?.let { caption ->
-        // Resolve the DisplayText.Resource here so tileCaption stays String-returning for the
-        // SparkTile call sites. uiString reads the process Application resources, so this is
-        // locale-aware without being a @Composable.
-        return when (caption) {
-            is DisplayText.Resource -> uiString(caption.id, *caption.args.toTypedArray())
-            is DisplayText.Dynamic -> caption.value
-        }
-    }
-    return vsTypical(latest, typical, suffix, decimals)
-}
-
 internal fun debtCaption(debt: Double?): String {
     if (debt == null) return "vs need"
     return if (debt < SleepDebt.ON_TARGET_BAND_MIN) "On target" else "Below need"

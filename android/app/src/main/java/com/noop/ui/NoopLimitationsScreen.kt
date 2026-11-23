@@ -68,7 +68,6 @@ private val LIMIT_ROWS: List<LimitRow> = listOf(
 fun NoopLimitationsScreen() {
     ScreenScaffold(
         title = stringResource(R.string.nav_noop_limitations),
-        subtitle = "What each strap can read",
     ) {
         LimitTableCard()
         LegendCard()

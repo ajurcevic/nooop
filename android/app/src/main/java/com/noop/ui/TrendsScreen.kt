@@ -9,9 +9,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,23 +40,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noop.R
 import com.noop.analytics.SkinTempDisplay
 import com.noop.analytics.TrainingLoadEngine
-import com.noop.analytics.WeeklyDigestEngine
 import com.noop.data.DailyMetric
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.time.temporal.TemporalAdjusters
 import java.util.Locale
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 // MARK: - Trends (Zoop "Calm" redesign)
 //
-// The long view. One range control (1M / 3M / 6M / 1Y / All) and one caption that explains every number, then
-// This week (Charge, Effort and Rest against the week before, browsable week by week) and four sections:
-// Recovery, Sleep, Training and Body. A section's numbers are averages for the period with an arrow against
-// the same span just before it, and its charts shade the owner's normal range. The maths lives in
-// TrendsInsight.kt and the drawing in TrendsCalmCards.kt.
+// The long view. One range control (1M / 3M / 6M / 1Y / All) with an info button at its end that explains the
+// numbers, then one summary card (Charge, Effort and Rest averaged over the period, each with a chip against the
+// same span just before it) and a card per chart under a plain title: Charge, Rest, Effort, Training load and
+// Body. The charts shade the owner's normal range. The maths lives in TrendsInsight.kt and the drawing in
+// TrendsCalmCards.kt.
 //
 // Data: full history is loaded once via repo.daysMerged; until it arrives the reactive recentDays flow backs
 // the screen, so it is never empty when data exists. Rest is the sleep_performance composite (the number the
@@ -89,12 +89,8 @@ fun TrendsScreen(vm: AppViewModel) {
     val skyBehindCards = remember { NoopPrefs.skyBehindCards(context) }
 
     var range by remember { mutableStateOf(TrendsRange.Quarter) }
-
-    // #710: browse earlier weeks on the This-week card. 0 = the week containing today; each step back is one
-    // Monday-to-Sunday week earlier, clamped so it never runs past the earliest day we hold.
-    var weekOffset by remember { mutableStateOf(0) }
-    val minWeekOffset = remember(days) { minWeekOffset(days) }
-    LaunchedEffect(minWeekOffset) { weekOffset = weekOffset.coerceIn(minWeekOffset, 0) }
+    // What the numbers mean opens from the info button at the end of the range control, in place of a caption.
+    var showMethod by remember { mutableStateOf(false) }
 
     // Rest = the sleep_performance COMPOSITE (0–100), the SAME metric the Today Rest score and the Sleep Rest
     // detail plot (#614 follow-up, #732). It is a resolved metric series, not a DailyMetric column.
@@ -144,16 +140,12 @@ fun TrendsScreen(vm: AppViewModel) {
             days.filter { it.strain != null }.map { TrainingLoadEngine.DailyLoad(it.day, it.strain) },
         )
     }
-    val monday = remember(today, weekOffset) {
-        today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).plusWeeks(weekOffset.toLong())
-    }
-    val week = remember(series, monday) {
-        listOf(weekSummary(series.charge, monday), weekSummary(series.effort, monday), weekSummary(series.rest, monday))
-    }
+    // Fitness and fatigue inside the period. Null hides the Training load card, unless the model is still
+    // short of days and the card says how many it needs.
+    val load = remember(training, model, effortScale) { trainingLoadUi(training, model.axis, effortScale) }
 
     LazyScreenScaffold(
         title = stringResource(R.string.nav_trends),
-        subtitle = stringResource(R.string.trends_subtitle),
         // LIQUID SKY BACKDROP (LiquidScreenSky.kt): the static time-of-day sky behind the header and top rows,
         // gated on the same day-cycle pref as Today; when off, the scaffold paints the flat canvas.
         topBackground = screenBackdropSlot(showDayCycleBackground, skyBehindCards),
@@ -164,156 +156,82 @@ fun TrendsScreen(vm: AppViewModel) {
             return@LazyScreenScaffold
         }
 
-        // --- Range control and the one caption that explains every number below. ---
+        // --- Range control, with what the numbers mean behind the info button at its end. ---
         item {
-            Column(
-                modifier = Modifier.staggeredAppear(index = 0),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space8),
+            Row(
+                modifier = Modifier.staggeredAppear(index = 0).fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
             ) {
                 SegmentedPillControl(
                     items = TrendsRange.entries.toList(),
                     selection = range,
                     label = { it.label() },
                     onSelect = { range = it },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.weight(1f),
                     adaptsToAvailableWidth = true,
                 )
-                val periodDays = range.days
-                if (periodDays != null) {
-                    TrendsPeriodCaption(
-                        lead = uiString(R.string.trends_caption_lead_days, periodDays),
-                        body = uiString(R.string.trends_caption_period, periodDays),
-                    )
-                } else {
-                    TrendsPeriodCaption(
-                        lead = uiString(R.string.trends_caption_lead_all),
-                        body = uiString(R.string.trends_caption_all),
+                IconButton(onClick = { showMethod = true }, modifier = Modifier.size(Metrics.iconButton)) {
+                    Icon(
+                        Icons.Outlined.Info,
+                        contentDescription = uiString(R.string.trends_action_about_numbers),
+                        tint = Palette.textTertiary,
+                        modifier = Modifier.size(Metrics.iconSmall),
                     )
                 }
             }
         }
 
-        // --- This week: Charge, Effort and Rest against the week before, with a bar per day. ---
+        // --- The period at a glance: Charge, Effort and Rest, each against the same span just before it. ---
         item {
-            TrendsWeekCard(
-                title = weekTitle(weekOffset),
-                subtitle = uiString(R.string.trends_week_subtitle, trendsWeekRangeLabel(monday)),
-                scores = weekScores(week, effortScale),
-                canGoBack = weekOffset > minWeekOffset,
-                canGoForward = weekOffset < 0,
-                onStep = { step -> weekOffset = (weekOffset + step).coerceIn(minWeekOffset, 0) },
+            TrendsSummaryCard(
+                scores = summaryScores(model, effortScale),
                 modifier = Modifier.staggeredAppear(index = 1),
             )
         }
 
-        // --- Recovery: the Charge line, its stats, HRV and resting heart rate, and every day's Charge. ---
+        // --- Charge: each day's 7-day average across the period. ---
         item {
-            val charge = model.charge
-            TrendsSectionCard(
-                category = MetricCategory.RECOVERY,
-                line = trendsRecoveryLine(model),
+            TrendsChargeCard(
+                line = model.chargeLine,
+                axis = model.axis,
+                band = model.charge.band,
                 modifier = Modifier.staggeredAppear(index = 2),
-            ) {
-                TrendHeadline(
-                    TrendHeadlineUi(
-                        label = uiString(R.string.trends_charge),
-                        detail = null,
-                        value = charge.average?.let(::trendsWhole),
-                        valueColor = charge.average?.let { Palette.recoveryColor(it) } ?: Palette.textPrimary,
-                        delta = charge.delta,
-                        tone = comparisonTone(charge.average, charge.previousAverage, TrendRule.HIGHER_IS_BETTER),
-                        formatDelta = ::trendsWhole,
-                    ),
-                )
-                if (model.chargeLine.size >= 2) {
-                    ChargeLineChart(model.chargeLine, model.axis, charge.band)
-                }
-                if (charge.average != null) {
-                    TrendsBlockDivider()
-                    TrendStatsRow(
-                        listOf(
-                            uiString(R.string.trends_avg) to trendsWhole(charge.average),
-                            uiString(R.string.trends_peak) to (charge.peak?.let(::trendsWhole) ?: TRENDS_EMPTY_VALUE),
-                            uiString(R.string.trends_low) to (charge.low?.let(::trendsWhole) ?: TRENDS_EMPTY_VALUE),
-                            uiString(R.string.trends_days) to charge.points.size.toString(),
-                        ),
-                    )
-                }
-                if (model.hrv.average != null || model.restingHr.average != null) {
-                    TrendsBlockDivider()
-                    TrendMiniPair(
-                        left = vitalMini(model.hrv, R.string.trends_hrv_full, "ms", Palette.metricPurple, TrendRule.HIGHER_IS_BETTER),
-                        right = vitalMini(model.restingHr, R.string.trends_resting_hr_full, "bpm", Palette.metricRose, TrendRule.LOWER_IS_BETTER),
-                        axis = model.axis,
-                    )
-                }
-                if (charge.points.size >= 2) {
-                    TrendsBlockDivider()
-                    ChargeDayStrip(
-                        points = charge.epochDays,
-                        axis = model.axis,
-                        lowPeak = if (charge.low != null && charge.peak != null) {
-                            uiString(R.string.trends_low_peak, trendsWhole(charge.low), trendsWhole(charge.peak))
-                        } else {
-                            null
-                        },
-                    )
-                }
-            }
+            )
         }
 
-        // --- Sleep: Rest's period average and its weekly (or monthly) bars. ---
+        // --- Rest: one bar per week, or per month on the longer ranges. ---
         item {
-            val rest = model.rest
-            val period = barPeriodFor(model.days)
+            val bars = periodBars(model.rest.points, barPeriodFor(model.days))
             TrendsSectionCard(
-                category = MetricCategory.SLEEP,
-                line = trendsSleepLine(model),
+                title = uiString(R.string.trends_rest),
                 modifier = Modifier.staggeredAppear(index = 3),
             ) {
-                TrendHeadline(
-                    TrendHeadlineUi(
-                        label = uiString(R.string.trends_rest),
-                        detail = uiString(if (period == BarPeriod.WEEK) R.string.trends_weekly else R.string.trends_monthly),
-                        value = rest.average?.let(::trendsWhole),
-                        valueColor = rest.average?.let { homeToneColor(restTone(it)) } ?: Palette.textPrimary,
-                        delta = rest.delta,
-                        tone = comparisonTone(rest.average, rest.previousAverage, TrendRule.HIGHER_IS_BETTER),
-                        formatDelta = ::trendsWhole,
-                    ),
-                )
-                RestPeriodBars(
-                    bars = periodBars(rest.points, period),
-                    band = rest.band,
-                    barColor = { homeToneColor(restTone(it)) },
-                    format = ::trendsWhole,
-                )
+                if (bars.isEmpty()) {
+                    TrendsNoChart()
+                } else {
+                    RestPeriodBars(
+                        bars = bars,
+                        band = model.rest.band,
+                        barColor = { homeToneColor(restTone(it)) },
+                        format = ::trendsWhole,
+                    )
+                }
             }
         }
 
-        // --- Training: Effort's daily bars, then fitness against fatigue. ---
+        // --- Effort: one bar per day on the owner's scale. ---
         item {
             val effort = model.effort
             val factor = UnitFormatter.effortValue(1.0, effortScale)
             val scaleMax = UnitFormatter.effortValue(100.0, effortScale)
-            val load = trainingLoadUi(training, model.axis, effortScale)
             TrendsSectionCard(
-                category = MetricCategory.TRAINING,
-                line = trendsTrainingLine(model, training, load != null, effortScale),
+                title = uiString(R.string.trends_effort),
                 modifier = Modifier.staggeredAppear(index = 4),
             ) {
-                TrendHeadline(
-                    TrendHeadlineUi(
-                        label = uiString(R.string.trends_effort),
-                        detail = uiString(R.string.trends_daily_out_of, UnitFormatter.effortScaleMax(effortScale)),
-                        value = effort.average?.let { effortText(it, effortScale) },
-                        valueColor = effort.average?.let { Palette.strainColor(it) } ?: Palette.textPrimary,
-                        delta = effort.delta,
-                        tone = null,
-                        formatDelta = { effortText(it, effortScale) },
-                    ),
-                )
-                if (effort.points.isNotEmpty()) {
+                if (effort.points.isEmpty()) {
+                    TrendsNoChart()
+                } else {
                     EffortDayBars(
                         points = effort.epochDays.map { (day, value) -> day to value * factor },
                         axis = model.axis,
@@ -323,67 +241,56 @@ fun TrendsScreen(vm: AppViewModel) {
                         format = ::trendsWhole,
                     )
                 }
-                if (load != null || !training.isAvailable) {
-                    TrendsBlockDivider()
-                    TrainingLoadBlock(
-                        subtitle = trainingLoadSubtitle(training),
-                        load = load,
-                        note = if (training.isAvailable) {
-                            null
-                        } else {
-                            uiString(R.string.trends_tl_needs, TrainingLoadEngine.standard.minimumDays, training.contiguousDays)
-                        },
-                        axis = model.axis,
-                    )
-                }
             }
         }
 
-        // --- Body: weight and skin temperature. ---
-        item {
-            val weightFormat: (Double) -> String = { kg ->
-                trendsDecimal(if (unitSystem == UnitSystem.IMPERIAL) UnitFormatter.kgToPounds(kg) else kg)
+        // --- Training load: fitness against fatigue, or how many days of Effort the model still needs. ---
+        if (load != null || !training.isAvailable) {
+            item {
+                TrainingLoadCard(
+                    load = load,
+                    note = trainingLoadNote(training),
+                    axis = model.axis,
+                    modifier = Modifier.staggeredAppear(index = 5),
+                )
             }
-            val weightUnit = UnitFormatter.massUnit(unitSystem)
-            val skinKind = if (model.skinIsDeviation) SkinTempDisplay.Kind.DEVIATION else SkinTempDisplay.Kind.ABSOLUTE
-            val skinFormat: (Double) -> String = { SkinTempDisplay.numberString(it, skinKind, fahrenheit) }
-            val skinDeltaFormat: (Double) -> String = { trendsDecimal(if (fahrenheit) it * 9.0 / 5.0 else it) }
-            val skinUnit = if (fahrenheit) "°F" else "°C"
-            val weight = model.weight
-            val skin = model.skin
-            TrendsSectionCard(
-                category = MetricCategory.BODY,
-                line = trendsBodyLine(model, weightFormat, weightUnit, skinFormat, skinDeltaFormat, skinUnit),
-                modifier = Modifier.staggeredAppear(index = 5),
-            ) {
-                if (weight.average != null || skin.average != null) {
+        }
+
+        // --- Body: weight and skin temperature with their latest readings, once either has been recorded. ---
+        val weight = model.weight
+        val skin = model.skin
+        if (weight.points.isNotEmpty() || skin.points.isNotEmpty()) {
+            item {
+                val weightFormat: (Double) -> String = { kg ->
+                    trendsDecimal(if (unitSystem == UnitSystem.IMPERIAL) UnitFormatter.kgToPounds(kg) else kg)
+                }
+                val skinKind = if (model.skinIsDeviation) SkinTempDisplay.Kind.DEVIATION else SkinTempDisplay.Kind.ABSOLUTE
+                val skinFormat: (Double) -> String = { SkinTempDisplay.numberString(it, skinKind, fahrenheit) }
+                TrendsSectionCard(
+                    title = uiString(R.string.metrics_category_body),
+                    modifier = Modifier.staggeredAppear(index = 6),
+                ) {
                     TrendMiniPair(
-                        left = weight.average?.let { average ->
+                        left = weight.points.lastOrNull()?.let { (_, latest) ->
                             TrendMiniUi(
                                 title = uiString(R.string.today_metric_weight),
-                                value = weightFormat(average),
-                                unitAvg = uiString(R.string.trends_unit_avg, weightUnit),
+                                value = weightFormat(latest),
+                                unit = UnitFormatter.massUnit(unitSystem),
                                 valueColor = Palette.metricCyan,
-                                delta = weight.delta,
-                                tone = null,
-                                formatDelta = weightFormat,
-                                deltaUnit = null,
+                                format = weightFormat,
                                 points = weight.epochDays,
                                 band = weight.band,
                                 lineColor = Palette.metricCyan,
                                 maxGapDays = TRENDS_WEIGHT_MAX_GAP_DAYS,
                             )
                         },
-                        right = skin.average?.let { average ->
+                        right = skin.points.lastOrNull()?.let { (_, latest) ->
                             TrendMiniUi(
                                 title = uiString(R.string.today_card_skin_temp_subtitle),
-                                value = skinFormat(average),
-                                unitAvg = uiString(R.string.trends_unit_avg, skinUnit),
+                                value = skinFormat(latest),
+                                unit = if (fahrenheit) "°F" else "°C",
                                 valueColor = Palette.metricCyan,
-                                delta = skin.delta,
-                                tone = comparisonTone(average, skin.previousAverage, TrendRule.STEADY_IS_BEST),
-                                formatDelta = skinDeltaFormat,
-                                deltaUnit = null,
+                                format = skinFormat,
                                 points = skin.epochDays,
                                 band = skin.band,
                                 lineColor = Palette.metricCyan,
@@ -394,6 +301,10 @@ fun TrendsScreen(vm: AppViewModel) {
                 }
             }
         }
+    }
+
+    if (showMethod) {
+        TrendsMethodDialog(days = range.days, onDismiss = { showMethod = false })
     }
 }
 
@@ -418,189 +329,40 @@ private enum class TrendsRange(val days: Int?, private val shortLabel: String?) 
         get() = entries.dropWhile { it != this }
 }
 
-// MARK: - This week
+// MARK: - Section models
 
-/**
- * The most-negative weekOffset allowed: the number of whole Mon–Sun weeks between the earliest day we
- * hold and this week. Beyond it there's no data to show, so the back button disables. 0 when history
- * is empty or unparseable (so we stay on this week). `days` is oldest → newest. Mirrors iOS minWeekOffset.
- */
-private fun minWeekOffset(days: List<DailyMetric>): Int {
-    val earliest = days.firstOrNull()?.day ?: return 0
-    val earliestMon = WeeklyDigestEngine.mondayOfWeek(earliest) ?: return 0
-    val thisMon = WeeklyDigestEngine.mondayOfWeek(logicalDayKeyNow()) ?: return 0
-    var off = 0
-    var mon = thisMon
-    // Walk weeks back until we pass the earliest week. Hard cap ~10 years so a bad date can't spin.
-    while (mon > earliestMon && off > -520) {
-        mon = WeeklyDigestEngine.addDays(mon, -7)
-        off -= 1
-    }
-    return off
-}
-
-/** "This week", "Last week" or "3 weeks ago". */
-private fun weekTitle(weekOffset: Int): String = when (weekOffset) {
-    0 -> uiString(R.string.trends_this_week)
-    -1 -> uiString(R.string.trends_last_week)
-    else -> uiPlural(R.plurals.trends_weeks_ago, -weekOffset, -weekOffset)
-}
-
-/** Charge, Effort and Rest for the This-week card, from the week's three summaries in that order. */
-private fun weekScores(week: List<WeekSummary>, effortScale: EffortScale): List<WeekScoreUi> {
-    val (charge, effort, rest) = week
+/** Charge, Effort and Rest for the summary card: each one's period average and its change on the span before. */
+private fun summaryScores(model: TrendsPeriodModel, effortScale: EffortScale): List<TrendSummaryScoreUi> {
+    val charge = model.charge
+    val effort = model.effort
+    val rest = model.rest
     return listOf(
-        WeekScoreUi(
+        TrendSummaryScoreUi(
             label = uiString(R.string.trends_charge),
             value = charge.average?.let(::trendsWhole),
             valueColor = charge.average?.let { Palette.recoveryColor(it) } ?: Palette.textPrimary,
             delta = charge.delta,
             tone = comparisonTone(charge.average, charge.previousAverage, TrendRule.HIGHER_IS_BETTER),
             formatDelta = ::trendsWhole,
-            daily = charge.daily,
-            barColor = { Palette.recoveryColor(it) },
         ),
-        WeekScoreUi(
+        TrendSummaryScoreUi(
             label = uiString(R.string.trends_effort),
             value = effort.average?.let { effortText(it, effortScale) },
             valueColor = effort.average?.let { Palette.strainColor(it) } ?: Palette.textPrimary,
             delta = effort.delta,
             tone = null,
             formatDelta = { effortText(it, effortScale) },
-            daily = effort.daily,
-            barColor = { Palette.strainColor(it) },
         ),
-        WeekScoreUi(
+        TrendSummaryScoreUi(
             label = uiString(R.string.trends_rest),
             value = rest.average?.let(::trendsWhole),
             valueColor = rest.average?.let { homeToneColor(restTone(it)) } ?: Palette.textPrimary,
             delta = rest.delta,
             tone = comparisonTone(rest.average, rest.previousAverage, TrendRule.HIGHER_IS_BETTER),
             formatDelta = ::trendsWhole,
-            daily = rest.daily,
-            barColor = { homeToneColor(restTone(it)) },
         ),
     )
 }
-
-// MARK: - Section lines and models
-
-/** HRV or resting heart rate as a small card: its average in the metric's hue, the arrow, and its sparkline. */
-private fun vitalMini(stats: TrendPeriodStats, title: Int, unit: String, color: Color, rule: TrendRule): TrendMiniUi? {
-    val average = stats.average ?: return null
-    return TrendMiniUi(
-        title = uiString(title),
-        value = trendsWhole(average),
-        unitAvg = uiString(R.string.trends_unit_avg, unit),
-        valueColor = color,
-        delta = stats.delta,
-        tone = comparisonTone(average, stats.previousAverage, rule),
-        formatDelta = ::trendsWhole,
-        deltaUnit = unit,
-        points = stats.epochDays,
-        band = stats.band,
-        lineColor = color,
-    )
-}
-
-/** The Recovery line: Charge's move on the period before, crediting HRV only when it moved the same way. */
-private fun trendsRecoveryLine(model: TrendsPeriodModel): String {
-    val charge = model.charge
-    val sentence = recoveryTrendSentence(
-        charge = trendDirection(charge.delta, charge.previousAverage),
-        hrv = trendDirection(model.hrv.delta, model.hrv.previousAverage),
-        hasValues = charge.average != null,
-    )
-    return sentenceText(sentence, charge.delta?.let { trendsWhole(abs(it)) }, charge.average?.let(::trendsWhole), model.days)
-}
-
-/** The Sleep line: Rest's move on the period before. */
-private fun trendsSleepLine(model: TrendsPeriodModel): String {
-    val rest = model.rest
-    val sentence = sleepTrendSentence(trendDirection(rest.delta, rest.previousAverage), rest.average != null)
-    return sentenceText(sentence, rest.delta?.let { trendsWhole(abs(it)) }, rest.average?.let(::trendsWhole), model.days)
-}
-
-/**
- * The Training line: where fitness is heading and how fresh the owner is while training load is on screen,
- * else Effort's move on the period before.
- */
-private fun trendsTrainingLine(
-    model: TrendsPeriodModel,
-    training: TrainingLoadEngine.Result,
-    loadShown: Boolean,
-    effortScale: EffortScale,
-): String {
-    val latest = training.points.lastOrNull()
-    if (loadShown && latest != null) {
-        val sentences = trainingLoadSentences(fitnessDirection(training.points), trainingForm(latest)).map { uiString(it) }
-        return if (sentences.size == 2) uiString(R.string.metrics_two_sentences, sentences[0], sentences[1]) else sentences.first()
-    }
-    val effort = model.effort
-    val sentence = effortTrendSentence(
-        trendDirection(effort.delta, effort.previousAverage, tolerance = EFFORT_TYPICAL_TOLERANCE),
-        effort.average != null,
-    )
-    return sentenceText(
-        sentence,
-        effort.delta?.let { effortText(abs(it), effortScale) },
-        effort.average?.let { effortText(it, effortScale) },
-        model.days,
-    )
-}
-
-/** The Body line: a sentence for weight and one for skin temperature, each only when the period has readings. */
-private fun trendsBodyLine(
-    model: TrendsPeriodModel,
-    weightFormat: (Double) -> String,
-    weightUnit: String,
-    skinFormat: (Double) -> String,
-    skinDeltaFormat: (Double) -> String,
-    skinUnit: String,
-): String {
-    val weight = model.weight
-    val weightSentence = weightTrendSentence(
-        trendDirection(weight.delta, weight.previousAverage, steadyBand = TRENDS_WEIGHT_STEADY_KG),
-        weight.average != null,
-    )?.let {
-        sentenceText(
-            it,
-            weight.delta?.let { delta -> withUnit(weightFormat(abs(delta)), weightUnit) },
-            weight.average?.let { average -> withUnit(weightFormat(average), weightUnit) },
-            model.days,
-        )
-    }
-    val skin = model.skin
-    val skinSentence = skinTrendSentence(
-        trendDirection(skin.delta, skin.previousAverage, steadyBand = TRENDS_SKIN_STEADY_C),
-        skin.average != null,
-    )?.let {
-        sentenceText(
-            it,
-            skin.delta?.let { delta -> withUnit(skinDeltaFormat(abs(delta)), skinUnit) },
-            skin.average?.let { average -> withUnit(skinFormat(average), skinUnit) },
-            model.days,
-        )
-    }
-    return when {
-        weightSentence != null && skinSentence != null ->
-            uiString(R.string.metrics_two_sentences, weightSentence, skinSentence)
-        weightSentence != null -> weightSentence
-        skinSentence != null -> skinSentence
-        else -> uiString(R.string.trends_body_empty)
-    }
-}
-
-/** A section sentence with its arguments filled in: the change and the period's length, or the average. */
-private fun sentenceText(sentence: TrendSentence, change: String?, level: String?, days: Int?): String =
-    when (sentence.args) {
-        SentenceArgs.CHANGE -> uiString(sentence.res, change.orEmpty(), days ?: 0)
-        SentenceArgs.LEVEL -> uiString(sentence.res, level.orEmpty())
-        SentenceArgs.NONE -> uiString(sentence.res)
-    }
-
-/** "0.6 kg": a number and its unit, joined the way the reader's language does. */
-private fun withUnit(number: String, unit: String): String = uiString(R.string.trends_value_unit, number, unit)
 
 /**
  * Fitness and fatigue inside the period, on the owner's Effort scale, with the form chip's text. Null while the
@@ -624,12 +386,16 @@ private fun trainingLoadUi(training: TrainingLoadEngine.Result, axis: TrendAxis,
     )
 }
 
-/** What the training-load block compares, or how far along the model is while it builds. */
-private fun trainingLoadSubtitle(training: TrainingLoadEngine.Result): String = when (training.state) {
-    TrainingLoadEngine.State.ESTABLISHED -> uiString(R.string.trends_tl_established)
+/**
+ * The Training load card's note: how many days of Effort the model needs while it is unavailable, how far it
+ * has come while it builds, and nothing once it is established.
+ */
+private fun trainingLoadNote(training: TrainingLoadEngine.Result): String? = when (training.state) {
+    TrainingLoadEngine.State.UNAVAILABLE ->
+        uiString(R.string.trends_tl_needs, TrainingLoadEngine.standard.minimumDays, training.contiguousDays)
     TrainingLoadEngine.State.BUILDING ->
         uiString(R.string.trends_tl_building, training.contiguousDays, TrainingLoadEngine.standard.establishedDays)
-    TrainingLoadEngine.State.UNAVAILABLE -> uiString(R.string.trends_tl_unavailable)
+    TrainingLoadEngine.State.ESTABLISHED -> null
 }
 
 /** Effort on the owner's scale: one decimal out of 21, a whole number out of 100. */
@@ -638,7 +404,7 @@ private fun effortText(stored: Double, scale: EffortScale): String {
     return if (scale == EffortScale.WHOOP) trendsDecimal(shown) else trendsWhole(shown)
 }
 
-/** A whole number, rounded: Charge, Rest, HRV, resting heart rate. */
+/** A whole number, rounded: Charge, Rest, Effort out of 100 and the chart labels. */
 private fun trendsWhole(value: Double): String = value.roundToInt().toString()
 
 /** One decimal in the reader's locale: weight, temperatures, Effort out of 21. */

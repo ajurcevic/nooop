@@ -90,8 +90,23 @@ class SleepGroupEditTest {
     }
 
     /**
-     * A window that clears the whole night is refused outright. A bed/wake correction should never be read
-     * as "delete this night", and the editor's own confirm gate exists to catch a disjoint window first.
+     * ...wherever the window lies. The single-row edit moves a lone sleep to any drawn window, so a night the
+     * user confirmed moving with "Move this sleep?" moves here too instead of being refused.
+     */
+    @Test fun aSingleFragmentMovesToAWindowClearOfIt() {
+        val only = frag(t0, t0 + 1 * h)
+        val plan = SleepGroupEdit.plan(listOf(only), t0 + 5 * h, t0 + 6 * h)
+        assertEquals(1, plan.clipped.size)
+        assertTrue(plan.dropped.isEmpty())
+        assertEquals(t0 + 5 * h, plan.clipped[0].effectiveStartTs)
+        assertEquals(t0 + 6 * h, plan.clipped[0].endTs)
+        assertTrue(plan.clipped[0].userEdited)
+        assertEquals(only.startTs, plan.clipped[0].startTs)
+    }
+
+    /**
+     * A window that clears the whole of a split night is refused outright. A bed/wake correction should never
+     * be read as "delete this night", and the editor's own confirm gate exists to catch a disjoint window first.
      */
     @Test fun aWindowMissingTheNightEntirelyChangesNothing() {
         val plan = SleepGroupEdit.plan(splitNight(), t0 + 20 * h, t0 + 22 * h)

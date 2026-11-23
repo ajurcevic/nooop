@@ -183,7 +183,6 @@ fun HydrationScreen(viewModel: AppViewModel) {
     // opted-out user still gets the plain surface. Mirrors the liquid Today scaffold.
     LazyScreenScaffold(
         title = uiString(R.string.l10n_hydration_screen_hydration_bdfb040f),
-        subtitle = "Your fluid intake today, on this phone only.",
         topBackground = screenBackdropSlot(showDayCycleBackground, skyBehindCards),
         // Sky-behind-cards fills the viewport so the transparent cards reveal the sky the whole way
         // down (Today / Trends / Sleep / metric-detail parity - same two prefs, same two behaviours).

@@ -4,7 +4,6 @@ import com.noop.R
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,15 +12,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,106 +60,135 @@ import kotlin.math.roundToInt
 // Extracted from SleepScreen.kt (behavioral no-op; pure UI code-motion).
 
 /**
- * #today-hosted-cards: the "Night detail" metric grid rendered from the shared [SleepModel]. `internal` so
- * the Today host (TodayScreen) can render the SAME grid the Sleep tab does (a mirror, not a copy); lives
- * here so its [MetricGrid]/[SparkTile] siblings stay in-file. Twin of the iOS `NightDetailCard`. The Sleep
- * tab passes an [onMetricClick] to open per-metric detail; the Today host omits it (no detail sheet there),
- * so the tiles render read-only when hosted.
+ * #today-hosted-cards: the "Night detail" list rendered from the shared [SleepModel]. `internal` so the Today
+ * host (TodayScreen) can render the SAME list the Sleep tab does (a mirror, not a copy); lives here so its
+ * [MetricGrid]/[NightDetailRow] siblings stay in-file. Twin of the iOS `NightDetailCard`. The Sleep tab passes
+ * an [onMetricClick] that opens the per-metric detail sheet, and leaves Rest and Sleep debt to its hero
+ * ([includeHeroFigures] = false) so each figure shows once. The Today host passes neither: every row shows,
+ * read-only, and a tap anywhere on the card reaches the host's own open-Sleep action.
  */
 @Composable
-internal fun NightDetailHostCard(m: SleepModel, onMetricClick: (String) -> Unit = {}) {
-    MetricGrid(m, onMetricClick = onMetricClick)
+internal fun NightDetailHostCard(
+    m: SleepModel,
+    onMetricClick: ((String) -> Unit)? = null,
+    includeHeroFigures: Boolean = true,
+) {
+    MetricGrid(m, onMetricClick = onMetricClick, includeHeroFigures = includeHeroFigures)
 }
 
+/** One Night detail row's content: its [label], the detail-sheet [key], the shown [value] (null when there is
+ *  no reading) in its [accent], and the [metric] behind it, for the carried-day stamp (#1946). */
+private class NightDetailItem(
+    val label: String,
+    val key: String,
+    val value: String?,
+    val accent: Color,
+    val metric: Metric,
+)
+
 @Composable
-private fun MetricGrid(m: SleepModel, onMetricClick: (String) -> Unit = {}) {
-    val tiles = listOf<@Composable (Modifier) -> Unit>(
-        { mod ->
-            SparkTile(
-                mod, "Rest",
-                value = pctValue(m.performance.latest),
-                caption = tileCaption(m.performance.latestDay, m.performance.latest, m.performance.typical, "%"),
-                accent = m.performance.latest?.let { Palette.recoveryColor(it) } ?: Palette.textPrimary,
-                spark = m.performance.series, sparkColor = Palette.restColor,
-                onClick = { onMetricClick("performance") },
+private fun MetricGrid(m: SleepModel, onMetricClick: ((String) -> Unit)?, includeHeroFigures: Boolean) {
+    val items = buildList {
+        if (includeHeroFigures) {
+            // Sleep debt leads as the section's actionable summary, then Rest. On the Sleep tab both live in
+            // the hero instead.
+            add(
+                NightDetailItem(
+                    uiString(R.string.l10n_sleep_screen_sleep_debt_3aec7d9c), "sleep_debt",
+                    m.sleepDebt.latest?.let { durationText(it) }, debtColor(m.sleepDebt.latest), m.sleepDebt,
+                ),
             )
-        },
-        { mod ->
-            SparkTile(
-                mod, "Efficiency",
-                value = pctValue(m.efficiency.latest),
-                caption = tileCaption(m.efficiency.latestDay, m.efficiency.latest, m.efficiency.typical, "%"),
-                accent = Palette.statusPositive,
-                spark = m.efficiency.series, sparkColor = Palette.statusPositive,
-                onClick = { onMetricClick("efficiency") },
+            add(
+                NightDetailItem(
+                    uiString(R.string.sleep_rest), "performance",
+                    m.performance.latest?.let { pctValue(it) },
+                    m.performance.latest?.let { Palette.recoveryColor(it) } ?: Palette.textPrimary, m.performance,
+                ),
             )
-        },
-        { mod ->
-            SparkTile(
-                mod, "Consistency",
-                value = pctValue(m.consistency.latest),
-                caption = tileCaption(m.consistency.latestDay, m.consistency.latest, m.consistency.typical, "%"),
-                accent = m.consistency.latest?.let { Palette.recoveryColor(it) } ?: Palette.textPrimary,
-                spark = m.consistency.series, sparkColor = Palette.metricCyan,
-                onClick = { onMetricClick("consistency") },
-            )
-        },
-        { mod ->
-            SparkTile(
-                mod, "Hours vs Needed",
-                value = pctValue(m.hoursVsNeeded.latest),
-                caption = tileCaption(m.hoursVsNeeded.latestDay, m.hoursVsNeeded.latest, m.hoursVsNeeded.typical, "%"),
-                accent = m.hoursVsNeeded.latest?.let { Palette.recoveryColor(minOf(100.0, it)) } ?: Palette.textPrimary,
-                spark = m.hoursVsNeeded.series, sparkColor = Palette.restColor,
-                onClick = { onMetricClick("hours_vs_needed") },
-            )
-        },
-        { mod ->
-            SparkTile(
-                mod, "Restorative",
-                value = pctValue(m.restorative.latest),
-                caption = tileCaption(m.restorative.latestDay, m.restorative.latest, m.restorative.typical, "%"),
-                accent = Palette.sleepREM,
-                spark = m.restorative.series, sparkColor = Palette.sleepREM,
-                onClick = { onMetricClick("restorative") },
-            )
-        },
-        { mod ->
-            SparkTile(
-                mod, "Respiratory",
-                value = m.respiratory.latest?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
-                caption = tileCaption(m.respiratory.latestDay, m.respiratory.latest, m.respiratory.typical, " rpm", decimals = 1),
-                accent = Palette.metricPurple,
-                spark = m.respiratory.series, sparkColor = Palette.metricPurple,
-                onClick = { onMetricClick("respiratory") },
-            )
-        },
-    )
+        }
+        add(
+            NightDetailItem(
+                uiString(R.string.sleep_efficiency), "efficiency",
+                m.efficiency.latest?.let { pctValue(it) }, Palette.statusPositive, m.efficiency,
+            ),
+        )
+        add(
+            NightDetailItem(
+                uiString(R.string.l10n_sleep_screen_consistency_0ea7b95e), "consistency",
+                m.consistency.latest?.let { pctValue(it) },
+                m.consistency.latest?.let { Palette.recoveryColor(it) } ?: Palette.textPrimary, m.consistency,
+            ),
+        )
+        add(
+            NightDetailItem(
+                uiString(R.string.l10n_sleep_screen_hours_vs_needed_500a0aca), "hours_vs_needed",
+                m.hoursVsNeeded.latest?.let { pctValue(it) },
+                m.hoursVsNeeded.latest?.let { Palette.recoveryColor(minOf(100.0, it)) } ?: Palette.textPrimary,
+                m.hoursVsNeeded,
+            ),
+        )
+        add(
+            NightDetailItem(
+                uiString(R.string.sleep_restorative), "restorative",
+                m.restorative.latest?.let { pctValue(it) }, Palette.sleepREM, m.restorative,
+            ),
+        )
+        add(
+            NightDetailItem(
+                uiString(R.string.sleep_respiratory), "respiratory",
+                m.respiratory.latest?.let { String.format(Locale.US, "%.1f rpm", it) }, Palette.metricPurple,
+                m.respiratory,
+            ),
+        )
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Night detail", overline = "Metrics", trailing = "vs typical")
-
-        // Sleep Debt is the actionable summary for the section, so it leads at the full
-        // two-column width. The remaining six peer metrics keep the established 2 × 3 grid.
-        SparkTile(
-            Modifier.fillMaxWidth(), "Sleep Debt",
-            value = m.sleepDebt.latest?.let { durationText(it) } ?: "—",
-            caption = debtCaption(m.sleepDebt.latest),
-            accent = debtColor(m.sleepDebt.latest),
-            spark = m.sleepDebt.series, sparkColor = Palette.metricRose,
-            onClick = { onMetricClick("sleep_debt") },
-        )
-
-        // Two-up rows; IntrinsicSize.Max + fillMaxHeight keep row neighbors equal height even when
-        // large font scales grow one tile past the tileHeight floor. No empty cells.
-        tiles.chunked(2).forEach { rowTiles ->
-            Row(
-                modifier = Modifier.height(IntrinsicSize.Max),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.gap),
-            ) {
-                rowTiles.forEach { it(Modifier.weight(1f).fillMaxHeight()) }
+        SectionHeader(uiString(R.string.l10n_sleep_screen_night_detail_8f271bcf))
+        NoopCard(tint = Palette.restColor) {
+            Column {
+                items.forEachIndexed { i, item ->
+                    NightDetailRow(item, onMetricClick)
+                    if (i < items.lastIndex) SleepHairline()
+                }
             }
         }
+    }
+}
+
+/**
+ * One Night detail row: the metric's name on the left, with the "Carried" day stamp under it when the value is
+ * a prior night's (#1946), and the value on the right in the metric's colour. With [onMetricClick] the whole
+ * row opens that metric's detail sheet; without it the row is read-only.
+ */
+@Composable
+private fun NightDetailRow(item: NightDetailItem, onMetricClick: ((String) -> Unit)?) {
+    val carried = Metric.carriedMetricCaption(item.metric.latestDay, item.metric.latest)?.localized()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (onMetricClick != null) {
+                    Modifier.clickable(onClickLabel = uiString(R.string.metrics_action_open_tile)) { onMetricClick(item.key) }
+                } else {
+                    Modifier
+                },
+            )
+            .padding(vertical = Metrics.space12),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+            Text(item.label, style = NoopType.body, color = Palette.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (carried != null) {
+                Text(carried, style = NoopType.caption, color = Palette.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        Spacer(Modifier.width(Metrics.space12))
+        Text(
+            item.value ?: "—",
+            style = NoopType.metricInline,
+            color = if (item.value != null) item.accent else Palette.textTertiary,
+            maxLines = 1,
+        )
     }
 }
 
@@ -172,7 +207,7 @@ private fun MetricGrid(m: SleepModel, onMetricClick: (String) -> Unit = {}) {
 internal fun SleepDebtLedgerHostCard(m: SleepModel) {
     val ledger = m.sleepDebtLedger
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Sleep-debt ledger", overline = "Last 14 nights", trailing = "tonight's target")
+        SectionHeader(uiString(R.string.l10n_sleep_screen_sleep_debt_ledger_8cc9a992))
         NoopCard(padding = Metrics.cardPadding, tint = Palette.restColor) {
             if (ledger.nightCount == 0) {
                 Text(
@@ -289,22 +324,24 @@ private fun DebtDeltaBars(ledger: SleepDebtLedger) {
 internal fun StagesHostCard(m: SleepModel) {
     val s = m.stages
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        // Read-only header: the night's span label in the trailing slot — NO ◀/▶ nav controls.
-        SectionHeader("Stages", overline = "Last night", trailing = m.clockLabel)
-        // Verbatim of the Sleep tab Hero's stage-chart block, read from the shared model with a null
-        // session window (no clock axis) and no motion strip — the fractions/segments are identical.
-        val subtitle = "${durationText(s.total)} in bed · ${m.efficiencyText} efficiency" +
-            (if (m.realSegments != null) " · approx. stages (on-device)" else "")
+        // Read-only header, one title and NO ◀/▶ nav controls.
+        SectionHeader(uiString(R.string.l10n_sleep_screen_stages_c1d33ad5))
+        // The Sleep tab stages card's chart block, read from the shared model with a null session window (no
+        // clock axis) and no motion strip — the fractions/segments are identical. The chart card leads with
+        // the night's time asleep, and its ⓘ carries the note on how stages are estimated.
+        val asleepTitle = uiString(R.string.l10n_sleep_screen_asleep_b9692bbe)
+        val stagesInfo = uiString(R.string.sleep_stages_estimated_note)
         val real = m.realSegments?.takeIf { it.size >= 2 }
         if (real != null) {
             val chartStyle = UnitPrefs.sleepChartStyle(LocalContext.current)
             val filledSegments = m.hypnogramSegments?.takeIf { it.size >= 2 }
             if (chartStyle != SleepChartStyle.CLASSIC && filledSegments != null) {
                 SleepChartCard(
-                    title = uiString(R.string.l10n_sleep_screen_stage_breakdown_e9b714f9),
-                    subtitle = subtitle,
+                    title = asleepTitle,
+                    subtitle = null,
                     trailing = durationText(s.asleep),
                     tint = Palette.restColor,
+                    info = stagesInfo,
                     // #1536: the stage LEGEND that used to sit here is gone, and the rows below now
                     // take the chart's ramp. Those two go together. The legend decoded the hypnogram
                     // above it, which is real work — but it listed the stages in a different order than
@@ -324,10 +361,11 @@ internal fun StagesHostCard(m: SleepModel) {
                 }
             } else {
                 SleepChartCard(
-                    title = uiString(R.string.l10n_sleep_screen_stage_breakdown_e9b714f9),
-                    subtitle = subtitle,
+                    title = asleepTitle,
+                    subtitle = null,
                     trailing = durationText(s.asleep),
                     tint = Palette.restColor,
+                    info = stagesInfo,
                     footer = {},
                 ) {
                     StageTimeline(
@@ -341,10 +379,11 @@ internal fun StagesHostCard(m: SleepModel) {
             }
         } else {
             SleepChartCard(
-                title = uiString(R.string.l10n_sleep_screen_stage_breakdown_e9b714f9),
-                subtitle = subtitle,
+                title = asleepTitle,
+                subtitle = null,
                 trailing = durationText(s.asleep),
                 tint = Palette.restColor,
+                info = stagesInfo,
                 footer = { StageBreakdownRows(s) },
             ) {
                 val segments = stageSegments(s)
@@ -374,7 +413,7 @@ internal fun StagesHostCard(m: SleepModel) {
 internal fun StagesVsTypicalHostCard(m: SleepModel) {
     val s = m.stages
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Stages vs typical", overline = "Selected night", trailing = "marker = your mean")
+        SectionHeader(uiString(R.string.l10n_sleep_screen_stages_vs_typical_28463f24))
         NoopCard(tint = Palette.restColor) {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space14)) {
                 StageRow("Deep", last = s.deep, typical = m.typicalDeepMin, color = Palette.sleepDeep)
@@ -472,10 +511,10 @@ private fun DrawScope.drawRoundRectFill(color: Color, frac: Float) {
 internal fun AsleepDurationHostCard(hours: List<Double>, dates: List<String>) {
     val avg = hours.sleepAverageOrNull()
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Asleep duration", overline = "Sleep", trailing = "Last 14 days")
+        SectionHeader(uiString(R.string.l10n_sleep_screen_asleep_duration_3638413f))
         SleepChartCard(
-            title = uiString(R.string.l10n_sleep_screen_hours_asleep_06f68993),
-            subtitle = "Per night, trailing 14 days",
+            title = null,
+            subtitle = null,
             trailing = avg?.let { String.format(Locale.US, "%.1f h avg", it) },
             tint = Palette.restColor,
             footer = {
@@ -515,10 +554,10 @@ internal fun DurationTrend(m: SleepModel) {
     val pts = m.trendHours
     val avg = pts.sleepAverageOrNull()
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-        SectionHeader("Trend", overline = "Sleep", trailing = "Last 14 days")
+        SectionHeader(uiString(R.string.l10n_sleep_screen_asleep_duration_3638413f))
         SleepChartCard(
-            title = uiString(R.string.l10n_sleep_screen_hours_asleep_06f68993),
-            subtitle = "Per night, trailing 14 days",
+            title = null,
+            subtitle = null,
             trailing = avg?.let { String.format(Locale.US, "%.1f h avg", it) },
             tint = Palette.restColor,
             footer = {
@@ -558,7 +597,7 @@ internal fun DurationTrend(m: SleepModel) {
 
         SleepChartCard(
             title = uiString(R.string.l10n_sleep_screen_sleep_debt_3aec7d9c),
-            subtitle = "Sleep debt per day",
+            subtitle = null,
             // #691: sleep debt is usually well under an hour, so decimal hours ("0.6h") reads badly —
             // show hours+minutes. trendDebtHours is in hours; durationText takes minutes.
             trailing = m.trendDebtHours.lastOrNull()?.let { durationText(it * 60.0) },
@@ -566,8 +605,8 @@ internal fun DurationTrend(m: SleepModel) {
             footer = {
                 SleepChartFooter(
                     listOf(
-                        "Avg" to (m.trendDebtHours.sleepAverageOrNull()?.let { durationText(it * 60.0) } ?: "â€”"),
-                        "Max" to (m.trendDebtHours.maxOrNull()?.let { durationText(it * 60.0) } ?: "â€”"),
+                        "Avg" to (m.trendDebtHours.sleepAverageOrNull()?.let { durationText(it * 60.0) } ?: "—"),
+                        "Max" to (m.trendDebtHours.maxOrNull()?.let { durationText(it * 60.0) } ?: "—"),
                         "Days" to "${m.trendDebtHours.size}",
                     ),
                 )
@@ -654,33 +693,65 @@ internal fun DateAxisRow(days: List<String>) {
 // MARK: - SleepChartCard / SleepChartFooter (local — mirror the macOS SleepChartCard the screen used)
 
 /**
- * The chart container the macOS screen leaned on: a NoopCard with a header (overline-
- * style title + subtitle + trailing read-out), the chart body, then a footer row of
- * label/value pairs. Kept local so the shared component set stays minimal.
+ * The chart container the macOS screen leaned on: a NoopCard with a header (an optional title, subtitle and
+ * trailing read-out), the chart body, then a footer row of label/value pairs. [info] adds a small ⓘ at the
+ * end of the header that opens the text in a dialog, for a caveat that would otherwise sit permanently under
+ * the chart. The header is left out when it would be empty. Kept local so the shared component set stays
+ * minimal.
  */
 @Composable
 internal fun SleepChartCard(
-    title: String,
-    subtitle: String,
+    title: String?,
+    subtitle: String?,
     trailing: String?,
     footer: @Composable () -> Unit,
     tint: Color? = null,
+    info: String? = null,
     chart: @Composable () -> Unit,
 ) {
+    var showInfo by remember { mutableStateOf(false) }
     NoopCard(padding = Metrics.cardPadding, tint = tint) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space14)) {
-            Row(verticalAlignment = Alignment.Top) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(title, style = NoopType.headline, color = Palette.textPrimary)
-                    Text(subtitle, style = NoopType.footnote, color = Palette.textSecondary)
-                }
-                if (trailing != null) {
-                    Text(trailing, style = NoopType.chartValue, color = Palette.textPrimary)
+            if (title != null || subtitle != null || trailing != null || info != null) {
+                Row(verticalAlignment = if (subtitle == null) Alignment.CenterVertically else Alignment.Top) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        if (title != null) {
+                            Text(title, style = NoopType.headline, color = Palette.textPrimary)
+                        }
+                        if (subtitle != null) {
+                            Text(subtitle, style = NoopType.footnote, color = Palette.textSecondary)
+                        }
+                    }
+                    if (trailing != null) {
+                        Text(trailing, style = NoopType.chartValue, color = Palette.textPrimary)
+                    }
+                    if (info != null) {
+                        IconButton(onClick = { showInfo = true }, modifier = Modifier.size(Metrics.iconButton)) {
+                            Icon(
+                                Icons.Outlined.Info,
+                                contentDescription = uiString(R.string.sleep_action_about_chart),
+                                tint = Palette.textTertiary,
+                                modifier = Modifier.size(Metrics.iconSmall),
+                            )
+                        }
+                    }
                 }
             }
             chart()
             footer()
         }
+    }
+    if (showInfo && info != null) {
+        AlertDialog(
+            onDismissRequest = { showInfo = false },
+            containerColor = Palette.surfaceOverlay,
+            text = { Text(info, style = NoopType.subhead, color = Palette.textSecondary) },
+            confirmButton = {
+                TextButton(onClick = { showInfo = false }) {
+                    Text(uiString(R.string.l10n_components_close_bbfa773e), color = Palette.accent)
+                }
+            },
+        )
     }
 }
 
@@ -700,74 +771,6 @@ private fun SleepChartFooter(items: List<Pair<String, String>>) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     softWrap = false,
-                )
-            }
-        }
-    }
-}
-
-// MARK: - SparkTile (min-height metric tile, stacked: value + caption over a full-width 30-day sparkline)
-
-@Composable
-private fun SparkTile(
-    modifier: Modifier,
-    label: String,
-    value: String,
-    caption: String?,
-    accent: Color,
-    spark: List<Double>,
-    sparkColor: Color,
-    onClick: (() -> Unit)? = null,
-) {
-    // liquidPress on the tappable tile: it settles inward on press (the pilot's card feel). The SAME
-    // interactionSource drives the clickable + the press; indication = null so only the liquid settle shows.
-    val interaction = remember { MutableInteractionSource() }
-    // heightIn (not height): tileHeight is a floor, matching the Swift StatTile. At normal font scale the
-    // tile keeps its 108dp footprint; at large font scales it grows instead of clipping the caption. (#squish)
-    val clickMod = if (onClick != null) {
-        modifier
-            .heightIn(min = Metrics.tileHeight)
-            .liquidPress(interaction)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
-    } else {
-        modifier.heightIn(min = Metrics.tileHeight)
-    }
-    NoopCard(modifier = clickMod, padding = Metrics.space14) {
-        // fillMaxHeight so the weight-spacer can pin the sparkline to the card bottom once the
-        // MetricGrid row bounds the height (Row height(IntrinsicSize.Max) + tile fillMaxHeight()).
-        Column(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
-            Overline(label)
-            Text(
-                value,
-                style = NoopType.tileValue,
-                color = accent,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (caption != null) {
-                Text(
-                    caption,
-                    style = NoopType.footnote,
-                    color = Palette.textTertiary,
-                    // Full card width now, so the "-3% vs typical" caption fits; ellipsis stays as a
-                    // safety net for extreme localized strings.
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = Metrics.space2),
-                )
-            }
-            Spacer(Modifier.weight(1f))
-            val tail = spark.takeLast(30)
-            if (tail.size >= 2) {
-                // Full-width bottom spark. Outer height(sparkHeight) deliberately overrides Sparkline's
-                // internal 28dp default down to the 22dp tile spark (same override SparkTailBox does).
-                Sparkline(
-                    values = tail,
-                    color = sparkColor,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = Metrics.space8)
-                        .height(Metrics.sparkHeight),
                 )
             }
         }
@@ -825,10 +828,12 @@ internal fun HoursVsNeededCard(m: SleepModel) {
     NoopCard(padding = Metrics.cardPadding, tint = Palette.restColor) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space14)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Overline("Sleep")
-                    Text(uiString(R.string.l10n_sleep_screen_hours_vs_needed_500a0aca), style = NoopType.headline, color = Palette.textPrimary)
-                }
+                Text(
+                    uiString(R.string.l10n_sleep_screen_hours_vs_needed_500a0aca),
+                    style = NoopType.headline,
+                    color = Palette.textPrimary,
+                    modifier = Modifier.weight(1f),
+                )
                 Text(trendArrow, style = NoopType.title2, color = arrowColor)
                 Spacer(Modifier.width(Metrics.space6))
                 Text(uiString(R.string.l10n_sleep_screen_score_roundtoint_a2d1cc99, score.roundToInt()), style = NoopType.chartValue, color = Palette.restColor)
@@ -927,10 +932,12 @@ internal fun ConsistencyHostCard(m: SleepModel) {
     NoopCard(padding = Metrics.cardPadding, tint = Palette.restColor) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space14)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Overline("Sleep")
-                    Text(uiString(R.string.l10n_sleep_screen_consistency_0ea7b95e), style = NoopType.headline, color = Palette.textPrimary)
-                }
+                Text(
+                    uiString(R.string.l10n_sleep_screen_consistency_0ea7b95e),
+                    style = NoopType.headline,
+                    color = Palette.textPrimary,
+                    modifier = Modifier.weight(1f),
+                )
                 Text(trendArrow, style = NoopType.title2, color = arrowColor)
                 Spacer(Modifier.width(Metrics.space6))
                 Text(
@@ -1014,13 +1021,14 @@ internal fun SleepConsistencyCard(
 
     NoopCard(padding = Metrics.cardPadding, tint = Palette.restColor) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space14)) {
-            // Header: title + trend-score.
+            // Header: one title + the consistency score.
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Overline("Schedule")
-                    Text(uiString(R.string.l10n_sleep_screen_bedtime_wake_time_b2a22c32), style = NoopType.headline, color = Palette.textPrimary)
-                    Text(uiString(R.string.l10n_sleep_screen_sleep_window_over_recent_nights_cc5fd9b8), style = NoopType.footnote, color = Palette.textSecondary)
-                }
+                Text(
+                    uiString(R.string.l10n_sleep_screen_bedtime_wake_time_b2a22c32),
+                    style = NoopType.headline,
+                    color = Palette.textPrimary,
+                    modifier = Modifier.weight(1f),
+                )
                 Text(uiString(R.string.l10n_sleep_screen_consistencypct_roundtoint_b23a9d40, consistencyPct.roundToInt()), style = NoopType.chartValue, color = Palette.restColor)
             }
 

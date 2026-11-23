@@ -119,7 +119,8 @@ internal fun ChargeBreakdownSheet(
                 RecoveryDriversSection(chargeBaselines = chargeBaselines, displayDay = displayDay, carriedDay = carriedDay)
                 RecoveryContributorsSection(day = displayDay, carriedDay = carriedDay)
                 // S4: the SEPARATE Readiness block now lives here behind the Charge-ring tap (today-only,
-                // matching the old inline gate). A one-word read (Push / Maintain / Rest) stays on the hero.
+                // matching the old inline gate). The Metrics tab's readiness line keeps the one-word read
+                // (Primed / Balanced / Strained / Run down) behind the same today-only gate.
                 if (showReadiness) ReadinessSection(days, carriedDay = carriedDay)
                 onOpenTrend?.let { openTrend ->
                     Row(

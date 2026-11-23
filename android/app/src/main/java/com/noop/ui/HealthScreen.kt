@@ -112,6 +112,7 @@ fun HealthScreen(
     vm: AppViewModel,
     onVitalClick: (String) -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    onOpenVitalSigns: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val profile = remember { ProfileStore.from(context.applicationContext) }
@@ -158,10 +159,12 @@ fun HealthScreen(
     // surface canvas instead.
     val showDayCycleBackground = remember { NoopPrefs.showDayCycleBackground(context) }
     val skyBehindCards = remember { NoopPrefs.skyBehindCards(context) }
+    // Vital Signs left the More page, so Health carries its door: under the latest readings, and under the
+    // empty state while older days still have readings (the Vital Signs screen can step back a day or two).
+    val vitalSignsLink = listOf(NavLink(Destination.VitalSigns, R.string.health_vital_signs_row))
 
     LazyScreenScaffold(
         title = uiString(R.string.l10n_health_screen_health_monitor_c4abc3fc),
-        subtitle = "Live vitals, streamed from the strap.",
         topBackground = screenBackdropSlot(showDayCycleBackground, skyBehindCards),
         // Sky-behind-cards fills the viewport so the transparent cards reveal the sky the whole way
         // down (Today / Trends / Sleep / metric-detail parity - same two prefs, same two behaviours).
@@ -173,6 +176,9 @@ fun HealthScreen(
             item { SyncStatusSection(vm = vm, onSyncNow = { vm.syncNow() }) }
             item { Spacer(Modifier.height(Metrics.selectorTopUp)) }
             item { HealthEmptyState() }
+            if (days.isNotEmpty()) {
+                item { NavLinkCard(vitalSignsLink, onOpen = { onOpenVitalSigns() }) }
+            }
         } else {
             // Manual "Sync now" + honest sync status (#364) — the first section so the strap-history
             // control is reachable above the live hero. Mirrors HealthView.swift's top Sync section.
@@ -198,6 +204,7 @@ fun HealthScreen(
                     captionMode = VitalCaptionMode.AS_OF,
                 )
             }
+            item { NavLinkCard(vitalSignsLink, onOpen = { onOpenVitalSigns() }) }
             // FITNESS AGE — the weekly Saturday number from the engine (resting HR + activity vs your
             // age), with an honest readiness checklist behind a tap. Authoritative value comes from the
             // metricSeries the IntelligenceEngine writes; readiness is derived from what this screen sees.
@@ -1182,7 +1189,6 @@ fun VitalSignsScreen(vm: AppViewModel, onVitalClick: (String) -> Unit = {}) {
 
     ScreenScaffold(
         title = uiString(R.string.l10n_health_screen_vital_signs_e7d9e1b1),
-        subtitle = "Historical vitals from your cached daily metrics.",
     ) {
         RecentDaySelectorBar(selectedOffset = selectedDayOffset, onSelect = { selectedDayOffset = it })
         if (selectedMetric == null || vitals.all { it.value == null }) {
@@ -1864,10 +1870,6 @@ fun VitalDetailScreen(vm: AppViewModel, key: String) {
     }
     var range by remember { mutableStateOf(VitalDetailRange.MONTH) }
 
-    // The subtitle tracks how much history the metric has, so we never promise a "historical trend" the
-    // view isn't showing: Fitness Age with no reading yet -> what it still needs; ANY metric with a single
-    // reading -> that reading (trend to follow); two+ -> the trend. Pre-load falls through to trend.
-    val loadedPoints = if (seriesLoaded) (detail?.points?.size ?: 0) else -1
     // #430 parity: the detail carries the SAME backdrop as the screen that pushed it — the day-cycle sky
     // when the setting is on (full-viewport when "Sky behind cards" is also on, so the transparent cards
     // reveal it the whole way down; the top band otherwise), the plain canvas when off. Same gates the
@@ -1876,12 +1878,6 @@ fun VitalDetailScreen(vm: AppViewModel, key: String) {
     val skyBehindCards = remember { NoopPrefs.skyBehindCards(context) }
     ScreenScaffold(
         title = detail?.title ?: if (isStepsDetail) uiString(R.string.l10n_health_screen_steps_cdde4f20) else "Vital Signs",
-        subtitle = when {
-            isStepsDetail -> uiString(R.string.steps_history)
-            key == "fitness_age" && loadedPoints == 0 -> "What your Fitness Age still needs."
-            loadedPoints == 1 -> "Your latest reading — trend to follow."
-            else -> "Historical trend from cached daily metrics."
-        },
         topBackground = screenBackdropSlot(showDayCycleBackground, skyBehindCards),
         // Sky-behind-cards needs the full-viewport container too — the band container's status-bar
         // offset left the lower cards on plain canvas (tester report).
