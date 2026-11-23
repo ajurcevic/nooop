@@ -42,7 +42,6 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.BatteryStd
-import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material.icons.filled.Campaign
@@ -532,10 +531,11 @@ class ProfileStore(private val prefs: SharedPreferences) {
 @Composable
 fun SettingsScreen(
     vm: AppViewModel,
-    onOpenTestCentre: () -> Unit = {},
     onOpenBackupSync: () -> Unit = {},
     onOpenSelfHostedPush: () -> Unit = {},
     onOpenStepsCalibration: () -> Unit = {},
+    // Opens a destination by its route: the rows for the screens the More page no longer lists.
+    onOpenRoute: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -2745,23 +2745,16 @@ fun SettingsScreen(
         }
 
         if (settingsTab == SettingsTab.STRAP) {
-        // --- Test Centre (the diagnostic home, #507/#509) ---
-        // A nav row into the Test Centre: the single home for the diagnostic, log and test controls (spec
-        // section 7). The strap log, recalibrate, scheduled export and experimental toggles also live there
-        // on the same bindings, so this is a faster door to the full set without growing this screen.
-        SettingsCard(
-            icon = Icons.Filled.BugReport,
-            title = uiString(R.string.l10n_settings_screen_test_centre_37b36828),
-            blurb = "Turn on a test for the thing that's wrong, wear the strap, then tap Report. Your strap log, recalibrate, scheduled export and experimental probes all live here too.",
-        ) {
-            NoopButton(
-                text = uiString(R.string.l10n_settings_screen_open_test_centre_a7fbe4e9),
-                leadingIcon = Icons.Filled.BugReport,
-                kind = NoopButtonKind.Secondary,
-                fullWidth = true,
-                onClick = onOpenTestCentre,
-            )
-        }
+        // --- Everyday screens that left the More page ---
+        // Wrist alerts and the strap-battery levers. One self-contained block, so a Settings layout change
+        // can move it whole. Test Centre, which had a card here, is one of the Advanced rows now.
+        NavLinkCard(
+            listOf(
+                NavLink(Destination.Notifications),
+                NavLink(Destination.PowerSaving),
+            ),
+            onOpen = { onOpenRoute(it.route) },
+        )
         }
 
         if (settingsTab == SettingsTab.HEALTH) {
@@ -3376,15 +3369,29 @@ fun SettingsScreen(
 
         // Lower-frequency sections collapse behind a single default-closed disclosure (S3) so the
         // screen opens at the everyday handful instead of the full wall of cards. Nothing is removed;
-        // the experimental probes, diagnostics and raw-capture export all stay one tap
-        // away. Mirrors the iOS SettingsView "Advanced" disclosure and the Test Centre Advanced group.
+        // Test Centre, the experimental screens, the probes, diagnostics and raw-capture export all stay
+        // one tap away. Mirrors the iOS SettingsView "Advanced" disclosure and the Test Centre Advanced group.
         SettingsDisclosureGroup(
             title = uiString(R.string.l10n_settings_screen_advanced_4d064726),
-            subtitle = "Experimental probes, diagnostics and raw-sensor export. Tucked away to keep the everyday screen tidy.",
+            subtitle = "Experiments, diagnostics and Test Centre",
             expanded = advancedOpen,
             onToggle = { advancedOpen = !advancedOpen; SettingsDisclosurePrefs.write(NoopPrefs.of(context), advancedOpen) },
         ) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.screenRowSpacing)) {
+        // --- Experiments and developer screens that left the More page ---
+        // Test Centre is the diagnostic home (#507/#509): tests, strap log, recalibrate, scheduled export
+        // and the experimental probes. One self-contained block, so a Settings layout change can move it
+        // whole.
+        NavLinkCard(
+            listOf(
+                NavLink(Destination.Rhythm),
+                NavLink(Destination.Intelligence),
+                NavLink(Destination.NoopLimitations, R.string.settings_row_strap_limitations),
+                NavLink(Destination.CoupledView),
+                NavLink(Destination.TestCentre),
+            ),
+            onOpen = { onOpenRoute(it.route) },
+        )
         // --- Experimental · WHOOP 5 / MG --- (hidden when the user is confidently on a 4.0, #22)
         // Developer-only 5/MG controls now live in Test Centre. Keep the implementation below during
         // the compatibility transition, but never render a second copy in everyday Settings.

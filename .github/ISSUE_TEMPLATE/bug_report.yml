@@ -138,7 +138,7 @@ body:
       label: Strap log
       description: >-
         Attach your exported .zip (drag it onto this box). Do NOT paste the whole log inline.
-        Use the in-app Report button: Settings, Test Centre, Report, which saves a redacted
+        Use the in-app Report button: Settings, Advanced, Test Centre, Report, which saves a redacted
         noop-<profile>-<platform>-v<version>.zip and opens this form for you.
         If you can't attach, paste only the last ~50 lines in a <details> block.
       render: text

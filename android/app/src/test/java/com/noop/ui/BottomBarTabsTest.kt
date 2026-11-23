@@ -7,7 +7,7 @@ import org.junit.Test
 /**
  * The bottom bar's tab set, and the one rule about it that nothing enforced (#2218).
  *
- * A destination listed both as a bar tab and in the More sheet would appear in two places at once.
+ * A destination listed both as a bar tab and on the More page would appear in two places at once.
  * That is not a thing a reader spots: the two lists sit four hundred lines apart and neither mentions
  * the other. It is exactly a thing a test spots.
  *
@@ -18,12 +18,12 @@ class BottomBarTabsTest {
 
     private val barTabs = barLeadingTabs + barTrailingTabs
 
-    /** The bar and the More sheet must be disjoint, which is the invariant the drawer's own note claims. */
+    /** The bar and the More page must be disjoint, which is the invariant the [moreCards] note claims. */
     @Test
     fun noBarTabIsAlsoListedInTheMoreSheet() {
-        val inDrawer = drawerGroups.flatMap { it.items }.toSet()
-        val both = barTabs.map { it.dest }.filter { it in inDrawer }
-        assertTrue("a bar tab must not also appear in the More sheet, found $both", both.isEmpty())
+        val onMore = moreCards.flatten().map { it.dest }.toSet()
+        val both = barTabs.map { it.dest }.filter { it in onMore }
+        assertTrue("a bar tab must not also appear on the More page, found $both", both.isEmpty())
     }
 
     /** Today, Metrics, Trends, Sleep, then More, which the bar appends itself. */

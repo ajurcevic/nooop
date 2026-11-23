@@ -112,6 +112,7 @@ fun HealthScreen(
     vm: AppViewModel,
     onVitalClick: (String) -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    onOpenVitalSigns: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val profile = remember { ProfileStore.from(context.applicationContext) }
@@ -158,6 +159,9 @@ fun HealthScreen(
     // surface canvas instead.
     val showDayCycleBackground = remember { NoopPrefs.showDayCycleBackground(context) }
     val skyBehindCards = remember { NoopPrefs.skyBehindCards(context) }
+    // Vital Signs left the More page, so Health carries its door: under the latest readings, and under the
+    // empty state while older days still have readings (the Vital Signs screen can step back a day or two).
+    val vitalSignsLink = listOf(NavLink(Destination.VitalSigns, R.string.health_vital_signs_row))
 
     LazyScreenScaffold(
         title = uiString(R.string.l10n_health_screen_health_monitor_c4abc3fc),
@@ -172,6 +176,9 @@ fun HealthScreen(
             item { SyncStatusSection(vm = vm, onSyncNow = { vm.syncNow() }) }
             item { Spacer(Modifier.height(Metrics.selectorTopUp)) }
             item { HealthEmptyState() }
+            if (days.isNotEmpty()) {
+                item { NavLinkCard(vitalSignsLink, onOpen = { onOpenVitalSigns() }) }
+            }
         } else {
             // Manual "Sync now" + honest sync status (#364) — the first section so the strap-history
             // control is reachable above the live hero. Mirrors HealthView.swift's top Sync section.
@@ -197,6 +204,7 @@ fun HealthScreen(
                     captionMode = VitalCaptionMode.AS_OF,
                 )
             }
+            item { NavLinkCard(vitalSignsLink, onOpen = { onOpenVitalSigns() }) }
             // FITNESS AGE — the weekly Saturday number from the engine (resting HR + activity vs your
             // age), with an honest readiness checklist behind a tap. Authoritative value comes from the
             // metricSeries the IntelligenceEngine writes; readiness is derived from what this screen sees.

@@ -238,7 +238,7 @@ private fun statOf(values: List<Double>): Stat {
 // MARK: - Screen
 
 @Composable
-fun TrendsExploreScreen(vm: AppViewModel) {
+fun TrendsExploreScreen(vm: AppViewModel, onOpenCompare: () -> Unit = {}) {
     // The Deep Timeline (#575) is presented INLINE from Explore , no NavHost route needed, so this stays
     // self-contained in the Explore entry-point file. System back / the in-screen reset returns here.
     var showDeepTimeline by remember { mutableStateOf(false) }
@@ -378,6 +378,11 @@ fun TrendsExploreScreen(vm: AppViewModel) {
     // conditional empty-state note uses `if (cond) { item {} }` so it adds no row when hidden. No standalone
     // Spacers here , the LazyColumn's `spacedBy(20.dp)` reproduces the eager column's row spacing exactly.
     LazyScreenScaffold(title = stringResource(R.string.nav_explore)) {
+
+        // Compare left the More page ("Explore and compare" opens this screen), so its door is the first row.
+        item {
+            NavLinkCard(listOf(NavLink(Destination.Compare, R.string.explore_compare_row)), onOpen = { onOpenCompare() })
+        }
 
         // The headline tap-through (#575): a full-day, full-resolution, zoomable timeline. Sits above the
         // per-metric catalog because it's a different kind of view , every second of one day, not one

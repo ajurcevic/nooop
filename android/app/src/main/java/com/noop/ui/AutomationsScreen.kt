@@ -60,11 +60,12 @@ import com.noop.analytics.ClockFormat
 
 /**
  * Automations — turn the strap's physical inputs (double-tap, wrist on/off) and live
- * biometrics into on-device actions and haptic coaching. HR-zone coaching, the smart alarm
- * and the illness watch are real + persisted (ViewModel-backed).
+ * biometrics into on-device actions and haptic coaching. HR-zone coaching and the illness
+ * watch are real + persisted (ViewModel-backed). The alarms live on their own screen, which
+ * the first row opens ([onOpenSmartAlarm]).
  */
 @Composable
-fun AutomationsScreen(viewModel: AppViewModel) {
+fun AutomationsScreen(viewModel: AppViewModel, onOpenSmartAlarm: () -> Unit = {}) {
     val live by viewModel.live.collectAsStateWithLifecycle()
 
     // Double-tap action (parity since 4.2.8) — real + persisted via the ViewModel (NoopPrefs). The
@@ -118,6 +119,11 @@ fun AutomationsScreen(viewModel: AppViewModel) {
     LazyScreenScaffold(
         title = uiString(R.string.l10n_automations_screen_automations_82542d6d),
     ) {
+        // The Alarms screen left the More page ("Alarms and automations" opens this screen), so its door
+        // is the first row.
+        item {
+            NavLinkCard(listOf(NavLink(Destination.SmartAlarm, R.string.automations_smart_alarm_row)), onOpen = { onOpenSmartAlarm() })
+        }
         // #haptics (#1115): per-event in-session haptic toggles, default ON (opt-out) — turn off any cue you
         // find noisy; the feature keeps working, just without that wrist buzz.
         item {

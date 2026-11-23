@@ -136,12 +136,17 @@
     <string name="push_endpoint_error_http_requires_local">Plain HTTP requires a numeric local or private IP address.</string>
     <string name="push_error_enqueue_failed">Push could not be queued.</string>
 
-    <!-- More-page section headers (DISPLAY only; the stored expand/collapse key stays the English
-         literal in MoreSectionPrefs so persistence and iOS parity are unaffected). -->
-    <string name="more_group_insights">Insights</string>
-    <string name="more_group_body">Body</string>
-    <string name="more_group_data">Data</string>
-    <string name="more_group_app">App</string>
+    <!-- More page rows whose label is not the screen's own title, and the in-screen links to the
+         screens the More page no longer lists. -->
+    <string name="more_row_live_heart_rate">Live heart rate</string>
+    <string name="more_row_explore_compare">Explore and compare</string>
+    <string name="more_row_import_backup">Import and backup</string>
+    <string name="more_row_alarms_automations">Alarms and automations</string>
+    <string name="explore_compare_row">Compare metrics</string>
+    <string name="data_sources_backup_row">Backup and sync</string>
+    <string name="automations_smart_alarm_row">Smart alarm</string>
+    <string name="health_vital_signs_row">All vital signs</string>
+    <string name="settings_row_strap_limitations">Strap limitations</string>
 
     <!-- Quick actions on the centre action button. -->
     <string name="action_live_hr">Live HR</string>
@@ -358,7 +363,6 @@
     <string name="l10n_add_device_wizard_whoop_5_0_mg_support_is_e452e686">WHOOP 5.0 / MG support is newer and still experimental in Zoop.</string>
     <string name="l10n_add_device_wizard_whoop_is_noop_s_primary_fully_ac6fa33b">WHOOP is Zoop\'s primary, fully-supported band. Other heart-rate straps stream live heart rate and HRV, but not WHOOP\'s deeper sleep and recovery data.</string>
     <string name="l10n_app_root_more_4bab2d8f">More</string>
-    <string name="l10n_app_root_moregroupchevron_b2b36ec6">moreGroupChevron</string>
     <string name="l10n_apple_health_screen_apple_health_b19b87da">Apple Health</string>
     <string name="l10n_apple_health_screen_no_readings_recorded_05018b26">No readings recorded.</string>
     <string name="l10n_apple_health_screen_nothing_imported_yet_f457cdbe">Nothing imported yet</string>
@@ -1477,7 +1481,6 @@
     <string name="l10n_settings_screen_motion_aware_wake_refinement_67a91e47">Motion-aware wake refinement</string>
     <string name="l10n_settings_screen_offer_a_breath_automatically_6c709dee">Offer a breath automatically</string>
     <string name="l10n_settings_screen_on_a_5_mg_connection_noop_4557c8f8">On a 5/MG connection Zoop will send a puffin realtime-stream request after the handshake, and log what comes back. If you have a 5/MG strap, turning this on and sharing your strap log helps map the protocol. No effect on WHOOP 4.0.</string>
-    <string name="l10n_settings_screen_open_test_centre_a7fbe4e9">Open Test Centre</string>
     <string name="l10n_settings_screen_overnight_only_05747985">Overnight only</string>
     <string name="l10n_settings_screen_profile_ff4fc027">Profile</string>
     <string name="l10n_settings_screen_profile_photo_33f385bb">Profile photo</string>
@@ -1516,7 +1519,6 @@
     <string name="l10n_settings_screen_strap_name_350de547">Strap name</string>
     <string name="l10n_settings_screen_stress_check_ins_haptic_bf2746ba">Stress check-ins (haptic)</string>
     <string name="l10n_settings_screen_temperature_0a9062a9">Temperature</string>
-    <string name="l10n_settings_screen_test_centre_37b36828">Test Centre</string>
     <string name="l10n_settings_screen_theme_a797e309">Theme</string>
     <string name="l10n_settings_screen_this_is_a_plain_unencrypted_archive_b0dfe63d">This is a plain, unencrypted archive — anyone who gets the file can open it with any zip tool. Store it somewhere you trust.</string>
     <string name="l10n_settings_screen_this_restarts_the_roughly_4_night_c610a93d">This restarts the roughly 4-night build-up for Charge and your HRV baseline. Your history stays. Use it if a bad first week, like wearing it while sick, set your baseline off.</string>
