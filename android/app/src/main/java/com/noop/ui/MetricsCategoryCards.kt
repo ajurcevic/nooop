@@ -133,7 +133,7 @@ internal data class MetricTileUi(
     val canExpand: Boolean get() = raw != null
 }
 
-/** The category card's title, shared with the Trends section cards. */
+/** The category card's title. */
 internal fun categoryTitle(category: MetricCategory): String = when (category) {
     MetricCategory.RECOVERY -> uiString(R.string.l10n_today_screen_recovery_ea924f72)
     MetricCategory.SLEEP -> uiString(R.string.l10n_today_screen_sleep_3cac34e6)
@@ -199,7 +199,7 @@ private fun MetricCategoryCard(
     }
 }
 
-/** A category's mint icon in its soft circle beside the title, shared by the Metrics and Trends cards. */
+/** A category's mint icon in its soft circle beside the title, at the top of each Metrics category card. */
 @Composable
 internal fun CategoryHeading(category: MetricCategory) {
     Row(
