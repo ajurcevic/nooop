@@ -295,6 +295,7 @@ class IntelligenceEngineJacocoBudgetTest {
             emptyList<DailyMetric>(),
             emptyList<DailyMetric>(),
             UserProfile(),
+            null, // maxHROverride: unset, so VO₂max takes the age estimate
             "strap-noop",
             "1970-01-01",
             diag,

@@ -271,6 +271,8 @@
     <string name="trends_max">Max</string>
     <string name="trends_calendar_footnote">Each bar is one day\'s Charge score, low to high. The 53-week calendar heat-grid is part of the desktop app.</string>
     <string name="trends_not_enough_data">Not enough data for this window.</string>
+    <string name="trends_cardio_fitness">Cardio fitness</string>
+    <string name="trends_vo2max_earlier_method">Earlier weeks used a different method, so they\'re left out.</string>
     <string name="trends_empty_title">Trends need history to draw</string>
     <string name="trends_empty_body">Trends need history to draw. Import your WHOOP export in Data Sources to see weeks, months and years instantly.</string>
 
