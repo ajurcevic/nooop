@@ -534,4 +534,52 @@ class TrendsInsightTest {
         assertEquals(epoch("2025-06-01"), model.axis.startDay)
         assertNull(model.charge.previousAverage)
     }
+
+    // MARK: - VO₂max
+
+    @Test
+    fun vo2MaxRun_keepsOnlyTheWeeksSinceTheMethodLastChanged() {
+        val run = vo2MaxCurrentMethodRun(
+            listOf(
+                Triple("2026-11-28", 47.0, "nes"),
+                Triple("2026-11-07", 44.0, "uth"),
+                Triple("2026-11-14", 44.5, "uth"),
+                Triple("2026-11-21", 46.5, "nes"),
+            ),
+        )
+        assertEquals(listOf("2026-11-21", "2026-11-28"), run.points.keys.toList())
+        assertEquals(47.0, run.points.getValue("2026-11-28"), 0.0)
+        assertTrue(run.droppedEarlier)
+    }
+
+    @Test
+    fun vo2MaxRun_oneMethodThroughoutKeepsEveryWeek() {
+        val readings = (0 until 4).map { Triple("2026-11-%02d".format(7 + 7 * it), 45.0 + it, "uth") }
+        val run = vo2MaxCurrentMethodRun(readings)
+        assertEquals(4, run.points.size)
+        assertFalse(run.droppedEarlier)
+    }
+
+    @Test
+    fun vo2MaxRun_anUnrecordedMethodNeverJoinsAKnownOne() {
+        val run = vo2MaxCurrentMethodRun(
+            listOf(Triple("2026-11-14", 44.0, null), Triple("2026-11-21", 45.0, "uth")),
+        )
+        assertEquals(listOf("2026-11-21"), run.points.keys.toList())
+        assertTrue(run.droppedEarlier)
+    }
+
+    @Test
+    fun vo2MaxRun_emptyIsEmpty() {
+        val run = vo2MaxCurrentMethodRun(emptyList())
+        assertTrue(run.points.isEmpty())
+        assertFalse(run.droppedEarlier)
+    }
+
+    @Test
+    fun periodModel_carriesTheVo2MaxWeeksInsideThePeriod() {
+        val series = noSeries.copy(vo2max = mapOf("2026-08-01" to 40.0, "2026-11-21" to 46.0, "2026-11-28" to 47.0))
+        val model = trendsPeriodModel(series, 30, end, preferDeviation = true)
+        assertEquals(listOf("2026-11-21" to 46.0, "2026-11-28" to 47.0), model.vo2max.points)
+    }
 }

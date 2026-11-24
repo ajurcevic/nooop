@@ -50,8 +50,8 @@ import kotlin.math.roundToInt
 //
 // The long view. One range control (1M / 3M / 6M / 1Y / All) with an info button at its end that explains the
 // numbers, then one summary card (Charge, Effort and Rest averaged over the period, each with a chip against the
-// same span just before it) and a card per chart under a plain title: Charge, Rest, Effort, Training load and
-// Body. The charts shade the owner's normal range. The maths lives in TrendsInsight.kt and the drawing in
+// same span just before it) and a card per chart under a plain title: Charge, Rest, Effort, Training load, Cardio fitness
+// and Body. The charts shade the owner's normal range. The maths lives in TrendsInsight.kt and the drawing in
 // TrendsCalmCards.kt.
 //
 // Data: full history is loaded once via repo.daysMerged; until it arrives the reactive recentDays flow backs
@@ -114,11 +114,22 @@ fun TrendsScreen(vm: AppViewModel) {
         }.getOrDefault(emptyMap())
     }
 
+    // Weekly VO₂max estimates with the method each one was computed with, cut to the current method's run.
+    var vo2Run by remember { mutableStateOf(Vo2MaxTrendRun(emptyMap(), droppedEarlier = false)) }
+    LaunchedEffect(days) {
+        vo2Run = runCatching {
+            val rows = vm.repo.metricSeriesComputedUnion(vm.activeStrapId, "vo2max_est", "0000-01-01", "9999-12-31")
+            vo2MaxCurrentMethodRun(
+                rows.map { Triple(it.day, it.value, vm.repo.scoreInputSource(it.deviceId, it.day, it.key)) },
+            )
+        }.getOrDefault(Vo2MaxTrendRun(emptyMap(), droppedEarlier = false))
+    }
+
     // The period ends on the logical day (the one the day rows are keyed by), refreshed with the data.
     // HOISTED above the lazy scaffold: remember can't run inside the LazyListScope content lambda.
     val today = remember(days) { logicalDayNow() }
     val histories = remember(days) { MetricHistories(days) }
-    val series = remember(histories, sleepPerfByDay, weightByDay) {
+    val series = remember(histories, sleepPerfByDay, weightByDay, vo2Run) {
         TrendsSeries(
             charge = histories.charge,
             hrv = histories.hrv,
@@ -128,6 +139,7 @@ fun TrendsScreen(vm: AppViewModel) {
             weight = weightByDay,
             skinDeviation = histories.skinDeviation,
             skinAbsolute = histories.skinAbsolute,
+            vo2max = vo2Run.points,
         )
     }
     val model = remember(series, range, today, preferSkinDeviation) {
@@ -256,6 +268,54 @@ fun TrendsScreen(vm: AppViewModel) {
             }
         }
 
+        // --- Cardio fitness: the weekly VO₂max beside resting HR, the input that moves it most. ---
+        val vo2 = model.vo2max
+        if (vo2.points.isNotEmpty()) {
+            item {
+                val restingHr = model.restingHr
+                TrendsSectionCard(
+                    title = uiString(R.string.trends_cardio_fitness),
+                    modifier = Modifier.staggeredAppear(index = 6),
+                ) {
+                    TrendMiniPair(
+                        left = vo2.points.last().let { (_, latest) ->
+                            TrendMiniUi(
+                                title = uiString(R.string.today_card_vo2max),
+                                value = trendsDecimal(latest),
+                                unit = TRENDS_VO2MAX_UNIT,
+                                valueColor = Palette.chargeColor,
+                                format = ::trendsDecimal,
+                                points = vo2.epochDays,
+                                band = vo2.band,
+                                lineColor = Palette.chargeColor,
+                                maxGapDays = TRENDS_VO2MAX_MAX_GAP_DAYS,
+                            )
+                        },
+                        right = restingHr.points.lastOrNull()?.let { (_, latest) ->
+                            TrendMiniUi(
+                                title = uiString(R.string.today_metric_resting_hr),
+                                value = trendsWhole(latest),
+                                unit = "bpm",
+                                valueColor = Palette.metricRose,
+                                format = ::trendsWhole,
+                                points = restingHr.epochDays,
+                                band = restingHr.band,
+                                lineColor = Palette.metricRose,
+                            )
+                        },
+                        axis = model.axis,
+                    )
+                    if (vo2Run.droppedEarlier) {
+                        Text(
+                            uiString(R.string.trends_vo2max_earlier_method),
+                            style = NoopType.footnote,
+                            color = Palette.textTertiary,
+                        )
+                    }
+                }
+            }
+        }
+
         // --- Body: weight and skin temperature with their latest readings, once either has been recorded. ---
         val weight = model.weight
         val skin = model.skin
@@ -268,7 +328,7 @@ fun TrendsScreen(vm: AppViewModel) {
                 val skinFormat: (Double) -> String = { SkinTempDisplay.numberString(it, skinKind, fahrenheit) }
                 TrendsSectionCard(
                     title = uiString(R.string.metrics_category_body),
-                    modifier = Modifier.staggeredAppear(index = 6),
+                    modifier = Modifier.staggeredAppear(index = 7),
                 ) {
                     TrendMiniPair(
                         left = weight.points.lastOrNull()?.let { (_, latest) ->
@@ -307,6 +367,12 @@ fun TrendsScreen(vm: AppViewModel) {
         TrendsMethodDialog(days = range.days, onDismiss = { showMethod = false })
     }
 }
+
+/** VO₂max is stored once a week, so its line bridges a missed week but breaks on a longer gap. */
+private const val TRENDS_VO2MAX_MAX_GAP_DAYS = 15
+
+/** The unit after a VO₂max reading. */
+private const val TRENDS_VO2MAX_UNIT = "ml/kg/min"
 
 /** Longest gap, in days, a weight sparkline bridges: weigh-ins are often days or weeks apart. */
 private const val TRENDS_WEIGHT_MAX_GAP_DAYS = 45

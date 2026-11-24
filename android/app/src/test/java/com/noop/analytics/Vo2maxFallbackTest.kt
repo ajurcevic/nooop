@@ -11,7 +11,7 @@ import kotlin.math.abs
 /**
  * #1391: VO₂max is offered even WITHOUT a waist. `fitnessAgeRows` persists `vo2max_est` = the Nes 2011
  * waist-based estimate when a waist is set, else falls back to the Uth 2004 HR-ratio estimate
- * (15.3·HRmax/RHR, HRmax = Tanaka(age)) — so a user past the age+RHR fitness-age gate gets a VO₂max
+ * (15.3·HRmax/RHR, HRmax = the Settings max-HR override, else Tanaka(age)) — so a user past the age+RHR fitness-age gate gets a VO₂max
  * instead of a blank. Twin of the Swift Vo2maxFallbackTests.
  */
 class Vo2maxFallbackTest {
@@ -28,6 +28,40 @@ class Vo2maxFallbackTest {
         assertNotNull("without a waist, VO₂max must still be offered via the Uth fallback", vo2)
         // Uth: 15.3 × Tanaka(40)=180 / RHR 60 = 45.9
         assertEquals(15.3 * StrainScorer.tanakaHRmax(40.0) / 60.0, vo2!!.value, 1e-6)
+    }
+
+    @Test
+    fun noWaist_usesTheSettingsMaxHrOverrideWhenSet() {
+        val profile = UserProfile(age = 40.0, sex = "male", waistCm = 0.0)
+        val rows = IntelligenceEngine.fitnessAgeRows(
+            gate(rhr = 60), profile, "my-whoop-noop", "2026-08-15", maxHROverride = 192.0,
+        )
+        // The owner's own max HR replaces the age guess: 15.3 × 192 / 60 = 48.96, not 15.3 × 180 / 60.
+        assertEquals(15.3 * 192.0 / 60.0, rows.first { it.key == "vo2max_est" }.value, 1e-6)
+    }
+
+    @Test
+    fun noWaist_unsetOverrideFallsBackToTheAgeEstimate() {
+        val profile = UserProfile(age = 40.0, sex = "male", waistCm = 0.0)
+        val tanaka = 15.3 * StrainScorer.tanakaHRmax(40.0) / 60.0
+        for (unset in listOf(null, 0.0)) {
+            val rows = IntelligenceEngine.fitnessAgeRows(
+                gate(rhr = 60), profile, "my-whoop-noop", "2026-08-15", maxHROverride = unset,
+            )
+            assertEquals("override $unset must read as unset", tanaka, rows.first { it.key == "vo2max_est" }.value, 1e-6)
+        }
+    }
+
+    @Test
+    fun waistSet_maxHrOverrideDoesNotMoveTheNesEstimate() {
+        // Nes 2011 has no max-HR term, so the override must leave the waist-based value alone.
+        val withWaist = UserProfile(age = 40.0, sex = "male", waistCm = 90.0)
+        val plain = IntelligenceEngine.fitnessAgeRows(gate(60), withWaist, "my-whoop-noop", "2026-08-15")
+            .first { it.key == "vo2max_est" }.value
+        val overridden = IntelligenceEngine.fitnessAgeRows(
+            gate(60), withWaist, "my-whoop-noop", "2026-08-15", maxHROverride = 192.0,
+        ).first { it.key == "vo2max_est" }.value
+        assertEquals(plain, overridden, 1e-9)
     }
 
     @Test

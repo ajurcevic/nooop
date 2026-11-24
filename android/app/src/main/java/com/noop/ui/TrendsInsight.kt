@@ -342,6 +342,8 @@ internal data class TrendsSeries(
     val weight: Map<String, Double>,
     val skinDeviation: Map<String, Double>,
     val skinAbsolute: Map<String, Double>,
+    /** Weekly VO₂max estimates, already cut to the current estimation method by [vo2MaxCurrentMethodRun]. */
+    val vo2max: Map<String, Double> = emptyMap(),
 )
 
 /** Every metric over one Trends period, worked out once per range or data change. */
@@ -358,6 +360,7 @@ internal class TrendsPeriodModel(
     val rest: TrendPeriodStats,
     val weight: TrendPeriodStats,
     val skin: TrendPeriodStats,
+    val vo2max: TrendPeriodStats,
     /** Whether [skin] holds deviations from the nightly baseline rather than absolute temperatures. */
     val skinIsDeviation: Boolean,
 )
@@ -376,12 +379,13 @@ internal fun trendsPeriodModel(series: TrendsSeries, days: Int?, endDay: LocalDa
     val weight = trendPeriodStats(series.weight, endDay, days)
     val deviation = trendPeriodStats(series.skinDeviation, endDay, days)
     val absolute = trendPeriodStats(series.skinAbsolute, endDay, days)
+    val vo2max = trendPeriodStats(series.vo2max, endDay, days)
     val skinIsDeviation = when {
         deviation.points.isEmpty() -> false
         absolute.points.isEmpty() -> true
         else -> preferDeviation
     }
-    val earliest = listOf(charge, hrv, restingHr, effort, rest, weight, deviation, absolute)
+    val earliest = listOf(charge, hrv, restingHr, effort, rest, weight, deviation, absolute, vo2max)
         .mapNotNull { it.points.firstOrNull()?.first }
         .minOrNull()
         ?.let(::parseDay)
@@ -397,7 +401,30 @@ internal fun trendsPeriodModel(series: TrendsSeries, days: Int?, endDay: LocalDa
         rest = rest,
         weight = weight,
         skin = if (skinIsDeviation) deviation else absolute,
+        vo2max = vo2max,
         skinIsDeviation = skinIsDeviation,
+    )
+}
+
+/** The VO₂max weeks Trends plots: the newest run that shares one estimation method, and whether older weeks were cut. */
+internal data class Vo2MaxTrendRun(
+    val points: Map<String, Double>,
+    val droppedEarlier: Boolean,
+)
+
+/**
+ * The newest unbroken run of VO₂max [readings] (day, value, estimator id) that share the latest reading's
+ * estimator. The two estimators (Nes with a waist, Uth without) can sit several ml/kg/min apart for the same
+ * person, so a line joining them would show a jump that is a method change, not a fitness change. A missing
+ * id is its own group: an unrecorded method is never assumed to match a known one.
+ */
+internal fun vo2MaxCurrentMethodRun(readings: List<Triple<String, Double, String?>>): Vo2MaxTrendRun {
+    val sorted = readings.sortedBy { it.first }
+    val current = sorted.lastOrNull() ?: return Vo2MaxTrendRun(emptyMap(), droppedEarlier = false)
+    val run = sorted.takeLastWhile { it.third == current.third }
+    return Vo2MaxTrendRun(
+        points = run.associateTo(LinkedHashMap()) { it.first to it.second },
+        droppedEarlier = run.size < sorted.size,
     )
 }
 

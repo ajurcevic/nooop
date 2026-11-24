@@ -2210,7 +2210,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun refreshFitnessAgeNow(onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             val wrote = runCatching {
-                IntelligenceEngine.recomputeFitnessAgeOnly(repository, currentProfile(), deviceId)
+                IntelligenceEngine.recomputeFitnessAgeOnly(
+                    repository, currentProfile(), deviceId,
+                    maxHROverride = profileStore.hrMaxOverride.takeIf { it > 0 }?.toDouble(),
+                )
             }.getOrDefault(false)
             onResult(wrote)
         }

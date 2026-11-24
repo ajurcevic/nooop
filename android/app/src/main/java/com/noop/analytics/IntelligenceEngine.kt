@@ -2094,6 +2094,7 @@ object IntelligenceEngine {
             dailies = dailies,
             faPriorDaily = faPriorDaily,
             profile = profile,
+            maxHROverride = maxHROverride,
             computedId = computedId,
             newestDay = newestDay,
             diag = diag,
@@ -2228,6 +2229,7 @@ object IntelligenceEngine {
         dailies: List<DailyMetric>,
         faPriorDaily: List<DailyMetric>,
         profile: UserProfile,
+        maxHROverride: Double?,
         computedId: String,
         newestDay: String,
         diag: (String) -> Unit,
@@ -2258,7 +2260,7 @@ object IntelligenceEngine {
         for (d in faPriorDaily) faGateByDay[d.day] = d
         for (d in dailies) faGateByDay[d.day] = d
         val faGate7 = faGateByDay.values.sortedBy { it.day }.takeLast(7)
-        val faPts = fitnessAgeRows(faGate7, profile, computedId, saturdayKeyOnOrBefore(newestDay))
+        val faPts = fitnessAgeRows(faGate7, profile, computedId, saturdayKeyOnOrBefore(newestDay), maxHROverride)
         // Strap-log proof: the RHR-night count the engine sees for the gate , should equal the "N of last 7
         // nights" the readiness card shows; `computed` says whether the value was (re)written this pass.
         diag("fitnessAge gate day=$newestDay rhrNights=${faGate7.mapNotNull { it.restingHr }.size} activityDays=${faGate7.mapNotNull { it.strain }.size} computed=${faPts.isNotEmpty()}")
@@ -2836,6 +2838,7 @@ object IntelligenceEngine {
      *  Fitness Age" button so the two can never drift. */
     fun fitnessAgeRows(
         gateDays: List<DailyMetric>, profile: UserProfile, computedId: String, satKey: String,
+        maxHROverride: Double? = null,
     ): List<MetricSeriesRow> {
         val rhrs = gateDays.mapNotNull { it.restingHr }.map { it.toDouble() }
         val strains = gateDays.mapNotNull { it.strain }.filter { it >= 30.0 }
@@ -2855,16 +2858,21 @@ object IntelligenceEngine {
         // #1391: offer a VO₂max even without a waist. res.vo2max is the Nes 2011 waist-based estimate (null
         // when no waist is set). Fall back to the Uth 2004 HR-ratio estimate (15.3·HRmax/RHR — waist-free,
         // the SAME formula the calorie path already uses), so any user past the age+RHR fitness-age gate gets
-        // a (rougher) VO₂max instead of a blank. HRmax via the shared Tanaka estimator (no HR history here →
-        // age-predicted); RHR = the same median the Nes value used. Both persist under "vo2max_est"; the card
-        // labels it "Estimated". Mirrors the Swift twin.
-        val vo2: Double? = res.vo2max ?: run {
-            val hrmax: Double = StrainScorer.estimateHRmax(emptyList<Double>(), profile.age).first
-            Calories.vo2maxFor(hrmax, medianOfDoubles(rhrs))
-        }
+        // a (rougher) VO₂max instead of a blank. RHR = the same median the Nes value used. Both persist under
+        // "vo2max_est"; the card labels it "Estimated".
+        val vo2: Double? = res.vo2max ?: Calories.vo2maxFor(
+            vo2MaxHRmax(maxHROverride, profile.age), medianOfDoubles(rhrs),
+        )
         if (vo2 != null) rows.add(MetricSeriesRow(deviceId = computedId, day = satKey, key = "vo2max_est", value = vo2))
         return rows
     }
+
+    /** The HRmax the Uth VO₂max fallback divides by: the owner's Settings override when set (> 0), else the
+     *  age-predicted Tanaka value. The same rule as `ProfileStore.hrMax`, the max HR the zones and the
+     *  Settings row show, so the VO₂max moves when the owner corrects their max HR instead of ignoring it.
+     *  There is no raw HR history at this point, so an observed peak is not considered here. */
+    fun vo2MaxHRmax(maxHROverride: Double?, age: Double): Double =
+        maxHROverride?.takeIf { it > 0.0 } ?: StrainScorer.estimateHRmax(emptyList<Double>(), age).first
 
     /** Method metadata for a newly computed VO₂max point. Empty when [rows] contains no VO₂max value.
      *  Method selection is captured at compute time; UI readers must never reconstruct it from today's
@@ -2889,6 +2897,7 @@ object IntelligenceEngine {
      *  strap is offline. Returns true if a value was written. */
     suspend fun recomputeFitnessAgeOnly(
         repo: WhoopRepository, profile: UserProfile, importedDeviceId: String, maxDays: Int = 21,
+        maxHROverride: Double? = null,
     ): Boolean {
         val computedId = importedDeviceId + "-noop"
         val nowSeconds = System.currentTimeMillis() / 1_000L
@@ -2898,7 +2907,7 @@ object IntelligenceEngine {
         val oldestDay = AnalyticsEngine.dayString(nowLocalMidnight - (maxDays - 1) * SECONDS_PER_DAY, tzOffsetSeconds)
         val gate7 = repo.daysMerged(importedDeviceId)
             .filter { it.day in oldestDay..newestDay }.sortedBy { it.day }.takeLast(7)
-        val rows = fitnessAgeRows(gate7, profile, computedId, saturdayKeyOnOrBefore(newestDay))
+        val rows = fitnessAgeRows(gate7, profile, computedId, saturdayKeyOnOrBefore(newestDay), maxHROverride)
         if (rows.isNotEmpty()) {
             repo.upsertMetricSeriesWithProvenance(
                 rows = rows,

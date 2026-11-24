@@ -497,10 +497,13 @@ private fun dashboardCardTint(card: DashboardCard): Color = when (card) {
     DashboardCard.COUPLED -> Palette.chargeColor
 }
 
+/** The VO₂max a full mini-ring stands for (ml/kg/min). */
+internal const val VO2MAX_RING_CEILING = 70.0
+
 /**
  * A dashboard card's mini-ring fill fraction (0..1), or null for an empty (no-reading) ring. Mirrors the
  * iOS `liquidCard` `frac:` argument exactly, per card:
- *   Stress = stress/3 · Fitness age = 0.5 (fixed) · Vitality = vitality/100 · HRV = avgHrv/120 ·
+ *   Stress = stress/3 · Fitness age = 0.5 (fixed) · VO₂max = vo2max/70 · Vitality = vitality/100 · HRV = avgHrv/120 ·
  *   Resting HR = restingHr/100 · Respiratory = respRate/24 · Steps = steps/10000 · Sleep = totalSleepMin/480 ·
  *   Coupled = 0.6 (fixed) · Blood oxygen / Skin temp / Calories / Hydration = null (empty, not half-full).
  * The three overnight vitals (HRV / Resting HR / Respiratory) read PER-FIELD today-first with the
@@ -527,7 +530,9 @@ private fun dashboardCardFraction(
     return when (card) {
         DashboardCard.STRESS -> over(stress, 3.0)
         DashboardCard.FITNESS_AGE -> if (fitnessAge != null) 0.5 else null
-        DashboardCard.VO2MAX -> if (vo2max != null) 0.5 else null
+        // Filled against a fixed 70 ml/kg/min ceiling (the top of the range these estimators produce), so a
+        // fitter reading fills more of the ring. It used to be a flat half, which said nothing.
+        DashboardCard.VO2MAX -> over(vo2max, VO2MAX_RING_CEILING)
         DashboardCard.VITALITY -> over(vitality, 100.0)
         DashboardCard.HRV -> over(day?.avgHrv ?: vitalsDay?.avgHrv, 120.0)
         DashboardCard.RESTING_HR -> over((day?.restingHr ?: vitalsDay?.restingHr)?.toDouble(), 100.0)
