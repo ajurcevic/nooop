@@ -201,15 +201,17 @@ fun SleepScreen(
     // #1680: the body-clock phase behind the 24 h dial section. Same snapshot the Health screen reads for
     // BodyClockCard, so the two surfaces cannot disagree about the estimate.
     val v5Signals by vm.v5Signals.collectAsStateWithLifecycle()
-    // Tonight's bedtime from the next phone-alarm wake and the SAME personal need the sleep tiles read. Only
-    // while the phone alarm is on, the one wake time the app actually knows. The hero names it in one short
+    // Tonight's bedtime from the next alarm wake and the SAME personal need the sleep tiles read. Only
+    // while the alarm is on, the one wake time the app actually knows. The hero names it in one short
     // line, and only while that bedtime is honestly tonight's (bedtimeIsTonight); the full sentence is kept
     // for the empty state's Alarms entry, where no hero is drawn. One fact, shown once.
-    val phoneAlarmOn by vm.phoneAlarmEnabled.collectAsStateWithLifecycle()
-    val alarmTarget by vm.phoneAlarmTargetMinutes.collectAsStateWithLifecycle()
-    val alarmWindow by vm.phoneAlarmWindowMinutes.collectAsStateWithLifecycle()
-    val alarmWeekdays by vm.phoneAlarmWeekdays.collectAsStateWithLifecycle()
-    val alarmOverrides by vm.phoneAlarmDayOverrides.collectAsStateWithLifecycle()
+    // That alarm is the strap alarm, the one the Alarms page sets. It has no window, so its wake time is the
+    // deadline itself (window 0) and the shared resolver lands on the instant the strap is armed for.
+    val alarmOn by vm.smartAlarmEnabled.collectAsStateWithLifecycle()
+    val alarmTarget by vm.smartAlarmMinutes.collectAsStateWithLifecycle()
+    val alarmWindow = 0
+    val alarmWeekdays by vm.smartAlarmWeekdays.collectAsStateWithLifecycle()
+    val alarmOverrides by vm.smartAlarmDayOverrides.collectAsStateWithLifecycle()
     val bedtimeIs24h = ClockPrefs.uses24Hour(LocalContext.current)
     // "Tonight" is a claim about the clock, so re-run the plan when the screen comes back into view and every
     // 15 minutes while it stays there, not only when an input changes.
@@ -224,9 +226,9 @@ fun SleepScreen(
         }
     }
     val bedtimePlan = remember(
-        phoneAlarmOn, alarmTarget, alarmWindow, alarmWeekdays, alarmOverrides, days, bedtimeIs24h, bedtimeClockTick,
+        alarmOn, alarmTarget, alarmWindow, alarmWeekdays, alarmOverrides, days, bedtimeIs24h, bedtimeClockTick,
     ) {
-        if (!phoneAlarmOn) {
+        if (!alarmOn) {
             null
         } else {
             val now = Calendar.getInstance()

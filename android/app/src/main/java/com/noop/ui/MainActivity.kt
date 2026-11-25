@@ -701,6 +701,31 @@ object NoopPrefs {
         of(context).edit().putBoolean(KEY_BUZZ_WHOOP4_WITH_ALARM, enabled).apply()
     }
 
+    /** "Buzz again after 5 min" on the strap alarm ([AlarmRebuzz]). Default ON: it was asked for as part
+     *  of the alarm itself, and it only acts when the strap alarm is on. */
+    const val KEY_ALARM_REBUZZ = "noop.alarmRebuzz"
+    fun alarmRebuzz(context: Context): Boolean = of(context).getBoolean(KEY_ALARM_REBUZZ, true)
+    fun setAlarmRebuzz(context: Context, enabled: Boolean) {
+        of(context).edit().putBoolean(KEY_ALARM_REBUZZ, enabled).apply()
+    }
+
+    /** Epoch seconds of the pending second buzz, 0 when none. Persisted so a reconcile after a restart
+     *  keeps the second buzz instead of jumping straight to the next morning. */
+    const val KEY_ALARM_REBUZZ_AT = "noop.alarmRebuzzAtSec"
+    fun alarmRebuzzAtSec(context: Context): Long = of(context).getLong(KEY_ALARM_REBUZZ_AT, 0L)
+    fun setAlarmRebuzzAtSec(context: Context, epochSec: Long) {
+        of(context).edit().putLong(KEY_ALARM_REBUZZ_AT, epochSec).apply()
+    }
+
+    /** Set once the Alarms page became strap-only: the phone wake alarm, the "Buzz WHOOP" companion and
+     *  the wind-down reminder were switched off and a companion schedule moved onto the strap alarm. */
+    const val KEY_ALARMS_STRAP_ONLY_MIGRATED = "noop.alarmsStrapOnlyMigrated"
+    fun alarmsStrapOnlyMigrated(context: Context): Boolean =
+        of(context).getBoolean(KEY_ALARMS_STRAP_ONLY_MIGRATED, false)
+    fun setAlarmsStrapOnlyMigrated(context: Context) {
+        of(context).edit().putBoolean(KEY_ALARMS_STRAP_ONLY_MIGRATED, true).apply()
+    }
+
     /** Launcher-icon preference (v3 "Titanium & Gold"). false = machined-titanium (.IconDefault,
      *  the default); true = blued/dark-blue titanium (.IconNavy). The actual swap is done by
      *  enabling exactly one of the two <activity-alias> entries via PackageManager, this bool just
