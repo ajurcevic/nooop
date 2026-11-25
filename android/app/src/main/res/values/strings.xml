@@ -1611,7 +1611,6 @@
     <string name="l10n_today_screen_latest_bpm_e7bec767">%1$s bpm</string>
     <string name="l10n_today_screen_move_item_metric_title_down_890afe60">Move %1$s down</string>
     <string name="l10n_today_screen_move_item_metric_title_up_52d2104c">Move %1$s up</string>
-    <string name="l10n_today_screen_new_data_added_e59345b4">New data added</string>
     <string name="l10n_today_screen_no_cardio_load_yet_effort_builds_e952006c">No cardio load yet. Effort builds once your heart rate climbs into your effort zone (around 50% of your heart-rate reserve). A calm day honestly reads near zero.</string>
     <string name="l10n_today_screen_pct_ee63e247">%1$s%%</string>
     <string name="l10n_today_screen_profile_and_settings_9b3d12f2">Profile and settings</string>
@@ -2339,10 +2338,6 @@
     <plurals name="today_strap_days_left">
         <item quantity="one">~%1$d day left</item>
         <item quantity="other">~%1$d days left</item>
-    </plurals>
-    <plurals name="today_new_history_ready">
-        <item quantity="one">%1$d new day of history is ready in Trends.</item>
-        <item quantity="other">%1$d new days of history are ready in Trends.</item>
     </plurals>
     <plurals name="today_hr_a11y_workouts_marked">
         <item quantity="one">%1$d workout marked</item>
