@@ -48,8 +48,38 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleFullDebug
 
+      # Robolectric fetches its Android SDK jar (android-all-instrumented, about 200 MB) from Maven
+      # Central at test time, into ~/.m2, outside the Gradle cache. Maven Central now refuses repeat
+      # downloads of these jars per IP with HTTP 429, and runner IPs are shared, so an uncached run can
+      # fail WhoopDatabaseUpgradeTest in MavenArtifactFetcher. Keep the jar in an Actions cache instead.
+      # Robolectric checks each jar's SHA-512 before it lands in ~/.m2, so a cached jar is a verified one.
+      - name: Restore Robolectric SDK jars
+        id: robolectric-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository/org/robolectric/android-all-instrumented
+          key: robolectric-android-all-${{ hashFiles('android/app/gradle.lockfile') }}
+          restore-keys: robolectric-android-all-
+
       - name: Run unit tests
         run: ./gradlew testFullDebugUnitTest
+
+      # Saved even when a test fails, so a run that did download the jar spares the next one. Skipped
+      # when nothing was downloaded: the cache action rejects a path that does not exist.
+      - name: Check for downloaded Robolectric SDK jars
+        id: robolectric-jars
+        if: always() && steps.robolectric-cache.outputs.cache-hit != 'true'
+        run: |
+          if find ~/.m2/repository/org/robolectric/android-all-instrumented -name '*.jar' 2>/dev/null | grep -q .; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Save Robolectric SDK jars
+        if: always() && steps.robolectric-jars.outputs.present == 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.m2/repository/org/robolectric/android-all-instrumented
+          key: robolectric-android-all-${{ hashFiles('android/app/gradle.lockfile') }}
 
       # On a failed run, keep the evidence: per-test output (including what a test printed) and Room's
       # schema export from this build, which a schema-format change has to be compared against.
