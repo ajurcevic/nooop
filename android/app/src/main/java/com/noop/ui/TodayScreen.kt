@@ -686,35 +686,6 @@ fun TodayScreen(
         }
     }
 
-    // Announce NEW history to the inbox only when the NEWEST day-key (max yyyy-MM-dd) moves strictly
-    // forward, not on a count change (#521). A background recompute rebuilds the window via
-    // delete-then-reinsert, so the count momentarily dips and recovers while the newest key is unchanged
-    //, keying off the count mistook that churn for new history and re-posted "New data added" on a
-    // loop. The baseline is PERSISTED in SharedPreferences (not `remember`), so a relaunch over the same
-    // history never re-announces. Empty baseline = first sight → record silently, never announce
-    // historical data. The "added" count is the distinct days strictly above the old watermark, real,
-    // never fabricated. Deep-links to Trends. Mirrors the Swift `announceNewDaysIfNeeded`.
-    LaunchedEffect(days, updateStore) {
-        val store = updateStore ?: return@LaunchedEffect
-        val newestKey = days.maxOfOrNull { it.day } ?: return@LaunchedEffect   // no history yet
-        val previousKey = NewDataWatermark.lastAnnouncedKey(context)
-        NewDataWatermark.setLastAnnouncedKey(context, newestKey)
-        if (previousKey.isEmpty()) return@LaunchedEffect            // first sight → silent baseline
-        if (newestKey <= previousKey) return@LaunchedEffect         // recompute churn, not new history
-        val added = days.map { it.day }.toSet().count { it > previousKey }
-        if (added <= 0) return@LaunchedEffect
-        store.post(
-            UpdateItem(
-                kind = UpdateKind.READING,
-                title = uiString(R.string.l10n_today_screen_new_data_added_e59345b4),
-                message = context.resources.getQuantityString(
-                    R.plurals.today_new_history_ready, added, added,
-                ),
-                deepLink = "trends",
-            ),
-        )
-    }
-
     // The newest Apple Health / Health Connect body weight, loaded off the main thread. Null until the
     // load runs or when neither source carries a weight, the Weight tile then falls back to the profile.
     // With "Use weight from Health Connect" ON it reads Health Connect only, the source the profile holds.

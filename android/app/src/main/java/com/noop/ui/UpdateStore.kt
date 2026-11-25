@@ -114,31 +114,6 @@ object TodayCardDismissal {
     }
 }
 
-// MARK: - New-data watermark (shared, #521)
-//
-// The persisted NEWEST day-key (max yyyy-MM-dd in the merged history) the Today inbox has already
-// announced as "New data added". TodayScreen compares the live newest key against this watermark and
-// only posts when it moves STRICTLY forward — so a background recompute's delete-then-reinsert churn
-// (which dips/recovers the row COUNT but not the newest key) never re-announces, and a relaunch over
-// the same history stays silent. Persisted (not Compose `remember`) so it survives process death,
-// mirroring the Swift `@AppStorage("today.lastAnnouncedDayKey")`.
-object NewDataWatermark {
-    private const val FILE = "noop_today_newdata"
-    private const val KEY_NEWEST = "today.lastAnnouncedDayKey"
-
-    private fun prefs(ctx: Context): SharedPreferences =
-        ctx.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
-
-    /** The last newest day-key announced, or "" when no baseline exists yet (first ever load). */
-    fun lastAnnouncedKey(ctx: Context): String =
-        prefs(ctx).getString(KEY_NEWEST, "").orEmpty()
-
-    /** Record [key] as the newest day-key seen, so only a strictly-greater key fires a future announce. */
-    fun setLastAnnouncedKey(ctx: Context, key: String) {
-        prefs(ctx).edit().putString(KEY_NEWEST, key).apply()
-    }
-}
-
 // MARK: - UpdateStore
 //
 // The bell's backing store: a single-user, on-device inbox of [UpdateItem]s persisted as a JSON array
@@ -295,7 +270,9 @@ class UpdateStore private constructor(private val prefs: SharedPreferences) {
         val arr = runCatching { JSONArray(raw) }.getOrNull() ?: return
         for (i in 0 until arr.length()) {
             val o = arr.optJSONObject(i) ?: continue
-            items.add(UpdateItem.fromJson(o))
+            val item = UpdateItem.fromJson(o)
+            if (isRetiredNewDataRow(item)) continue
+            items.add(item)
         }
     }
 
@@ -313,6 +290,14 @@ class UpdateStore private constructor(private val prefs: SharedPreferences) {
         /** Deep-link key a What's New row routes to (#984). `AppRoot`'s `onDeepLink` maps it to the
          *  changelog sheet; any key it does not know is ignored, so this must stay in step with it. */
         const val WHATS_NEW_DEEP_LINK = "whatsNew"
+
+        /**
+         * A "New data added" row from older builds, which posted one each time a newer day of history
+         * landed. That announcement was removed, and these rows are dropped on load so they leave the
+         * inbox too. Nothing else posted a [UpdateKind.READING] row with the "trends" deep link.
+         */
+        fun isRetiredNewDataRow(item: UpdateItem): Boolean =
+            item.kind == UpdateKind.READING && item.deepLink == "trends"
 
         /**
          * What a tap on [item] should open, or null when the row is purely informational (#984).
