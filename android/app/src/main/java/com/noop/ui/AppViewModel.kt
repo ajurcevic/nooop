@@ -512,6 +512,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // the default time. Declared above init for the same #84 reason. Empty = no overrides (pre-#554).
     private val _smartAlarmDayOverrides = MutableStateFlow(NoopPrefs.smartAlarmDayOverrides(appContext))
     val smartAlarmDayOverrides: StateFlow<Map<Int, Int>> = _smartAlarmDayOverrides.asStateFlow()
+    // "Buzz again after 5 min" ([AlarmRebuzz]). Declared above init with the other _smartAlarm* fields,
+    // because the init bond collector runs reconcileStrapAlarm, which reads it (#84).
+    private val _alarmRebuzzEnabled = MutableStateFlow(NoopPrefs.alarmRebuzz(appContext))
+    val alarmRebuzzEnabled: StateFlow<Boolean> = _alarmRebuzzEnabled.asStateFlow()
 
     // HR-zone haptic coaching (persisted; zone-based, mirrors macOS AppModel.coachZone). Buzzes when you
     // climb into the top zone (ease off) and — if the recovery buzz is on — when you drop back to Zone 1.
@@ -792,7 +796,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         refreshActiveDeviceName()
         // #577 — surface the strap's smart-alarm wake as a local notification too (iOS AppModel.postSmartAlarm
         // twin), so a pocketed phone doesn't miss the wrist buzz. Self-gates on the wrist-alerts master.
-        ble.onSmartAlarmFired = { com.noop.notif.SmartAlarmNotifier.onFired(appContext) }
+        // The Alarms page is strap-only now: switch off what it no longer shows, once, before the bond
+        // collector below can reconcile the strap slot.
+        migrateToStrapOnlyAlarms()
+        ble.onSmartAlarmFired = {
+            com.noop.notif.SmartAlarmNotifier.onFired(appContext)
+            // Called on the BLE thread; the rebuzz bookkeeping and the re-arm belong on Main.
+            viewModelScope.launch { onStrapAlarmFired() }
+        }
         // Smooth HR from each LiveState emission, and re-arm the strap's firmware alarm whenever it
         // (re)bonds. A smart-alarm time changed while the strap was away never reached it — the send
         // is gated on bond — so the strap kept the OLD time and fired at it (#59). Gated on enabled so
@@ -2227,7 +2238,75 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setSmartAlarmEnabled(enabled: Boolean) {
         _smartAlarmEnabled.value = enabled
         NoopPrefs.setSmartAlarmEnabled(appContext, enabled)
+        if (!enabled) NoopPrefs.setAlarmRebuzzAtSec(appContext, 0L)
         reconcileStrapAlarm()
+    }
+
+    /** Turn "Buzz again after 5 min" on or off. Off also drops a second buzz that is already pending. */
+    fun setAlarmRebuzzEnabled(enabled: Boolean) {
+        _alarmRebuzzEnabled.value = enabled
+        NoopPrefs.setAlarmRebuzz(appContext, enabled)
+        if (!enabled) NoopPrefs.setAlarmRebuzzAtSec(appContext, 0L)
+        reconcileStrapAlarm()
+    }
+
+    /**
+     * The strap reported a live alarm fire. Records or clears the second buzz ([AlarmRebuzz]) and then
+     * reconciles, which arms the second buzz while it is pending and otherwise the next scheduled
+     * morning. The reconcile also covers the plain re-arm the firmware's one-shot slot needs after it
+     * fires, which before this only happened on the next bond edge or daily tick.
+     */
+    private fun onStrapAlarmFired() {
+        val nowSec = System.currentTimeMillis() / 1000L
+        val pending = AlarmRebuzz.pendingAfterFire(
+            nowSec = nowSec,
+            pendingSec = NoopPrefs.alarmRebuzzAtSec(appContext),
+            enabled = _smartAlarmEnabled.value && _alarmRebuzzEnabled.value,
+        )
+        NoopPrefs.setAlarmRebuzzAtSec(appContext, pending)
+        reconcileStrapAlarm()
+    }
+
+    /**
+     * One-time switch to a strap-only Alarms page. The page no longer shows the phone wake alarm, the
+     * "Buzz WHOOP" companion or the wind-down reminder, so anything left on there would keep running with
+     * no control to stop it. A companion schedule moves onto the strap alarm first, so whoever relied on
+     * the companion for their strap buzz keeps the same times and days. Writes prefs and flows directly
+     * rather than through the setters: this runs before any strap is connected, and the bond-edge
+     * reconcile arms the slot from the result.
+     */
+    private fun migrateToStrapOnlyAlarms() {
+        if (NoopPrefs.alarmsStrapOnlyMigrated(appContext)) return
+        runCatching {
+            if (_buzzWhoop4Enabled.value) {
+                if (!_smartAlarmEnabled.value) {
+                    val minutes = phoneAlarmStore.targetMinutes
+                    val days = phoneAlarmStore.weekdays
+                    val overrides = phoneAlarmStore.targetOverrides
+                    NoopPrefs.setSmartAlarmMinutes(appContext, minutes)
+                    NoopPrefs.setSmartAlarmWeekdays(appContext, days)
+                    NoopPrefs.setSmartAlarmDayOverrides(appContext, overrides)
+                    NoopPrefs.setSmartAlarmEnabled(appContext, true)
+                    _smartAlarmMinutes.value = minutes
+                    _smartAlarmWeekdays.value = days
+                    _smartAlarmDayOverrides.value = overrides
+                    _smartAlarmEnabled.value = true
+                }
+                NoopPrefs.setBuzzWhoop4WithAlarm(appContext, false)
+                _buzzWhoop4Enabled.value = false
+            }
+            if (phoneAlarmStore.enabled) {
+                phoneAlarmStore.enabled = false
+                _phoneAlarmEnabled.value = false
+                SmartAlarmScheduler.cancel(appContext, phoneAlarmStore)
+            }
+            if (windDownStore.enabled) {
+                windDownStore.enabled = false
+                _windDownEnabled.value = false
+                WindDownScheduler.cancel(appContext)
+            }
+        }
+        NoopPrefs.setAlarmsStrapOnlyMigrated(appContext)
     }
 
     fun setSmartAlarmMinutes(minutes: Int) {
@@ -2564,7 +2643,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             )
         } else null
 
-        val epochSec = earliestStrapAlarmEpochSec(smartEpoch, buzzEpoch)
+        // A pending "buzz again" holds the slot until it has fired; it only exists while the alarm is on.
+        val rebuzzAt = if (_smartAlarmEnabled.value && _alarmRebuzzEnabled.value) {
+            NoopPrefs.alarmRebuzzAtSec(appContext)
+        } else 0L
+        val epochSec = AlarmRebuzz.strapTarget(
+            scheduledSec = earliestStrapAlarmEpochSec(smartEpoch, buzzEpoch),
+            pendingSec = rebuzzAt,
+            nowSec = System.currentTimeMillis() / 1000L,
+        )
         if (epochSec == null) {
             // Neither feature wants the slot (both off, or the smart set is corrupted), so disarm. Mirrors
             // macOS's disarm-rather-than-arm-a-misleading-time stance.
